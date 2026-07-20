@@ -1,0 +1,718 @@
+{
+  "users": [
+    {
+      "id": "1",
+      "username": "74223117",
+      "name": "Administrador Principal",
+      "role": "Administrador",
+      "avatar": "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150",
+      "password": "101296"
+    },
+    {
+      "id": "u-1784550597663",
+      "username": "1012",
+      "name": "1012",
+      "role": "Secretaria",
+      "password": "1012",
+      "avatar": "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150"
+    }
+  ],
+  "providers": [
+    {
+      "id": "groq",
+      "name": "Groq",
+      "priority": 1,
+      "enabled": true,
+      "hasKey": false,
+      "modelName": "llama-3.3-70b-versatile",
+      "tokensConsumed": 1121,
+      "balance": 15
+    },
+    {
+      "id": "gemini",
+      "name": "Google Gemini",
+      "priority": 2,
+      "enabled": true,
+      "hasKey": true,
+      "modelName": "gemini-3.5-flash",
+      "tokensConsumed": 950,
+      "balance": 99.82
+    },
+    {
+      "id": "openrouter",
+      "name": "OpenRouter",
+      "priority": 3,
+      "enabled": true,
+      "hasKey": false,
+      "modelName": "google/gemini-2.5-flash",
+      "tokensConsumed": 1466,
+      "balance": 15
+    },
+    {
+      "id": "cerebras",
+      "name": "Cerebras",
+      "priority": 4,
+      "enabled": true,
+      "hasKey": false,
+      "modelName": "llama3.1-8b",
+      "tokensConsumed": 497,
+      "balance": 15
+    },
+    {
+      "id": "deepseek",
+      "name": "DeepSeek",
+      "priority": 5,
+      "enabled": true,
+      "hasKey": false,
+      "modelName": "deepseek-chat",
+      "tokensConsumed": 1276,
+      "balance": 15
+    },
+    {
+      "id": "mistral",
+      "name": "Mistral",
+      "priority": 6,
+      "enabled": true,
+      "hasKey": false,
+      "modelName": "mistral-large-latest",
+      "tokensConsumed": 122,
+      "balance": 15
+    },
+    {
+      "id": "openai",
+      "name": "OpenAI",
+      "priority": 7,
+      "enabled": true,
+      "hasKey": false,
+      "modelName": "gpt-4o-mini",
+      "tokensConsumed": 244,
+      "balance": 15
+    },
+    {
+      "id": "claude",
+      "name": "Claude",
+      "priority": 8,
+      "enabled": true,
+      "hasKey": false,
+      "modelName": "claude-3-5-sonnet-latest",
+      "tokensConsumed": 1075,
+      "balance": 15
+    }
+  ],
+  "prompts": [
+    {
+      "id": "p-1",
+      "documentType": "Informe",
+      "prompt": "Redacte un Informe de estilo libre o tipo carta, que sea un texto formal continuo estructurado en párrafos fluidos y narrativos pero sin divisiones numeradas ni secciones rígidas (NO use \"I. ANTECEDENTES\", etc.). Se utiliza para informar de manera directa e institucional un asunto.",
+      "version": 1,
+      "historial": [
+        {
+          "version": 1,
+          "prompt": "Redacte un Informe de estilo libre o tipo carta, que sea un texto formal continuo estructurado en párrafos fluidos y narrativos pero sin divisiones numeradas ni secciones rígidas (NO use \"I. ANTECEDENTES\", etc.). Se utiliza para informar de manera directa e institucional un asunto.",
+          "fecha": "2026-07-19T11:45:23.672Z",
+          "modificadoPor": "Sistema"
+        }
+      ]
+    },
+    {
+      "id": "p-2",
+      "documentType": "Oficio",
+      "prompt": "Redacte un Oficio de comunicación externa. Debe ser formal, contener destinatario, asunto, referencia y cuerpo estructurado con tono institucional.",
+      "version": 1,
+      "historial": [
+        {
+          "version": 1,
+          "prompt": "Redacte un Oficio de comunicación externa. Debe ser formal, contener destinatario, asunto, referencia y cuerpo estructurado con tono institucional.",
+          "fecha": "2026-07-19T11:45:23.673Z",
+          "modificadoPor": "Sistema"
+        }
+      ]
+    },
+    {
+      "id": "p-3",
+      "documentType": "Memorando",
+      "prompt": "Redacte un Memorando interno breve y directo. Indique claramente las instrucciones o recordatorios para el personal.",
+      "version": 1,
+      "historial": [
+        {
+          "version": 1,
+          "prompt": "Redacte un Memorando interno breve y directo. Indique claramente las instrucciones o recordatorios para el personal.",
+          "fecha": "2026-07-19T11:45:23.673Z",
+          "modificadoPor": "Sistema"
+        }
+      ]
+    },
+    {
+      "id": "p-4",
+      "documentType": "Carta",
+      "prompt": "Redacte una Carta comercial o de representación formal, manteniendo un tono educado, profesional y cortés.",
+      "version": 1,
+      "historial": [
+        {
+          "version": 1,
+          "prompt": "Redacte una Carta comercial o de representación formal, manteniendo un tono educado, profesional y cortés.",
+          "fecha": "2026-07-19T11:45:23.673Z",
+          "modificadoPor": "Sistema"
+        }
+      ]
+    },
+    {
+      "id": "p-5",
+      "documentType": "Proveído",
+      "prompt": "Redacte un Proveído de trámite rápido de derivación o derivación con instrucciones para otra área institucional.",
+      "version": 1,
+      "historial": [
+        {
+          "version": 1,
+          "prompt": "Redacte un Proveído de trámite rápido de derivación o derivación con instrucciones para otra área institucional.",
+          "fecha": "2026-07-19T11:45:23.673Z",
+          "modificadoPor": "Sistema"
+        }
+      ]
+    },
+    {
+      "id": "p-6",
+      "documentType": "Resolución",
+      "prompt": "Redacte una Resolución administrativa estructurada con los vistos, considerandos (sección legal y justificación) y la parte resolutiva (artículos).",
+      "version": 1,
+      "historial": [
+        {
+          "version": 1,
+          "prompt": "Redacte una Resolución administrativa estructurada con los vistos, considerandos (sección legal y justificación) y la parte resolutiva (artículos).",
+          "fecha": "2026-07-19T11:45:23.673Z",
+          "modificadoPor": "Sistema"
+        }
+      ]
+    },
+    {
+      "id": "p-7",
+      "documentType": "Acta",
+      "prompt": "Redacte un Acta de sesión o reunión formal que registre los asistentes, la agenda tratada, los debates y los acuerdos adoptados.",
+      "version": 1,
+      "historial": [
+        {
+          "version": 1,
+          "prompt": "Redacte un Acta de sesión o reunión formal que registre los asistentes, la agenda tratada, los debates y los acuerdos adoptados.",
+          "fecha": "2026-07-19T11:45:23.673Z",
+          "modificadoPor": "Sistema"
+        }
+      ]
+    },
+    {
+      "id": "p-8",
+      "documentType": "Constancia",
+      "prompt": "Redacte una Constancia oficial certificando un hecho, situación académica, laboral o de servicios de un solicitante.",
+      "version": 1,
+      "historial": [
+        {
+          "version": 1,
+          "prompt": "Redacte una Constancia oficial certificando un hecho, situación académica, laboral o de servicios de un solicitante.",
+          "fecha": "2026-07-19T11:45:23.673Z",
+          "modificadoPor": "Sistema"
+        }
+      ]
+    },
+    {
+      "id": "p-9",
+      "documentType": "Informe Técnico",
+      "prompt": "Redacte un Informe Técnico exhaustivo y estructurado de manera rigurosa. Debe incluir obligatoriamente las secciones oficiales en mayúsculas y negrita numeradas con números romanos: \"I. ANTECEDENTES\", \"II. ANÁLISIS\", \"III. CONCLUSIONES\" y \"IV. RECOMENDACIONES\", detallando minuciosamente cada punto con base técnica y legal.",
+      "version": 1,
+      "historial": [
+        {
+          "version": 1,
+          "prompt": "Redacte un Informe Técnico exhaustivo y estructurado de manera rigurosa. Debe incluir obligatoriamente las secciones oficiales en mayúsculas y negrita numeradas con números romanos: \"I. ANTECEDENTES\", \"II. ANÁLISIS\", \"III. CONCLUSIONES\" y \"IV. RECOMENDACIONES\", detallando minuciosamente cada punto con base técnica y legal.",
+          "fecha": "2026-07-19T11:45:23.673Z",
+          "modificadoPor": "Sistema"
+        }
+      ]
+    },
+    {
+      "id": "p-10",
+      "documentType": "Solicitud",
+      "prompt": "Redacte una Solicitud formal de ciudadano o administrado dirigida a la autoridad competente con fundamentos de hecho y de derecho.",
+      "version": 1,
+      "historial": [
+        {
+          "version": 1,
+          "prompt": "Redacte una Solicitud formal de ciudadano o administrado dirigida a la autoridad competente con fundamentos de hecho y de derecho.",
+          "fecha": "2026-07-19T11:45:23.673Z",
+          "modificadoPor": "Sistema"
+        }
+      ]
+    },
+    {
+      "id": "p-11",
+      "documentType": "Dictamen",
+      "prompt": "Redacte un Dictamen legal o especializado que evalúe jurídicamente la procedencia o improcedencia de un asunto en consulta.",
+      "version": 1,
+      "historial": [
+        {
+          "version": 1,
+          "prompt": "Redacte un Dictamen legal o especializado que evalúe jurídicamente la procedencia o improcedencia de un asunto en consulta.",
+          "fecha": "2026-07-19T11:45:23.673Z",
+          "modificadoPor": "Sistema"
+        }
+      ]
+    }
+  ],
+  "documents": [
+    {
+      "id": "doc-101",
+      "expediente": "EXP-2026-0042",
+      "referencia": "Oficio N° 012-2026-MINEDU",
+      "solicitante": "Asociación de Padres de Familia (APAFA)",
+      "tema": "Solicitud de mantenimiento correctivo de infraestructura en el pabellón B de la Institución Educativa N° 1024.",
+      "tipo": "Informe Técnico",
+      "datosExtraidos": {
+        "codigo": "EXP-2026-0042",
+        "urgencia": "Alta",
+        "monto_estimado": "S/. 12,500.00",
+        "puntos_criticos": [
+          "Techado del segundo piso",
+          "Instalaciones eléctricas expuestas"
+        ]
+      },
+      "textoRedactado": "INFORME TÉCNICO N° 004-2026-SGI\n\nA: Ing. Carlos Mendoza (Jefe de Infraestructura)\nDE: Ing. Sofía Castro (Especialista en Evaluación)\nASUNTO: Evaluación técnica de infraestructura Pabellón B - I.E. N° 1024\nFECHA: 12 de Julio de 2026\n\n1. ANTECEDENTES\nCon fecha 10 de Julio del presente año, la APAFA ingresó el expediente EXP-2026-0042 reportando daños estructurales...\n\n2. EVALUACIÓN TÉCNICA\nTras la inspección realizada se constató filtración severa de agua pluvial y cableado eléctrico expuesto...",
+      "iaUtilizada": "Google Gemini (gemini-3.5-flash)",
+      "tokens": 420,
+      "fechaProceso": "2026-07-12T15:30:00Z",
+      "estado": "Aprobado",
+      "originalFilename": "solicitud_apafa_firmada.pdf",
+      "textoOriginal": "Por medio de la presente, los padres de familia solicitamos de urgencia el mantenimiento del pabellón B ya que los techos gotean...",
+      "creadoPor": "María Gómez"
+    },
+    {
+      "id": "doc-102",
+      "expediente": "EXP-2026-0051",
+      "referencia": "Memorando N° 145-2026-GG",
+      "solicitante": "Gerencia General",
+      "tema": "Disposición de medidas inmediatas de ahorro energético en todas las oficinas administrativas.",
+      "tipo": "Memorando",
+      "datosExtraidos": {
+        "asunto": "Ahorro de energía",
+        "horario_apagado": "18:00 horas",
+        "responsable": "Administradores de cada piso"
+      },
+      "textoRedactado": "MEMORANDO N° 189-2026-SAD\n\nPARA: Todo el personal administrativo\nDE: Oficina de Administración\nFECHA: 15 de Julio de 2026\n\nSe les comunica que por disposición de la Gerencia General se deben apagar todos los equipos tecnológicos y luminarias a partir de las 18:00...",
+      "iaUtilizada": "Groq (llama-3.3-70b-versatile) - Fallback de Cerebras",
+      "tokens": 280,
+      "fechaProceso": "2026-07-15T10:15:00Z",
+      "estado": "Procesado",
+      "originalFilename": "memo_ahorro.docx",
+      "textoOriginal": "Ahorrar energía en las oficinas. Apagar aire acondicionado y laptops al salir de trabajar a las 6 pm.",
+      "creadoPor": "María Gómez"
+    }
+  ],
+  "logs": [
+    {
+      "id": "log-1784568676692-819",
+      "fecha": "2026-07-20T17:31:16.692Z",
+      "usuario": "Administrador Principal",
+      "accion": "Inicio de Sesión",
+      "detalles": "Usuario 74223117 inició sesión con rol Administrador.",
+      "tipo": "success"
+    },
+    {
+      "id": "log-1784556420012-233",
+      "fecha": "2026-07-20T14:07:00.012Z",
+      "usuario": "Admin",
+      "accion": "OCR y Extracción",
+      "detalles": "OCR y extracción de datos con éxito de archivo \"test.txt\" usando Google Gemini.",
+      "tipo": "success",
+      "providerAttempted": [
+        "groq",
+        "gemini"
+      ],
+      "providerSucceeded": "gemini",
+      "tokensUsed": 253,
+      "responseTimeMs": 41750,
+      "isOptimized": false,
+      "originalPageCount": 1
+    },
+    {
+      "id": "log-1784556315980-938",
+      "fecha": "2026-07-20T14:05:15.980Z",
+      "usuario": "Admin",
+      "accion": "OCR Fallido",
+      "detalles": "Fallo en OCR y extracción de \"test.txt\". Todos los proveedores fallaron.",
+      "tipo": "error",
+      "providerAttempted": [
+        "groq",
+        "gemini",
+        "openrouter",
+        "cerebras",
+        "deepseek",
+        "mistral",
+        "openai",
+        "claude"
+      ]
+    },
+    {
+      "id": "log-1784556270201-567",
+      "fecha": "2026-07-20T14:04:30.201Z",
+      "usuario": "Admin",
+      "accion": "OCR Fallido",
+      "detalles": "Fallo en OCR y extracción de \"test.txt\". Todos los proveedores fallaron.",
+      "tipo": "error",
+      "providerAttempted": [
+        "groq",
+        "gemini",
+        "openrouter",
+        "cerebras",
+        "deepseek",
+        "mistral",
+        "openai",
+        "claude"
+      ]
+    },
+    {
+      "id": "log-1784556090124-284",
+      "fecha": "2026-07-20T14:01:30.124Z",
+      "usuario": "Admin",
+      "accion": "OCR Fallido",
+      "detalles": "Fallo en OCR y extracción de \"test.txt\". Todos los proveedores fallaron.",
+      "tipo": "error",
+      "providerAttempted": [
+        "groq",
+        "gemini",
+        "openrouter",
+        "cerebras",
+        "deepseek",
+        "mistral",
+        "openai",
+        "claude"
+      ]
+    },
+    {
+      "id": "log-1784555778498-485",
+      "fecha": "2026-07-20T13:56:18.498Z",
+      "usuario": "Administrador Principal",
+      "accion": "OCR Fallido",
+      "detalles": "Fallo en OCR y extracción de \"022-2026467549.pdf\". Todos los proveedores fallaron.",
+      "tipo": "error",
+      "providerAttempted": [
+        "groq",
+        "gemini",
+        "openrouter",
+        "cerebras",
+        "deepseek",
+        "mistral",
+        "openai",
+        "claude"
+      ]
+    },
+    {
+      "id": "log-1784553331939-726",
+      "fecha": "2026-07-20T13:15:31.939Z",
+      "usuario": "Administrador Principal",
+      "accion": "Inicio de Sesión",
+      "detalles": "Usuario 74223117 inició sesión con rol Administrador.",
+      "tipo": "success"
+    },
+    {
+      "id": "log-1784553326754-532",
+      "fecha": "2026-07-20T13:15:26.754Z",
+      "usuario": "Administrador Principal",
+      "accion": "Cierre de Sesión",
+      "detalles": "Sesión cerrada correctamente.",
+      "tipo": "info"
+    },
+    {
+      "id": "log-1784552198381-224",
+      "fecha": "2026-07-20T12:56:38.381Z",
+      "usuario": "Administrador Principal",
+      "accion": "Inicio de Sesión",
+      "detalles": "Usuario 74223117 inició sesión con rol Administrador.",
+      "tipo": "success"
+    },
+    {
+      "id": "log-1784552190636-313",
+      "fecha": "2026-07-20T12:56:30.636Z",
+      "usuario": "1012",
+      "accion": "Cierre de Sesión",
+      "detalles": "Sesión cerrada correctamente.",
+      "tipo": "info"
+    },
+    {
+      "id": "log-1784552098392-496",
+      "fecha": "2026-07-20T12:54:58.392Z",
+      "usuario": "1012",
+      "accion": "Inicio de Sesión",
+      "detalles": "Usuario 1012 inició sesión con rol Secretaria.",
+      "tipo": "success"
+    },
+    {
+      "id": "log-1784552094989-612",
+      "fecha": "2026-07-20T12:54:54.989Z",
+      "usuario": "Administrador Principal",
+      "accion": "Cierre de Sesión",
+      "detalles": "Sesión cerrada correctamente.",
+      "tipo": "info"
+    },
+    {
+      "id": "log-1784550634440-299",
+      "fecha": "2026-07-20T12:30:34.440Z",
+      "usuario": "Administrador Principal",
+      "accion": "Inicio de Sesión",
+      "detalles": "Usuario 74223117 inició sesión con rol Administrador.",
+      "tipo": "success"
+    },
+    {
+      "id": "log-1784550624892-301",
+      "fecha": "2026-07-20T12:30:24.892Z",
+      "usuario": "1012",
+      "accion": "Cierre de Sesión",
+      "detalles": "Sesión cerrada correctamente.",
+      "tipo": "info"
+    },
+    {
+      "id": "log-1784550606411-113",
+      "fecha": "2026-07-20T12:30:06.411Z",
+      "usuario": "1012",
+      "accion": "Inicio de Sesión",
+      "detalles": "Usuario 1012 inició sesión con rol Secretaria.",
+      "tipo": "success"
+    },
+    {
+      "id": "log-1784550601388-992",
+      "fecha": "2026-07-20T12:30:01.388Z",
+      "usuario": "Administrador Principal",
+      "accion": "Cierre de Sesión",
+      "detalles": "Sesión cerrada correctamente.",
+      "tipo": "info"
+    },
+    {
+      "id": "log-1784550597663-168",
+      "fecha": "2026-07-20T12:29:57.663Z",
+      "usuario": "Administrador",
+      "accion": "Usuario Creado",
+      "detalles": "Se registró un nuevo usuario: 1012 (Secretaria).",
+      "tipo": "success"
+    },
+    {
+      "id": "log-1784550585339-936",
+      "fecha": "2026-07-20T12:29:45.339Z",
+      "usuario": "Administrador",
+      "accion": "Usuario Eliminado",
+      "detalles": "Se eliminó al usuario: Abog. Luis Ruiz.",
+      "tipo": "warning"
+    },
+    {
+      "id": "log-1784550583051-728",
+      "fecha": "2026-07-20T12:29:43.051Z",
+      "usuario": "Administrador",
+      "accion": "Usuario Eliminado",
+      "detalles": "Se eliminó al usuario: Ing. Carlos Mendoza.",
+      "tipo": "warning"
+    },
+    {
+      "id": "log-1784550580050-712",
+      "fecha": "2026-07-20T12:29:40.050Z",
+      "usuario": "Administrador",
+      "accion": "Usuario Eliminado",
+      "detalles": "Se eliminó al usuario: María Gómez.",
+      "tipo": "warning"
+    },
+    {
+      "id": "log-1784550568398-506",
+      "fecha": "2026-07-20T12:29:28.398Z",
+      "usuario": "Administrador",
+      "accion": "Tema Visual Modificado",
+      "detalles": "Se cambió la plantilla de visualización global a: PREDETERMINADO.",
+      "tipo": "info"
+    },
+    {
+      "id": "log-1784550562735-686",
+      "fecha": "2026-07-20T12:29:22.735Z",
+      "usuario": "Administrador",
+      "accion": "Tema Visual Modificado",
+      "detalles": "Se cambió la plantilla de visualización global a: GALAXY.",
+      "tipo": "info"
+    },
+    {
+      "id": "log-1784550548714-820",
+      "fecha": "2026-07-20T12:29:08.714Z",
+      "usuario": "Administrador Principal",
+      "accion": "Inicio de Sesión",
+      "detalles": "Usuario 74223117 inició sesión con rol Administrador.",
+      "tipo": "success"
+    },
+    {
+      "id": "log-1784469999296-432",
+      "fecha": "2026-07-19T14:06:39.296Z",
+      "usuario": "Sofía Castro",
+      "accion": "Redacción IA",
+      "detalles": "Redacción automatizada de \"Informe\" completada con Google Gemini.",
+      "tipo": "success",
+      "providerAttempted": [
+        "groq",
+        "gemini"
+      ],
+      "providerSucceeded": "gemini",
+      "tokensUsed": 1150,
+      "responseTimeMs": 12571
+    },
+    {
+      "id": "log-1784469976798-433",
+      "fecha": "2026-07-19T14:06:16.798Z",
+      "usuario": "Sofía Castro",
+      "accion": "OCR y Extracción",
+      "detalles": "OCR y extracción de datos con éxito de archivo \"63. INFORME 1.3.docx\" usando Google Gemini.",
+      "tipo": "success",
+      "providerAttempted": [
+        "groq",
+        "gemini"
+      ],
+      "providerSucceeded": "gemini",
+      "tokensUsed": 1024,
+      "responseTimeMs": 11357
+    },
+    {
+      "id": "log-1784467254890-543",
+      "fecha": "2026-07-19T13:20:54.890Z",
+      "usuario": "Sofía Castro",
+      "accion": "OCR y Extracción",
+      "detalles": "OCR y extracción de datos con éxito de archivo \"63. INFORME 1.3.docx\" usando Google Gemini.",
+      "tipo": "success",
+      "providerAttempted": [
+        "groq",
+        "gemini"
+      ],
+      "providerSucceeded": "gemini",
+      "tokensUsed": 850,
+      "responseTimeMs": 10179
+    },
+    {
+      "id": "log-1784466155458-460",
+      "fecha": "2026-07-19T13:02:35.458Z",
+      "usuario": "Sofía Castro",
+      "accion": "Redacción IA",
+      "detalles": "Redacción automatizada de \"Memorando\" completada con Google Gemini.",
+      "tipo": "success",
+      "providerAttempted": [
+        "groq",
+        "gemini"
+      ],
+      "providerSucceeded": "gemini",
+      "tokensUsed": 980,
+      "responseTimeMs": 242125
+    },
+    {
+      "id": "log-1784465933054-779",
+      "fecha": "2026-07-19T12:58:53.054Z",
+      "usuario": "Sofía Castro",
+      "accion": "OCR y Extracción",
+      "detalles": "OCR y extracción de datos con éxito de archivo \"72. REQUERIMIENTO DE PLAZAS DOCENTE.docx\" usando Google Gemini.",
+      "tipo": "success",
+      "providerAttempted": [
+        "groq",
+        "gemini"
+      ],
+      "providerSucceeded": "gemini",
+      "tokensUsed": 1250,
+      "responseTimeMs": 26655
+    },
+    {
+      "id": "log-1784465911109-541",
+      "fecha": "2026-07-19T12:58:31.109Z",
+      "usuario": "Sofía Castro",
+      "accion": "OCR y Extracción",
+      "detalles": "OCR y extracción de datos con éxito de archivo \"72. REQUERIMIENTO DE PLAZAS DOCENTE.docx\" usando Google Gemini.",
+      "tipo": "success",
+      "providerAttempted": [
+        "groq",
+        "gemini"
+      ],
+      "providerSucceeded": "gemini",
+      "tokensUsed": 845,
+      "responseTimeMs": 28500
+    },
+    {
+      "id": "log-1784465875679-114",
+      "fecha": "2026-07-19T12:57:55.679Z",
+      "usuario": "Sofía Castro",
+      "accion": "OCR y Extracción",
+      "detalles": "OCR y extracción de datos con éxito de archivo \"72. REQUERIMIENTO DE PLAZAS DOCENTE.docx\" usando DeepSeek.",
+      "tipo": "success",
+      "providerAttempted": [
+        "groq",
+        "gemini",
+        "openrouter",
+        "cerebras",
+        "deepseek"
+      ],
+      "providerSucceeded": "deepseek",
+      "tokensUsed": 850,
+      "responseTimeMs": 28886
+    },
+    {
+      "id": "log-1",
+      "fecha": "2026-07-18T12:00:00Z",
+      "usuario": "admin",
+      "accion": "Inicio de Sesión",
+      "detalles": "Sesión iniciada exitosamente desde panel administrativo.",
+      "tipo": "success"
+    },
+    {
+      "id": "log-2",
+      "fecha": "2026-07-18T12:05:00Z",
+      "usuario": "admin",
+      "accion": "Procesamiento IA",
+      "detalles": "Procesamiento de documento EXP-2026-0042 completado.",
+      "tipo": "info",
+      "providerAttempted": [
+        "groq",
+        "gemini"
+      ],
+      "providerSucceeded": "gemini",
+      "tokensUsed": 420,
+      "responseTimeMs": 1450
+    }
+  ],
+  "learningCorrections": [],
+  "agenda": [
+    {
+      "id": "evt-1",
+      "title": "Evaluación de Metas de Racionalización 2026",
+      "fecha": "2026-07-25T10:00:00Z",
+      "tipo": "Reunión",
+      "descripcion": "Reunión de coordinación con los especialistas de AGI de la DRE para evaluar el cumplimiento de metas físicas del Compromiso de Desempeño 3.1.",
+      "enlace": "https://zoom.us/j/9876543210?pwd=UGEL_BELLAVISTA",
+      "completado": false,
+      "creadoPor": "María Gómez",
+      "fechaCreacion": "2026-07-19T08:00:00Z"
+    },
+    {
+      "id": "evt-2",
+      "title": "Capacitación sobre el Sistema NEXUS y reubicación de plazas",
+      "fecha": "2026-07-28T15:00:00Z",
+      "tipo": "Reunión",
+      "descripcion": "Taller práctico obligatorio para secretarias y jefes sobre directivas de plazas excedentes en instituciones educativas.",
+      "enlace": "https://meet.google.com/abc-defg-hij",
+      "completado": false,
+      "creadoPor": "Administrador",
+      "fechaCreacion": "2026-07-19T09:15:00Z"
+    },
+    {
+      "id": "evt-3",
+      "title": "Revisión y emisión de Oficios para el Ministerio de Educación",
+      "fecha": "2026-07-20T17:30:00Z",
+      "tipo": "Trámite",
+      "descripcion": "Fecha límite para consolidar los informes técnicos de plazas vacantes y elevarlos a la Dirección Regional.",
+      "completado": false,
+      "creadoPor": "María Gómez",
+      "fechaCreacion": "2026-07-19T11:00:00Z"
+    },
+    {
+      "id": "evt-4",
+      "title": "Coordinación Presupuestal de Viáticos",
+      "fecha": "2026-07-15T09:00:00Z",
+      "tipo": "Recordatorio",
+      "descripcion": "Coordinación interna para viáticos de supervisión de locales escolares.",
+      "completado": true,
+      "creadoPor": "Ing. Carlos Mendoza",
+      "fechaCreacion": "2026-07-14T14:00:00Z"
+    }
+  ],
+  "activeTheme": "predeterminado"
+}

@@ -1,0 +1,6 @@
+{
+  "name": "Sistema Inteligente de Gestión Documentaria con IA",
+  "description": "Plataforma empresarial premium para la gestión, OCR y redacción automatizada de documentos institucionales mediante un sistema Multi-Proveedor de Inteligencia Artificial.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,0 +1,2197 @@
+import React, { useState, useEffect } from 'react';
+import { 
+  Building2,
+  Users,
+  Cpu,
+  History,
+  KeyRound, 
+  Settings, 
+  ArrowUp, 
+  ArrowDown, 
+  Check, 
+  Sparkles, 
+  ShieldAlert, 
+  ToggleLeft, 
+  ToggleRight, 
+  RefreshCw,
+  Eye,
+  EyeOff,
+  HelpCircle,
+  AlertCircle,
+  Upload,
+  X,
+  Trash2,
+  Edit2,
+  Plus,
+  Search,
+  UserCheck,
+  Play,
+  Activity,
+  AlertTriangle,
+  Info,
+  FolderOpen
+} from 'lucide-react';
+import { AIProvider, User as UserType, SystemLog } from '../types';
+import { safeStorage } from '../utils/storage';
+import {
+  isFolderSaveSupported,
+  pickSaveFolder,
+  getSaveFolderName,
+  clearSaveFolder,
+} from '../utils/fileSaver';
+import LogsView from './LogsView';
+
+interface ConfigViewProps {
+  providers: AIProvider[];
+  currentUser: UserType;
+  onUpdateProviders: (updated: AIProvider[]) => void;
+  logs?: SystemLog[];
+  onThemeChanged?: (theme: string) => void;
+  currentTheme?: string;
+}
+
+interface Recipient {
+  id: string;
+  nombre: string;
+  cargo: string;
+}
+
+const DEFAULT_RECIPIENTS: Recipient[] = [
+  { id: '1', nombre: 'TONY JHON FERNANDEZ DIAZ', cargo: 'JEFE DEL ÁREA DE GESTIÓN INSTITUCIONAL' },
+  { id: '2', nombre: 'SOFÍA CASTRO', cargo: 'ADMINISTRADOR' },
+  { id: '3', nombre: 'MARÍA GÓMEZ', cargo: 'SECRETARIA' },
+  { id: '4', nombre: 'ING. CARLOS MENDOZA', cargo: 'JEFE DE INFRAESTRUCTURA' }
+];
+
+export default function ConfigView({ providers, currentUser, onUpdateProviders, logs = [], onThemeChanged, currentTheme }: ConfigViewProps) {
+  // Tabs management
+  const [activeTab, setActiveTab] = useState<'area' | 'destinatarios' | 'ia' | 'usuarios' | 'logs' | 'diseno'>('area');
+
+  // Custom Alert / Confirm Modal State
+  const [customModal, setCustomModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    type: 'info' | 'warning' | 'danger' | 'success';
+    confirmText?: string;
+    cancelText?: string;
+    onConfirm?: () => void;
+    onCancel?: () => void;
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    type: 'info'
+  });
+
+  const showAlert = (title: string, message: string, type: 'info' | 'warning' | 'danger' | 'success' = 'info') => {
+    setCustomModal({
+      isOpen: true,
+      title,
+      message,
+      type,
+      confirmText: 'Entendido',
+      onConfirm: () => setCustomModal(prev => ({ ...prev, isOpen: false }))
+    });
+  };
+
+  const showConfirm = (title: string, message: string, onConfirm: () => void, type: 'warning' | 'danger' = 'warning') => {
+    setCustomModal({
+      isOpen: true,
+      title,
+      message,
+      type,
+      confirmText: 'Confirmar',
+      cancelText: 'Cancelar',
+      onConfirm: () => {
+        setCustomModal(prev => ({ ...prev, isOpen: false }));
+        onConfirm();
+      },
+      onCancel: () => setCustomModal(prev => ({ ...prev, isOpen: false }))
+    });
+  };
+
+  // Area state overrides
+  const [savedHeaderImage, setSavedHeaderImage] = useState<string | null>(null);
+  const [savedUserName, setSavedUserName] = useState('');
+  const [savedUserRole, setSavedUserRole] = useState('');
+  const [savedSuffix, setSavedSuffix] = useState('');
+  const [savedAutoSavePath, setSavedAutoSavePath] = useState('');
+
+  // Local save-folder (File System Access API)
+  const [folderSupported] = useState<boolean>(isFolderSaveSupported());
+  const [saveFolderName, setSaveFolderName] = useState<string | null>(null);
+  const [folderBusy, setFolderBusy] = useState(false);
+
+  // Recipients state
+  const [recipients, setRecipients] = useState<Recipient[]>([]);
+  const [recSearch, setRecSearch] = useState('');
+  const [editingRecipient, setEditingRecipient] = useState<Recipient | null>(null);
+  const [newRecName, setNewRecName] = useState('');
+  const [newRecCargo, setNewRecCargo] = useState('');
+  const [showAddForm, setShowAddForm] = useState(false);
+
+  // IA Providers core state
+  const [localProviders, setLocalProviders] = useState<AIProvider[]>([]);
+  const [simulateFailures, setSimulateFailures] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [visibleKeys, setVisibleKeys] = useState<Record<string, boolean>>({});
+  const [editKeys, setEditKeys] = useState<Record<string, string>>({});
+
+  // Custom AI Provider state
+  const [showAddProviderForm, setShowAddProviderForm] = useState(false);
+  const [newProvId, setNewProvId] = useState('');
+  const [newProvName, setNewProvName] = useState('');
+  const [newProvApiUrl, setNewProvApiUrl] = useState('');
+  const [newProvModelName, setNewProvModelName] = useState('');
+  const [newProvApiKey, setNewProvApiKey] = useState('');
+  const [editingProviderId, setEditingProviderId] = useState<string | null>(null);
+
+  // User Management State
+  const [systemUsers, setSystemUsers] = useState<UserType[]>([]);
+  const [usersLoading, setUsersLoading] = useState(false);
+  const [showAddUserForm, setShowAddUserForm] = useState(false);
+  const [editingUser, setEditingUser] = useState<UserType | null>(null);
+  const [newUserUsername, setNewUserUsername] = useState('');
+  const [newUserName, setNewUserName] = useState('');
+  const [newUserPassword, setNewUserPassword] = useState('');
+  const [newUserRole, setNewUserRole] = useState<'Administrador' | 'Secretaria' | 'Jefe' | 'Consulta'>('Secretaria');
+  const [userSearch, setUserSearch] = useState('');
+  const [userSuccessMessage, setUserSuccessMessage] = useState('');
+
+  // Visual Theme States
+  const [selectedTheme, setSelectedTheme] = useState<string>(currentTheme || 'predeterminado');
+  const [savingTheme, setSavingTheme] = useState(false);
+
+  useEffect(() => {
+    fetch('/api/config/theme')
+      .then(res => res.json())
+      .then(data => {
+        if (data.theme) {
+          setSelectedTheme(data.theme);
+        }
+      })
+      .catch(err => console.error('Error fetching active visual theme:', err));
+  }, []);
+
+  const handleSaveTheme = async (themeName: string) => {
+    setSavingTheme(true);
+    try {
+      const response = await fetch('/api/config/theme', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ theme: themeName })
+      });
+      const data = await response.json();
+      if (response.ok && data.success) {
+        setSelectedTheme(themeName);
+        if (onThemeChanged) {
+          onThemeChanged(themeName);
+        }
+        showAlert('Estilo Aplicado con Éxito', `La plantilla visual "${themeName.toUpperCase()}" se ha establecido como predeterminada de manera inmediata para todos los usuarios.`, 'success');
+      } else {
+        throw new Error(data.error || 'No se pudo guardar la configuración.');
+      }
+    } catch (err: any) {
+      showAlert('Error', err.message || 'Error al aplicar el estilo visual.', 'danger');
+    } finally {
+      setSavingTheme(false);
+    }
+  };
+
+  // Feedback states
+  const [areaSuccess, setAreaSuccess] = useState(false);
+  const [recSuccess, setRecSuccess] = useState(false);
+
+  // Fetch all system users (Admin-only)
+  const fetchSystemUsers = async () => {
+    setUsersLoading(true);
+    try {
+      const token = safeStorage.getItem('saved_session_token');
+      const response = await fetch('/api/users', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setSystemUsers(data);
+      }
+    } catch (err) {
+      console.error('Error fetching users:', err);
+    } finally {
+      setUsersLoading(false);
+    }
+  };
+
+  // Load and seed saved states on mount
+  useEffect(() => {
+    // 1. Area config
+    setSavedHeaderImage(safeStorage.getItem('saved_area_header_image'));
+    setSavedUserName(safeStorage.getItem('saved_user_name') || currentUser.name);
+    setSavedUserRole(safeStorage.getItem('saved_user_role') || currentUser.role);
+    setSavedSuffix(safeStorage.getItem('saved_area_suffix') || '-2026-UGEL-AGI');
+    setSavedAutoSavePath(safeStorage.getItem('saved_auto_save_path') || '/documentos_automaticos');
+
+    // 2. Recipients
+    const savedRecs = safeStorage.getItem('saved_destinatarios_list');
+    if (savedRecs) {
+      setRecipients(JSON.parse(savedRecs));
+    } else {
+      safeStorage.setItem('saved_destinatarios_list', JSON.stringify(DEFAULT_RECIPIENTS));
+      setRecipients(DEFAULT_RECIPIENTS);
+    }
+
+    // 3. Providers load
+    const sorted = [...providers].sort((a, b) => a.priority - b.priority);
+    setLocalProviders(sorted);
+
+    // 4. Fetch simulation state
+    fetch('/api/config/simulation')
+      .then(res => res.json())
+      .then(data => setSimulateFailures(data.simulateApiFailures))
+      .catch(err => console.error(err));
+  }, [providers, currentUser]);
+
+  // Trigger users fetch on tab switch
+  useEffect(() => {
+    if (activeTab === 'usuarios' && currentUser.role === 'Administrador') {
+      fetchSystemUsers();
+    }
+  }, [activeTab, currentUser]);
+
+  // Image Upload handler
+  const handleHeaderImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      if (file.size > 3 * 1024 * 1024) {
+        showAlert('Imagen Excedida', 'La imagen supera el límite recomendado de 3MB. Por favor suba un archivo más liviano.', 'warning');
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const base64 = event.target?.result as string;
+        setSavedHeaderImage(base64);
+        safeStorage.setItem('saved_area_header_image', base64);
+        setAreaSuccess(true);
+        setTimeout(() => setAreaSuccess(false), 3000);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleRemoveHeaderImage = () => {
+    setSavedHeaderImage(null);
+    safeStorage.removeItem('saved_area_header_image');
+    setAreaSuccess(true);
+    setTimeout(() => setAreaSuccess(false), 3000);
+  };
+
+  // Save Area specifications
+  const handleSaveAreaConfig = (e: React.FormEvent) => {
+    e.preventDefault();
+    safeStorage.setItem('saved_user_name', savedUserName);
+    safeStorage.setItem('saved_user_role', savedUserRole);
+    safeStorage.setItem('saved_area_suffix', savedSuffix);
+    safeStorage.setItem('saved_auto_save_path', savedAutoSavePath);
+    setAreaSuccess(true);
+    setTimeout(() => setAreaSuccess(false), 3000);
+  };
+
+  // Load the remembered save-folder name on mount
+  useEffect(() => {
+    if (!folderSupported) return;
+    getSaveFolderName().then((name) => setSaveFolderName(name)).catch(() => {});
+  }, [folderSupported]);
+
+  // Choose (or change) the destination folder for generated documents
+  const handlePickFolder = async () => {
+    setFolderBusy(true);
+    try {
+      const name = await pickSaveFolder();
+      setSaveFolderName(name);
+      setAreaSuccess(true);
+      setTimeout(() => setAreaSuccess(false), 3000);
+    } catch (err: any) {
+      // The user cancelling the picker throws AbortError; ignore it silently.
+      if (err && err.name !== 'AbortError') {
+        console.warn('No se pudo seleccionar la carpeta:', err);
+      }
+    } finally {
+      setFolderBusy(false);
+    }
+  };
+
+  // Reset to the default behaviour (normal browser download)
+  const handleClearFolder = async () => {
+    await clearSaveFolder();
+    setSaveFolderName(null);
+    setAreaSuccess(true);
+    setTimeout(() => setAreaSuccess(false), 3000);
+  };
+
+  // Recipients functions
+  const handleAddRecipient = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newRecName.trim() || !newRecCargo.trim()) return;
+
+    const newRec: Recipient = {
+      id: `rec-${Date.now()}`,
+      nombre: newRecName.trim().toUpperCase(),
+      cargo: newRecCargo.trim().toUpperCase()
+    };
+
+    const updated = [...recipients, newRec];
+    setRecipients(updated);
+    safeStorage.setItem('saved_destinatarios_list', JSON.stringify(updated));
+
+    setNewRecName('');
+    setNewRecCargo('');
+    setShowAddForm(false);
+    setRecSuccess(true);
+    setTimeout(() => setRecSuccess(false), 3000);
+  };
+
+  const handleUpdateRecipient = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingRecipient || !editingRecipient.nombre.trim() || !editingRecipient.cargo.trim()) return;
+
+    const updated = recipients.map(r => r.id === editingRecipient.id ? {
+      ...editingRecipient,
+      nombre: editingRecipient.nombre.toUpperCase(),
+      cargo: editingRecipient.cargo.toUpperCase()
+    } : r);
+
+    setRecipients(updated);
+    safeStorage.setItem('saved_destinatarios_list', JSON.stringify(updated));
+    setEditingRecipient(null);
+    setRecSuccess(true);
+    setTimeout(() => setRecSuccess(false), 3000);
+  };
+
+  const handleDeleteRecipient = (id: string) => {
+    showConfirm(
+      'Eliminar Destinatario',
+      '¿Está seguro de eliminar este destinatario?',
+      () => {
+        const updated = recipients.filter(r => r.id !== id);
+        setRecipients(updated);
+        safeStorage.setItem('saved_destinatarios_list', JSON.stringify(updated));
+      },
+      'danger'
+    );
+  };
+
+  // Provider Priorities swapped
+  const moveUp = (index: number) => {
+    if (index === 0) return;
+    const copy = [...localProviders];
+    const temp = copy[index];
+    copy[index] = copy[index - 1];
+    copy[index - 1] = temp;
+    const updated = copy.map((p, idx) => ({ ...p, priority: idx + 1 }));
+    setLocalProviders(updated);
+  };
+
+  const moveDown = (index: number) => {
+    if (index === localProviders.length - 1) return;
+    const copy = [...localProviders];
+    const temp = copy[index];
+    copy[index] = copy[index + 1];
+    copy[index + 1] = temp;
+    const updated = copy.map((p, idx) => ({ ...p, priority: idx + 1 }));
+    setLocalProviders(updated);
+  };
+
+  const toggleEnabled = (id: string) => {
+    const updated = localProviders.map(p => {
+      if (p.id === id) {
+        if (id === 'gemini' && p.enabled) {
+          showAlert('Acción Restringida', 'Google Gemini es el fallback garantizado del sistema y no puede desactivarse.', 'warning');
+          return p;
+        }
+        return { ...p, enabled: !p.enabled };
+      }
+      return p;
+    });
+    setLocalProviders(updated);
+  };
+
+  const handleKeyChange = (id: string, val: string) => {
+    setEditKeys(prev => ({ ...prev, [id]: val }));
+  };
+
+  const toggleKeyVisibility = (id: string) => {
+    setVisibleKeys(prev => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const handleToggleSimulation = async () => {
+    const nextState = !simulateFailures;
+    setSimulateFailures(nextState);
+    try {
+      const token = safeStorage.getItem('saved_session_token');
+      await fetch('/api/config/simulation', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ simulate: nextState })
+      });
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleUpdateProviderField = (id: string, field: keyof AIProvider, value: any) => {
+    setLocalProviders(prev => prev.map(p => {
+      if (p.id === id) {
+        return { ...p, [field]: value };
+      }
+      return p;
+    }));
+  };
+
+  const handleSaveProvidersConfig = async () => {
+    setSaving(true);
+    setSuccess(false);
+    try {
+      const payload = localProviders.map(p => {
+        const customKey = editKeys[p.id];
+        return {
+          ...p,
+          hasKey: p.id === 'gemini' ? true : (customKey ? true : p.hasKey),
+          apiKey: customKey || undefined
+        };
+      });
+
+      const token = safeStorage.getItem('saved_session_token');
+      const response = await fetch('/api/providers', {
+        method: 'PUT',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          providers: payload,
+          usuario: currentUser.name
+        })
+      });
+
+      if (!response.ok) throw new Error('Error al guardar configuración.');
+      onUpdateProviders(payload);
+      setSuccess(true);
+      setTimeout(() => setSuccess(false), 3000);
+    } catch (err: any) {
+      showAlert('Error al Guardar', err.message, 'danger');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleAddCustomProvider = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newProvId.trim() || !newProvName.trim() || !newProvModelName.trim()) {
+      showAlert('Campos Obligatorios', 'Por favor ingrese todos los campos obligatorios del proveedor.', 'warning');
+      return;
+    }
+
+    const cleanId = newProvId.trim().toLowerCase().replace(/\s+/g, '-');
+
+    try {
+      const token = safeStorage.getItem('saved_session_token');
+      const response = await fetch('/api/providers', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          provider: {
+            id: cleanId,
+            name: newProvName.trim(),
+            apiUrl: newProvApiUrl.trim() || undefined,
+            modelName: newProvModelName.trim(),
+            apiKey: newProvApiKey.trim() || undefined,
+            enabled: true
+          },
+          usuario: currentUser.name
+        })
+      });
+
+      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result.error || 'Fallo al agregar el proveedor.');
+      }
+
+      setLocalProviders(result.providers.sort((a: any, b: any) => a.priority - b.priority));
+      if (onUpdateProviders) {
+        onUpdateProviders(result.providers);
+      }
+
+      setSuccess(true);
+      setShowAddProviderForm(false);
+      setNewProvId('');
+      setNewProvName('');
+      setNewProvApiUrl('');
+      setNewProvModelName('');
+      setNewProvApiKey('');
+      setTimeout(() => setSuccess(false), 3000);
+    } catch (err: any) {
+      showAlert('Error al Agregar', err.message, 'danger');
+    }
+  };
+
+  const handleDeleteProvider = async (id: string, name: string) => {
+    if (id === 'gemini') {
+      showAlert('Acción Restringida', 'No se puede eliminar el proveedor fallback de Google Gemini.', 'warning');
+      return;
+    }
+    showConfirm(
+      'Eliminar Proveedor',
+      `¿Está seguro de eliminar al proveedor "${name}"?`,
+      async () => {
+        try {
+          const token = safeStorage.getItem('saved_session_token');
+          const response = await fetch(`/api/providers/${id}`, {
+            method: 'DELETE',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+              usuario: currentUser.name
+            })
+          });
+
+          const result = await response.json();
+          if (!response.ok) {
+            throw new Error(result.error || 'Fallo al eliminar el proveedor.');
+          }
+
+          setLocalProviders(result.providers.sort((a: any, b: any) => a.priority - b.priority));
+          if (onUpdateProviders) {
+            onUpdateProviders(result.providers);
+          }
+
+          setSuccess(true);
+          setTimeout(() => setSuccess(false), 3000);
+        } catch (err: any) {
+          showAlert('Error al Eliminar', err.message, 'danger');
+        }
+      },
+      'danger'
+    );
+  };
+
+  // User Management Actions
+  const handleAddUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newUserUsername.trim() || !newUserName.trim() || !newUserPassword.trim() || !newUserRole) return;
+
+    try {
+      const token = safeStorage.getItem('saved_session_token');
+      const response = await fetch('/api/users', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          username: newUserUsername.trim(),
+          name: newUserName.trim(),
+          role: newUserRole,
+          password: newUserPassword.trim()
+        })
+      });
+
+      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result.error || 'Fallo al agregar usuario');
+      }
+
+      setUserSuccessMessage('¡Usuario registrado con éxito!');
+      setNewUserUsername('');
+      setNewUserName('');
+      setNewUserPassword('');
+      setNewUserRole('Secretaria');
+      setShowAddUserForm(false);
+      fetchSystemUsers();
+      setTimeout(() => setUserSuccessMessage(''), 3000);
+    } catch (err: any) {
+      showAlert('Error al Registrar', err.message, 'danger');
+    }
+  };
+
+  const handleUpdateUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingUser || !editingUser.name.trim()) return;
+
+    try {
+      const token = safeStorage.getItem('saved_session_token');
+      const response = await fetch(`/api/users/${editingUser.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          name: editingUser.name.trim(),
+          role: editingUser.role,
+          password: editingUser.password || undefined
+        })
+      });
+
+      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result.error || 'Fallo al actualizar usuario');
+      }
+
+      setUserSuccessMessage('¡Usuario actualizado con éxito!');
+      setEditingUser(null);
+      fetchSystemUsers();
+      setTimeout(() => setUserSuccessMessage(''), 3000);
+    } catch (err: any) {
+      showAlert('Error al Actualizar', err.message, 'danger');
+    }
+  };
+
+  const handleDeleteUser = async (userId: string, username: string) => {
+    if (username === '74223117') {
+      showAlert('Acción Restringida', 'No se puede eliminar al Administrador principal.', 'warning');
+      return;
+    }
+    if (username === currentUser.username) {
+      showAlert('Acción Restringida', 'No puedes eliminar tu propio usuario en sesión.', 'warning');
+      return;
+    }
+    showConfirm(
+      'Eliminar Usuario',
+      `¿Está seguro de eliminar al usuario "${username}"?`,
+      async () => {
+        try {
+          const token = safeStorage.getItem('saved_session_token');
+          const response = await fetch(`/api/users/${userId}`, {
+            method: 'DELETE',
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+
+          if (!response.ok) {
+            const result = await response.json();
+            throw new Error(result.error || 'Fallo al eliminar usuario');
+          }
+
+          setUserSuccessMessage('¡Usuario eliminado con éxito!');
+          fetchSystemUsers();
+          setTimeout(() => setUserSuccessMessage(''), 3000);
+        } catch (err: any) {
+          showAlert('Error al Eliminar', err.message, 'danger');
+        }
+      },
+      'danger'
+    );
+  };
+
+  // Test states and helper functions for AI Providers connectivity
+  const [testStatuses, setTestStatuses] = useState<Record<string, { status: 'idle' | 'testing' | 'success' | 'error'; errorMsg?: string; respuesta?: string }>>({});
+  const [testingAll, setTestingAll] = useState(false);
+
+  const testSingleProvider = async (id: string, customKey?: string) => {
+    setTestStatuses(prev => ({
+      ...prev,
+      [id]: { status: 'testing' }
+    }));
+
+    try {
+      const keyVal = customKey !== undefined ? customKey : (editKeys[id] || '');
+      const token = safeStorage.getItem('saved_session_token');
+
+      const response = await fetch(`/api/providers/${id}/test`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ apiKey: keyVal || undefined })
+      });
+
+      const result = await response.json();
+      if (!response.ok || result.success === false) {
+        setTestStatuses(prev => ({
+          ...prev,
+          [id]: { 
+            status: 'error', 
+            errorMsg: result.error || result.message || 'Falla de conexión o respuesta incorrecta.' 
+          }
+        }));
+      } else {
+        setTestStatuses(prev => ({
+          ...prev,
+          [id]: { 
+            status: 'success', 
+            respuesta: result.respuesta 
+          }
+        }));
+      }
+    } catch (err: any) {
+      setTestStatuses(prev => ({
+        ...prev,
+        [id]: { 
+          status: 'error', 
+          errorMsg: err.message || 'Error de red.' 
+        }
+      }));
+    }
+  };
+
+  const testAllProviders = async () => {
+    setTestingAll(true);
+    // Filter and run tests in parallel for providers that are configured or are Google Gemini fallback
+    const promises = localProviders.map(prov => {
+      const isConfigured = prov.id === 'gemini' || prov.hasKey || !!editKeys[prov.id];
+      if (isConfigured) {
+        return testSingleProvider(prov.id);
+      }
+      return Promise.resolve();
+    });
+
+    await Promise.all(promises);
+    setTestingAll(false);
+  };
+
+  // Filtered recipients
+  const filteredRecipients = recipients.filter(r => 
+    r.nombre.toLowerCase().includes(recSearch.toLowerCase()) || 
+    r.cargo.toLowerCase().includes(recSearch.toLowerCase())
+  );
+
+  return (
+    <div className="space-y-6 text-slate-800 dark:text-slate-100 font-sans" id="config_view_root">
+      
+      {/* Upper header */}
+      <div className="border-b border-slate-200 dark:border-slate-800/80 pb-5">
+        <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
+          Configuraciones de Área
+        </h1>
+        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+          Personalice el membrete institucional, firmas de origen, directivas de numeración y el directorio de destinatarios autorizados de su área.
+        </p>
+      </div>
+
+      {/* Sub tabs navigation */}
+      <div className="flex flex-wrap items-center gap-1 border-b border-slate-200 dark:border-slate-800 pb-px">
+        <button
+          onClick={() => setActiveTab('area')}
+          className={`flex items-center gap-2 px-4 py-2.5 text-xs font-semibold border-b-2 transition-all ${
+            activeTab === 'area'
+              ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400 bg-indigo-50/20 dark:bg-slate-900/40 rounded-t-lg'
+              : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+          }`}
+        >
+          <Building2 size={14} />
+          <span>Información de Área y Membrete</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('destinatarios')}
+          className={`flex items-center gap-2 px-4 py-2.5 text-xs font-semibold border-b-2 transition-all ${
+            activeTab === 'destinatarios'
+              ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400 bg-indigo-50/20 dark:bg-slate-900/40 rounded-t-lg'
+              : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+          }`}
+        >
+          <Users size={14} />
+          <span>Directorio de Destinatarios</span>
+        </button>
+
+        {currentUser.role === 'Administrador' && (
+          <>
+            <button
+              onClick={() => setActiveTab('ia')}
+              className={`flex items-center gap-2 px-4 py-2.5 text-xs font-semibold border-b-2 transition-all ${
+                activeTab === 'ia'
+                  ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400 bg-indigo-50/20 dark:bg-slate-900/40 rounded-t-lg'
+                  : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+              }`}
+            >
+              <Cpu size={14} />
+              <span>Proveedores de IA</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('usuarios')}
+              className={`flex items-center gap-2 px-4 py-2.5 text-xs font-semibold border-b-2 transition-all ${
+                activeTab === 'usuarios'
+                  ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400 bg-indigo-50/20 dark:bg-slate-900/40 rounded-t-lg'
+                  : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+              }`}
+            >
+              <UserCheck size={14} />
+              <span>Gestión de Usuarios</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('logs')}
+              className={`flex items-center gap-2 px-4 py-2.5 text-xs font-semibold border-b-2 transition-all ${
+                activeTab === 'logs'
+                  ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400 bg-indigo-50/20 dark:bg-slate-900/40 rounded-t-lg'
+                  : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+              }`}
+            >
+              <History size={14} />
+              <span>Bitácora del Sistema</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('diseno')}
+              className={`flex items-center gap-2 px-4 py-2.5 text-xs font-semibold border-b-2 transition-all ${
+                activeTab === 'diseno'
+                  ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400 bg-indigo-50/20 dark:bg-slate-900/40 rounded-t-lg'
+                  : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+              }`}
+            >
+              <Sparkles size={14} className="text-yellow-500 animate-pulse" />
+              <span>Estilo Visual 3D y Plantillas</span>
+            </button>
+          </>
+        )}
+      </div>
+
+      {/* Tab 1: Configuración de Área */}
+      {activeTab === 'area' && (
+        <div className="grid lg:grid-cols-12 gap-6 items-start animate-fade-in">
+          <div className="lg:col-span-5 space-y-6">
+            {/* Header Image upload */}
+            <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 shadow-sm space-y-4">
+              <div className="flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-2.5">
+                <Upload size={16} className="text-indigo-500" />
+                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-white">
+                  Imagen de Encabezado / Membrete
+                </h3>
+              </div>
+              
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
+                Suba el diseño oficial del encabezado de su área. Reemplazará el membrete por defecto y aparecerá en las visualizaciones de Word, PDFs e impresiones.
+              </p>
+
+              {/* Upload input wrapper */}
+              <div className="flex flex-col items-center justify-center border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-xl p-4 bg-slate-50 dark:bg-slate-950/40">
+                {savedHeaderImage ? (
+                  <div className="space-y-3 w-full text-center">
+                    <img 
+                      src={savedHeaderImage} 
+                      alt="Vista previa del encabezado" 
+                      className="max-h-20 mx-auto object-contain bg-white rounded p-1 border shadow-sm"
+                    />
+                    <div className="flex items-center justify-center gap-2">
+                      <button 
+                        onClick={handleRemoveHeaderImage}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-500 text-[10px] font-bold border border-red-500/20 transition-all"
+                      >
+                        <X size={11} />
+                        <span>Eliminar Membrete</span>
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <label className="cursor-pointer flex flex-col items-center space-y-2 p-4">
+                    <Upload size={24} className="text-slate-400" />
+                    <span className="text-[11px] font-bold text-indigo-500 hover:underline">
+                      Haga clic para seleccionar imagen
+                    </span>
+                    <span className="text-[9px] text-slate-400">PNG o JPG (máximo 3MB)</span>
+                    <input 
+                      type="file" 
+                      accept="image/*" 
+                      onChange={handleHeaderImageUpload}
+                      className="hidden" 
+                    />
+                  </label>
+                )}
+              </div>
+            </div>
+
+            {/* Local save folder (File System Access API) */}
+            <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 shadow-sm space-y-4">
+              <div className="flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-2.5">
+                <FolderOpen size={16} className="text-indigo-500" />
+                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-white">
+                  Carpeta de Guardado
+                </h3>
+              </div>
+
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
+                Elija una carpeta de su computadora y los documentos que genere se guardarán ahí automáticamente. Si no elige ninguna, se descargarán a la carpeta de descargas del navegador.
+              </p>
+
+              {folderSupported ? (
+                <>
+                  <div className="flex flex-col items-center justify-center border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-xl p-4 bg-slate-50 dark:bg-slate-950/40 text-center">
+                    {saveFolderName ? (
+                      <div className="space-y-3 w-full">
+                        <div className="flex items-center justify-center gap-2 text-slate-700 dark:text-slate-200">
+                          <FolderOpen size={18} className="text-emerald-500" />
+                          <span className="text-xs font-bold break-all">{saveFolderName}</span>
+                        </div>
+                        <div className="flex items-center justify-center gap-2">
+                          <button
+                            type="button"
+                            onClick={handlePickFolder}
+                            disabled={folderBusy}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-500 text-[10px] font-bold border border-indigo-500/20 transition-all disabled:opacity-50"
+                          >
+                            <RefreshCw size={11} />
+                            <span>Cambiar carpeta</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleClearFolder}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-500 text-[10px] font-bold border border-red-500/20 transition-all"
+                          >
+                            <X size={11} />
+                            <span>Quitar</span>
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={handlePickFolder}
+                        disabled={folderBusy}
+                        className="cursor-pointer flex flex-col items-center space-y-2 p-4 disabled:opacity-50"
+                      >
+                        <FolderOpen size={24} className="text-slate-400" />
+                        <span className="text-[11px] font-bold text-indigo-500 hover:underline">
+                          {folderBusy ? 'Abriendo selector…' : 'Elegir carpeta de guardado'}
+                        </span>
+                        <span className="text-[9px] text-slate-400">Se abre en "Documentos" por defecto</span>
+                      </button>
+                    )}
+                  </div>
+                  <div className="flex items-start gap-1.5 text-[9px] text-slate-400 leading-relaxed">
+                    <Info size={11} className="mt-0.5 flex-shrink-0" />
+                    <span>La primera vez el navegador pedirá permiso para escribir en la carpeta. Solo debe autorizarlo una vez.</span>
+                  </div>
+                </>
+              ) : (
+                <div className="flex items-start gap-2 text-[10px] text-amber-600 dark:text-amber-400 bg-amber-500/10 border border-amber-500/20 rounded-xl p-3">
+                  <AlertTriangle size={13} className="mt-0.5 flex-shrink-0" />
+                  <span>Su navegador no permite elegir carpeta, por lo que los documentos se descargarán normalmente. Para usar esta función, abra el sistema en Google Chrome o Microsoft Edge.</span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Area variables inputs */}
+          <div className="lg:col-span-7">
+            <form onSubmit={handleSaveAreaConfig} className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 shadow-sm space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+                <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Datos Técnicos de Firma y Sufijo</h3>
+                <span className="text-[10px] text-slate-400 font-mono">Modificable por área</span>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                    Nombre y Apellidos de Origen
+                  </label>
+                  <input 
+                    type="text"
+                    required
+                    value={savedUserName}
+                    onChange={(e) => setSavedUserName(e.target.value)}
+                    placeholder="Ej. Sofía Castro"
+                    className="w-full px-3.5 py-2.5 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:border-indigo-500"
+                  />
+                  <span className="text-[9px] text-slate-400 block">Nombre del firmante emisor (Sección DE:)</span>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                    Cargo o Puesto
+                  </label>
+                  <input 
+                    type="text"
+                    required
+                    value={savedUserRole}
+                    onChange={(e) => setSavedUserRole(e.target.value)}
+                    placeholder="Ej. Administrador"
+                    className="w-full px-3.5 py-2.5 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:border-indigo-500"
+                  />
+                  <span className="text-[9px] text-slate-400 block">Cargo institucional en el pie de página</span>
+                </div>
+
+                <div className="col-span-1 md:col-span-2 space-y-1">
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                    Sufijo de Numeración de Documento
+                  </label>
+                  <input 
+                    type="text"
+                    required
+                    value={savedSuffix}
+                    onChange={(e) => setSavedSuffix(e.target.value)}
+                    placeholder="Ej. -2026-UGEL-AGI"
+                    className="w-full px-3.5 py-2.5 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:border-indigo-500"
+                  />
+                  <span className="text-[9px] text-slate-400 block">Sufijo concatenado automáticamente al número de informe/oficio.</span>
+                </div>
+
+                <div className="col-span-1 md:col-span-2 space-y-1">
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                    Directorio Base de Almacenamiento Virtual (Buscador Inteligente)
+                  </label>
+                  <input 
+                    type="text"
+                    required
+                    value={savedAutoSavePath}
+                    onChange={(e) => setSavedAutoSavePath(e.target.value)}
+                    placeholder="Ej. /documentos_automaticos o Google Drive/UGEL-Bellavista"
+                    className="w-full px-3.5 py-2.5 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:border-indigo-500 font-mono text-[11px]"
+                  />
+                  <span className="text-[9px] text-slate-400 block">Ruta base o repositorio virtual donde se archivarán de manera automática los documentos clasificados por carpetas de tipo.</span>
+                </div>
+              </div>
+
+              {/* Action buttons */}
+              <div className="flex items-center justify-between pt-4 border-t border-slate-100 dark:border-slate-800">
+                {areaSuccess ? (
+                  <div className="flex items-center gap-1.5 text-xs text-emerald-500 font-semibold bg-emerald-50 dark:bg-emerald-950/40 px-3 py-1 rounded-lg border border-emerald-500/10">
+                    <Check size={13} />
+                    <span>¡Configuración del área guardada!</span>
+                  </div>
+                ) : <div />}
+
+                <button
+                  type="submit"
+                  className="flex items-center gap-1.5 px-4.5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold shadow transition-all active:scale-95"
+                >
+                  <Check size={13} />
+                  <span>Guardar Parámetros</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Tab 2: Directorio de Destinatarios */}
+      {activeTab === 'destinatarios' && (
+        <div className="space-y-4 animate-fade-in">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 bg-slate-50 dark:bg-slate-900/60 p-4 rounded-xl border border-slate-200/60 dark:border-slate-800/80 shadow-inner">
+            {/* Search */}
+            <div className="relative flex-1">
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input 
+                type="text" 
+                placeholder="Buscar destinatario por nombre o cargo..."
+                value={recSearch}
+                onChange={(e) => setRecSearch(e.target.value)}
+                className="w-full pl-8 pr-4 py-1.5 rounded-lg bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none"
+              />
+            </div>
+
+            {/* Add recipient btn */}
+            <button
+              onClick={() => {
+                setEditingRecipient(null);
+                setShowAddForm(!showAddForm);
+              }}
+              className="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold transition-all active:scale-95 shrink-0"
+            >
+              <Plus size={14} />
+              <span>Nuevo Destinatario</span>
+            </button>
+          </div>
+
+          {/* Add / Edit Form */}
+          {(showAddForm || editingRecipient) && (
+            <form 
+              onSubmit={editingRecipient ? handleUpdateRecipient : handleAddRecipient}
+              className="p-4 rounded-xl bg-slate-50 dark:bg-slate-950 border-2 border-indigo-500/20 shadow-sm space-y-4 animate-fade-in"
+            >
+              <div className="flex items-center justify-between border-b border-slate-200/50 dark:border-slate-800 pb-2">
+                <h4 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">
+                  {editingRecipient ? 'Editar Destinatario' : 'Registrar Nuevo Destinatario'}
+                </h4>
+                <button 
+                  type="button" 
+                  onClick={() => {
+                    setShowAddForm(false);
+                    setEditingRecipient(null);
+                  }}
+                  className="text-slate-400 hover:text-slate-600"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold uppercase text-slate-500">Nombre Completo</label>
+                  <input 
+                    type="text"
+                    required
+                    value={editingRecipient ? editingRecipient.nombre : newRecName}
+                    onChange={(e) => {
+                      if (editingRecipient) {
+                        setEditingRecipient({ ...editingRecipient, nombre: e.target.value });
+                      } else {
+                        setNewRecName(e.target.value);
+                      }
+                    }}
+                    placeholder="Ej. SR. TONY JHON FERNANDEZ DIAZ"
+                    className="w-full px-3 py-2 rounded bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs text-slate-800 dark:text-slate-200 focus:outline-none"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold uppercase text-slate-500">Cargo / Oficina</label>
+                  <input 
+                    type="text"
+                    required
+                    value={editingRecipient ? editingRecipient.cargo : newRecCargo}
+                    onChange={(e) => {
+                      if (editingRecipient) {
+                        setEditingRecipient({ ...editingRecipient, cargo: e.target.value });
+                      } else {
+                        setNewRecCargo(e.target.value);
+                      }
+                    }}
+                    placeholder="Ej. JEFE DEL ÁREA DE GESTIÓN INSTITUCIONAL"
+                    className="w-full px-3 py-2 rounded bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs text-slate-800 dark:text-slate-200 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowAddForm(false);
+                    setEditingRecipient(null);
+                  }}
+                  className="px-3 py-1.5 rounded text-xs font-semibold text-slate-500 hover:bg-slate-200/50"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="flex items-center gap-1.5 px-4 py-1.5 rounded bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold"
+                >
+                  <Check size={12} />
+                  <span>{editingRecipient ? 'Guardar Cambios' : 'Registrar'}</span>
+                </button>
+              </div>
+            </form>
+          )}
+
+          {/* Recipients List Table */}
+          <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-xl overflow-hidden shadow-sm">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse text-xs">
+                <thead>
+                  <tr className="bg-slate-50 dark:bg-slate-950/50 border-b border-slate-100 dark:border-slate-800 font-bold text-slate-500 dark:text-slate-400">
+                    <th className="p-3">Destinatario (Nombre)</th>
+                    <th className="p-3">Cargo del Destinatario</th>
+                    <th className="p-3 text-right w-24">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800/40">
+                  {filteredRecipients.length === 0 ? (
+                    <tr>
+                      <td colSpan={3} className="p-8 text-center text-slate-400">
+                        No hay destinatarios registrados que coincidan.
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredRecipients.map((rec) => (
+                      <tr key={rec.id} className="hover:bg-slate-50 dark:hover:bg-slate-950/20 text-slate-700 dark:text-slate-300 font-sans">
+                        <td className="p-3 font-bold text-slate-900 dark:text-white uppercase">{rec.nombre}</td>
+                        <td className="p-3 uppercase text-[11px] text-slate-500 dark:text-slate-400 font-semibold">{rec.cargo}</td>
+                        <td className="p-3 text-right">
+                          <div className="flex items-center justify-end gap-1.5">
+                            <button
+                              onClick={() => {
+                                setShowAddForm(false);
+                                setEditingRecipient(rec);
+                              }}
+                              className="p-1.5 rounded bg-slate-50 dark:bg-slate-800 text-slate-500 hover:text-indigo-500 transition-colors"
+                              title="Editar"
+                            >
+                              <Edit2 size={12} />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteRecipient(rec.id)}
+                              className="p-1.5 rounded bg-red-500/10 text-red-500 hover:bg-red-500/20 transition-colors"
+                              title="Eliminar"
+                            >
+                              <Trash2 size={12} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Tab 3: Proveedores de IA */}
+      {activeTab === 'ia' && currentUser.role === 'Administrador' && (
+        <div className="grid lg:grid-cols-12 gap-6 items-start animate-fade-in">
+          
+          {/* Left Side: Failure Simulator & Add Custom Provider Button */}
+          <div className="lg:col-span-4 space-y-6">
+            <div className="p-5 rounded-2xl bg-indigo-50/20 dark:bg-slate-900/40 border border-indigo-500/20 shadow-sm space-y-4">
+              <div className="flex items-center gap-2">
+                <ShieldAlert className="text-indigo-500" size={18} />
+                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-white">
+                  Simulador de Fallas (Fines de Demo)
+                </h3>
+              </div>
+              <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                Active esta opción para simular de forma transparente bloqueos de API, límites de cuota agotados (429 Rate Limits) o errores 500 en los proveedores primarios. Esto le permitirá ver el sistema de conmutación automática de IA en tiempo real.
+              </p>
+
+              <div className="flex items-center justify-between p-3 rounded-xl bg-white dark:bg-slate-950 border border-indigo-500/10">
+                <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">Fallas de API Controladas</span>
+                <button 
+                  onClick={handleToggleSimulation}
+                  className="text-indigo-500 hover:text-indigo-600 transition-colors"
+                  id="toggle_sim_btn"
+                >
+                  {simulateFailures ? <ToggleRight size={38} className="text-indigo-500" /> : <ToggleLeft size={38} className="text-slate-400" />}
+                </button>
+              </div>
+            </div>
+
+            {/* Registrar Nuevo Proveedor Custom UI Form Toggle */}
+            <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 shadow-sm space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-white flex items-center gap-2">
+                  <Plus size={14} className="text-indigo-500" />
+                  <span>Nuevos Proveedores (NVIDIA, etc.)</span>
+                </h3>
+              </div>
+              <p className="text-[11px] text-slate-500 leading-relaxed">
+                Registre APIs de IA compatibles con OpenAI (como NVIDIA NIM, Groq, Ollama u otras personalizadas) especificando un Endpoint URL personalizado.
+              </p>
+
+              {!showAddProviderForm ? (
+                <button
+                  type="button"
+                  onClick={() => setShowAddProviderForm(true)}
+                  className="w-full py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold transition-all active:scale-[0.98]"
+                >
+                  + Agregar Nuevo Proveedor IA
+                </button>
+              ) : (
+                <form onSubmit={handleAddCustomProvider} className="space-y-3 pt-2 border-t border-slate-100 dark:border-slate-800 animate-fade-in">
+                  <div>
+                    <label className="text-[10px] font-bold uppercase text-slate-400">ID Único (ej: nvidia)</label>
+                    <input 
+                      type="text"
+                      required
+                      value={newProvId}
+                      onChange={(e) => setNewProvId(e.target.value)}
+                      placeholder="nvidia"
+                      className="w-full px-2.5 py-1.5 rounded bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500 font-mono"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold uppercase text-slate-400">Nombre Visible (ej: NVIDIA Llama 3)</label>
+                    <input 
+                      type="text"
+                      required
+                      value={newProvName}
+                      onChange={(e) => setNewProvName(e.target.value)}
+                      placeholder="NVIDIA Llama 3"
+                      className="w-full px-2.5 py-1.5 rounded bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold uppercase text-slate-400">Nombre del Modelo (ej: meta/llama-3.1-405b)</label>
+                    <input 
+                      type="text"
+                      required
+                      value={newProvModelName}
+                      onChange={(e) => setNewProvModelName(e.target.value)}
+                      placeholder="meta/llama-3.1-405b"
+                      className="w-full px-2.5 py-1.5 rounded bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500 font-mono"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold uppercase text-slate-400">API URL / Endpoint (Opcional)</label>
+                    <input 
+                      type="text"
+                      value={newProvApiUrl}
+                      onChange={(e) => setNewProvApiUrl(e.target.value)}
+                      placeholder="https://integrate.api.nvidia.com/v1"
+                      className="w-full px-2.5 py-1.5 rounded bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500 font-mono"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold uppercase text-slate-400">Clave API / API Key (Opcional)</label>
+                    <input 
+                      type="password"
+                      value={newProvApiKey}
+                      onChange={(e) => setNewProvApiKey(e.target.value)}
+                      placeholder="nvapi-••••••••••••"
+                      className="w-full px-2.5 py-1.5 rounded bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500 font-mono"
+                    />
+                  </div>
+                  <div className="flex justify-end gap-2 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => setShowAddProviderForm(false)}
+                      className="px-2.5 py-1.5 rounded text-[11px] font-semibold text-slate-500 hover:bg-slate-100"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="submit"
+                      className="px-3 py-1.5 rounded bg-indigo-600 hover:bg-indigo-700 text-white text-[11px] font-semibold"
+                    >
+                      Registrar
+                    </button>
+                  </div>
+                </form>
+              )}
+            </div>
+
+            <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 shadow-sm space-y-3.5">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-white">Conmutación por Falla</h3>
+              <div className="space-y-3 text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                <p>
+                  <strong>1. Prioridades:</strong> El sistema procesa de forma ascendente (Prioridad 1, luego 2, etc.). Use los botones de flecha para reorganizar el orden.
+                </p>
+                <p>
+                  <strong>2. Claves Locales:</strong> Si no configura una clave propia, el sistema utilizará de forma transparente el servicio Google Gemini interno.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Right Side: Providers List */}
+          <div className="lg:col-span-8 p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 shadow-sm space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-3">
+              <div className="space-y-0.5">
+                <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Jerarquía de Proveedores de IA</h3>
+                <p className="text-[10px] text-slate-400">Ordene los proveedores por prioridad y evalúe su estado de conexión en segundo plano.</p>
+              </div>
+              <button
+                type="button"
+                onClick={testAllProviders}
+                disabled={testingAll}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/40 dark:hover:bg-indigo-950/70 border border-indigo-200/50 dark:border-indigo-900/60 text-[11px] font-bold text-indigo-600 dark:text-indigo-400 transition-all active:scale-[0.98] self-end sm:self-auto shrink-0"
+                title="Prueba silenciosa enviando 2+2 a todos los proveedores configurados"
+              >
+                <RefreshCw size={12} className={testingAll ? "animate-spin" : ""} />
+                <span>Probar Todos (2+2)</span>
+              </button>
+            </div>
+
+            <div className="space-y-3" id="providers_list">
+              {localProviders.map((prov, index) => {
+                const isFirst = index === 0;
+                const isLast = index === localProviders.length - 1;
+                const isKeyVisible = visibleKeys[prov.id];
+                const editKeyVal = editKeys[prov.id] || '';
+                const isEditingThis = editingProviderId === prov.id;
+
+                return (
+                  <div 
+                    key={prov.id}
+                    className={`p-4 rounded-xl border transition-all flex flex-col items-stretch gap-4 ${
+                      prov.enabled
+                        ? 'bg-slate-50/50 dark:bg-slate-950/20 border-slate-200 dark:border-slate-800/80'
+                        : 'bg-slate-100/50 dark:bg-slate-950/50 border-slate-200 dark:border-slate-900 opacity-60'
+                    }`}
+                  >
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                      <div className="flex items-center gap-3 min-w-0 flex-1">
+                        <div className="w-6 h-6 rounded-md bg-indigo-500/10 text-indigo-500 font-mono text-[11px] font-bold flex items-center justify-center shrink-0">
+                          {prov.priority}
+                        </div>
+                        
+                        <div className="min-w-0 flex-1">
+                          {isEditingThis ? (
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 p-2 bg-white dark:bg-slate-950 rounded-lg border border-slate-200 dark:border-slate-800">
+                              <div>
+                                <label className="text-[9px] uppercase font-bold text-slate-400">Nombre Proveedor</label>
+                                <input 
+                                  type="text"
+                                  value={prov.name}
+                                  onChange={(e) => handleUpdateProviderField(prov.id, 'name', e.target.value)}
+                                  className="w-full text-xs p-1 rounded bg-slate-50 dark:bg-slate-900 border"
+                                />
+                              </div>
+                              <div>
+                                <label className="text-[9px] uppercase font-bold text-slate-400">Modelo Estándar</label>
+                                <input 
+                                  type="text"
+                                  value={prov.modelName}
+                                  onChange={(e) => handleUpdateProviderField(prov.id, 'modelName', e.target.value)}
+                                  className="w-full text-xs p-1 rounded bg-slate-50 dark:bg-slate-900 border"
+                                />
+                              </div>
+                              <div>
+                                <label className="text-[9px] uppercase font-bold text-slate-400">Endpoint API (Opcional)</label>
+                                <input 
+                                  type="text"
+                                  value={prov.apiUrl || ''}
+                                  onChange={(e) => handleUpdateProviderField(prov.id, 'apiUrl', e.target.value || undefined)}
+                                  className="w-full text-xs p-1 rounded bg-slate-50 dark:bg-slate-900 border"
+                                  placeholder="Predeterminado OpenAI"
+                                />
+                              </div>
+                            </div>
+                          ) : (
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs font-bold text-slate-900 dark:text-white">{prov.name}</span>
+                                <span className="text-[9px] font-mono text-slate-400 font-medium">({prov.modelName})</span>
+                              </div>
+                              {prov.apiUrl && (
+                                <p className="text-[9px] font-mono text-slate-400 truncate mt-0.5">URL: {prov.apiUrl}</p>
+                              )}
+                            </div>
+                          )}
+                          
+                          {prov.id !== 'gemini' ? (
+                            <div className="flex flex-wrap items-center gap-2 mt-2">
+                              <input 
+                                type={isKeyVisible ? 'text' : 'password'}
+                                value={editKeyVal}
+                                onChange={(e) => handleKeyChange(prov.id, e.target.value)}
+                                placeholder={prov.hasKey ? '•••••••••••••••• (Guardada)' : 'Sin configurar - Ingrese API Key'}
+                                className="text-[10px] font-mono bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 px-2 py-0.5 rounded outline-none text-slate-800 dark:text-slate-200 w-44"
+                              />
+                              <button 
+                                type="button"
+                                onClick={() => toggleKeyVisibility(prov.id)}
+                                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                                title="Mostrar/Ocultar Clave"
+                              >
+                                {isKeyVisible ? <EyeOff size={11} /> : <Eye size={11} />}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => testSingleProvider(prov.id)}
+                                className="text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 text-[10px] font-bold flex items-center gap-1 px-2 py-0.5 rounded border border-indigo-500/10 hover:border-indigo-500/30 bg-indigo-500/5 transition-all"
+                                title="Probar conexión con esta clave enviando 2+2"
+                              >
+                                <Activity size={10} />
+                                <span>Probar</span>
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="flex flex-wrap items-center gap-3 mt-2">
+                              <div className="text-[9px] text-emerald-500 font-mono font-bold">
+                                ✓ Utiliza credencial integrada de Google AI Studio
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => testSingleProvider(prov.id)}
+                                className="text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300 text-[10px] font-bold flex items-center gap-1 px-2 py-0.5 rounded border border-emerald-500/10 hover:border-emerald-500/30 bg-emerald-500/5 transition-all"
+                                title="Probar conexión con el fallback de Gemini enviando 2+2"
+                              >
+                                <Activity size={10} />
+                                <span>Probar</span>
+                              </button>
+                            </div>
+                          )}
+
+                          {/* Diagnostic Test Status rendering */}
+                          {testStatuses[prov.id] && (
+                            <div className="mt-2 text-[11px] animate-fade-in">
+                              {testStatuses[prov.id].status === 'testing' && (
+                                <span className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400 font-medium font-mono text-[10px]">
+                                  <RefreshCw size={11} className="animate-spin text-indigo-500" />
+                                  <span>Verificando conexión en segundo plano (2+2 = ?)...</span>
+                                </span>
+                              )}
+                              {testStatuses[prov.id].status === 'success' && (
+                                <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/15 font-mono text-[10px]">
+                                  <Check size={11} />
+                                  <span>Conexión Exitosa: 2+2 = {testStatuses[prov.id].respuesta}</span>
+                                </span>
+                              )}
+                              {testStatuses[prov.id].status === 'error' && (
+                                <div className="space-y-1">
+                                  <span className="inline-flex items-center gap-1 text-red-600 dark:text-red-400 font-bold bg-red-500/10 px-2 py-0.5 rounded border border-red-500/15 font-mono text-[10px]">
+                                    <AlertCircle size={11} />
+                                    <span>Error en Carga / Conexión</span>
+                                  </span>
+                                  <p className="text-[10px] text-red-500/90 font-mono max-w-sm leading-tight pl-1">
+                                    {testStatuses[prov.id].errorMsg}
+                                  </p>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Right actions: Up/Down, Edit fields toggle, Active Toggle, Trash delete */}
+                      <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
+                        <div className="flex items-center gap-1 border-r border-slate-200 dark:border-slate-800 pr-2 mr-1">
+                          {prov.id !== 'gemini' && (
+                            <button
+                              type="button"
+                              onClick={() => setEditingProviderId(isEditingThis ? null : prov.id)}
+                              className={`p-1 rounded border text-[10px] font-bold ${
+                                isEditingThis 
+                                  ? 'bg-indigo-505 text-white bg-indigo-600 border-indigo-600 hover:bg-indigo-700' 
+                                  : 'bg-white dark:bg-slate-950 border-slate-200 text-slate-500 hover:text-indigo-500'
+                              }`}
+                              title={isEditingThis ? "Cerrar edición" : "Editar Nombre/Modelo/URL"}
+                            >
+                              <Edit2 size={12} />
+                            </button>
+                          )}
+                          <button 
+                            type="button"
+                            onClick={() => moveUp(index)}
+                            disabled={isFirst}
+                            className="p-1 rounded bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-500 hover:text-indigo-500 disabled:opacity-30"
+                          >
+                            <ArrowUp size={12} />
+                          </button>
+                          <button 
+                            type="button"
+                            onClick={() => moveDown(index)}
+                            disabled={isLast}
+                            className="p-1 rounded bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-500 hover:text-indigo-500 disabled:opacity-30"
+                          >
+                            <ArrowDown size={12} />
+                          </button>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => toggleEnabled(prov.id)}
+                          className={`px-2.5 py-1 rounded text-[10px] font-bold border transition-colors ${
+                            prov.enabled
+                              ? 'bg-indigo-500/10 text-indigo-500 border-indigo-500/20 hover:bg-indigo-500/20'
+                              : 'bg-slate-100 text-slate-400 border-slate-200 dark:bg-slate-950 dark:border-slate-800 hover:bg-slate-200/50'
+                          }`}
+                        >
+                          {prov.enabled ? 'ACTIVO' : 'INACTIVO'}
+                        </button>
+
+                        {prov.id !== 'gemini' && (
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteProvider(prov.id, prov.name)}
+                            className="p-1.5 rounded bg-red-500/10 text-red-500 hover:bg-red-500/20 transition-colors"
+                            title="Eliminar Proveedor de IA de la lista"
+                          >
+                            <Trash2 size={12} />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Consumo y Saldo Stats Bar */}
+                    <div className="pt-2 border-t border-slate-100 dark:border-slate-800/60 flex flex-wrap items-center justify-between gap-2 text-[10px]">
+                      <div className="flex items-center gap-4 text-slate-500">
+                        <span className="flex items-center gap-1 font-medium">
+                          <strong>Tokens Consumidos:</strong> {prov.tokensConsumed !== undefined ? prov.tokensConsumed.toLocaleString() : '0'} tokens
+                        </span>
+                        <span className="h-3 w-px bg-slate-200 dark:bg-slate-800"></span>
+                        <span className="flex items-center gap-1 font-medium">
+                          <strong>Costo Estimado:</strong> ${(prov.tokensConsumed ? (prov.tokensConsumed * 0.000002).toFixed(4) : '0.0000')} USD
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1.5 font-bold">
+                        <span className="text-slate-400 font-medium">Saldo Disponible:</span>
+                        <span className={`px-2 py-0.5 rounded-full font-mono font-bold ${
+                          (prov.balance !== undefined ? prov.balance : 10.00) <= 0.5 
+                            ? 'bg-rose-500/10 text-rose-500 border border-rose-500/10' 
+                            : 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/10'
+                        }`}>
+                          ${(prov.balance !== undefined ? prov.balance : 10.00).toFixed(2)} USD
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="flex items-center justify-between pt-4 border-t border-slate-100 dark:border-slate-800">
+              {success ? (
+                <div className="flex items-center gap-1.5 text-xs text-emerald-500 font-semibold bg-emerald-50 dark:bg-emerald-950/40 px-3 py-1.5 rounded-lg border border-emerald-500/20">
+                  <Check size={14} />
+                  <span>¡Prioridades, Atributos y Claves actualizadas con éxito!</span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-1.5 text-[10px] text-slate-400">
+                  <AlertCircle size={12} />
+                  <span>Las claves se guardan en el servidor mediante encripción básica.</span>
+                </div>
+              )}
+
+              <button
+                type="button"
+                onClick={handleSaveProvidersConfig}
+                disabled={saving}
+                className="flex items-center gap-1.5 px-5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold shadow transition-colors"
+              >
+                {saving ? <RefreshCw size={13} className="animate-spin" /> : <Check size={13} />}
+                <span>Aplicar Cambios</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Tab: Gestión de Usuarios (Admin-Only) */}
+      {activeTab === 'usuarios' && currentUser.role === 'Administrador' && (
+        <div className="space-y-6 animate-fade-in">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 bg-slate-50 dark:bg-slate-900/60 p-4 rounded-xl border border-slate-200/60 dark:border-slate-800/80 shadow-inner">
+            {/* Search users */}
+            <div className="relative flex-1">
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input 
+                type="text" 
+                placeholder="Buscar usuario por nombre de usuario o nombre completo..."
+                value={userSearch}
+                onChange={(e) => setUserSearch(e.target.value)}
+                className="w-full pl-8 pr-4 py-1.5 rounded-lg bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none"
+              />
+            </div>
+
+            {/* Add user btn */}
+            <button
+              onClick={() => {
+                setEditingUser(null);
+                setShowAddUserForm(!showAddUserForm);
+              }}
+              className="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold transition-all active:scale-95 shrink-0"
+            >
+              <Plus size={14} />
+              <span>Nuevo Usuario</span>
+            </button>
+          </div>
+
+          {/* User Add / Edit Form */}
+          {(showAddUserForm || editingUser) && (
+            <form 
+              onSubmit={editingUser ? handleUpdateUser : handleAddUser}
+              className="p-5 rounded-xl bg-slate-50 dark:bg-slate-950 border-2 border-indigo-500/20 shadow-sm space-y-4 animate-fade-in"
+            >
+              <div className="flex items-center justify-between border-b border-slate-200/50 dark:border-slate-800 pb-2">
+                <h4 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">
+                  {editingUser ? 'Editar Usuario' : 'Registrar Nuevo Usuario'}
+                </h4>
+                <button 
+                  type="button" 
+                  onClick={() => {
+                    setShowAddUserForm(false);
+                    setEditingUser(null);
+                  }}
+                  className="text-slate-400 hover:text-slate-600"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold uppercase text-slate-500">Usuario / DNI (Login)</label>
+                  <input 
+                    type="text"
+                    required
+                    disabled={!!editingUser}
+                    value={editingUser ? editingUser.username : newUserUsername}
+                    onChange={(e) => setNewUserUsername(e.target.value)}
+                    placeholder="Ej. 74223117"
+                    className="w-full px-3 py-2 rounded bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs text-slate-800 dark:text-slate-200 focus:outline-none disabled:opacity-50"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold uppercase text-slate-500">Nombre Completo</label>
+                  <input 
+                    type="text"
+                    required
+                    value={editingUser ? editingUser.name : newUserName}
+                    onChange={(e) => {
+                      if (editingUser) {
+                        setEditingUser({ ...editingUser, name: e.target.value });
+                      } else {
+                        setNewUserName(e.target.value);
+                      }
+                    }}
+                    placeholder="Ej. Sofía Castro"
+                    className="w-full px-3 py-2 rounded bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs text-slate-800 dark:text-slate-200 focus:outline-none"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold uppercase text-slate-500">Rol del Sistema</label>
+                  <select
+                    value={editingUser ? editingUser.role : newUserRole}
+                    onChange={(e) => {
+                      const selRole = e.target.value as any;
+                      if (editingUser) {
+                        setEditingUser({ ...editingUser, role: selRole });
+                      } else {
+                        setNewUserRole(selRole);
+                      }
+                    }}
+                    className="w-full px-3 py-2 rounded bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs text-slate-800 dark:text-slate-200 focus:outline-none"
+                  >
+                    <option value="Administrador">Administrador</option>
+                    <option value="Secretaria">Secretaria</option>
+                    <option value="Jefe">Jefe de Área</option>
+                    <option value="Consulta">Consulta Externa</option>
+                  </select>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold uppercase text-slate-500">
+                    {editingUser ? 'Nueva Contraseña (Opcional)' : 'Contraseña de Acceso'}
+                  </label>
+                  <input 
+                    type="password"
+                    required={!editingUser}
+                    value={editingUser ? (editingUser.password || '') : newUserPassword}
+                    onChange={(e) => {
+                      if (editingUser) {
+                        setEditingUser({ ...editingUser, password: e.target.value });
+                      } else {
+                        setNewUserPassword(e.target.value);
+                      }
+                    }}
+                    placeholder={editingUser ? 'Vacío para no cambiar' : 'Contraseña'}
+                    className="w-full px-3 py-2 rounded bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs text-slate-800 dark:text-slate-200 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowAddUserForm(false);
+                    setEditingUser(null);
+                  }}
+                  className="px-3 py-1.5 rounded text-xs font-semibold text-slate-500 hover:bg-slate-200/50"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="flex items-center gap-1.5 px-4 py-1.5 rounded bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold"
+                >
+                  <Check size={12} />
+                  <span>{editingUser ? 'Guardar Cambios' : 'Registrar'}</span>
+                </button>
+              </div>
+            </form>
+          )}
+
+          {/* Success toast / feedback */}
+          {userSuccessMessage && (
+            <div className="p-3 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-500 text-xs font-bold border border-emerald-500/10 animate-fade-in flex items-center gap-2">
+              <Check size={14} />
+              <span>{userSuccessMessage}</span>
+            </div>
+          )}
+
+          {/* Users Table List */}
+          <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-xl overflow-hidden shadow-sm">
+            {usersLoading ? (
+              <div className="p-12 text-center text-slate-500 text-xs font-mono">
+                <RefreshCw size={18} className="animate-spin mx-auto mb-2 text-indigo-500" />
+                <span>Cargando directorio de usuarios...</span>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse text-xs">
+                  <thead>
+                    <tr className="bg-slate-50 dark:bg-slate-950/50 border-b border-slate-100 dark:border-slate-800 font-bold text-slate-500 dark:text-slate-400">
+                      <th className="p-3">Usuario (Login / DNI)</th>
+                      <th className="p-3">Nombre Completo</th>
+                      <th className="p-3">Rol del Sistema</th>
+                      <th className="p-3 text-right w-24">Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800/40">
+                    {systemUsers
+                      .filter(u => 
+                        u.username.toLowerCase().includes(userSearch.toLowerCase()) || 
+                        u.name.toLowerCase().includes(userSearch.toLowerCase())
+                      )
+                      .map((user) => (
+                        <tr key={user.id} className="hover:bg-slate-50 dark:hover:bg-slate-950/20 text-slate-700 dark:text-slate-300 font-sans">
+                          <td className="p-3 font-mono font-bold text-slate-900 dark:text-white">{user.username}</td>
+                          <td className="p-3 font-semibold uppercase">{user.name}</td>
+                          <td className="p-3">
+                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                              user.role === 'Administrador'
+                                ? 'bg-indigo-500/10 text-indigo-500 border border-indigo-500/15'
+                                : user.role === 'Jefe'
+                                ? 'bg-amber-500/10 text-amber-500 border border-amber-500/15'
+                                : user.role === 'Secretaria'
+                                ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/15'
+                                : 'bg-slate-500/10 text-slate-500 border border-slate-500/15'
+                            }`}>
+                              {user.role}
+                            </span>
+                          </td>
+                          <td className="p-3 text-right">
+                            <div className="flex items-center justify-end gap-1.5">
+                              <button
+                                onClick={() => {
+                                  setShowAddUserForm(false);
+                                  setEditingUser({ ...user, password: '' });
+                                }}
+                                className="p-1.5 rounded bg-slate-50 dark:bg-slate-800 text-slate-500 hover:text-indigo-500 transition-colors"
+                                title="Editar"
+                              >
+                                <Edit2 size={12} />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteUser(user.id, user.username)}
+                                disabled={user.username === '74223117' || user.username === currentUser.username}
+                                className="p-1.5 rounded bg-red-500/10 text-red-500 hover:bg-red-500/20 disabled:opacity-30 disabled:hover:bg-red-500/10 transition-colors"
+                                title="Eliminar"
+                              >
+                                <Trash2 size={12} />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    }
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Tab 4: Bitácora del Sistema */}
+      {activeTab === 'logs' && currentUser.role === 'Administrador' && (
+        <div className="animate-fade-in">
+          <LogsView logs={logs} />
+        </div>
+      )}
+
+      {/* Tab 5: Estilo Visual 3D y Plantillas (Admin Only) */}
+      {activeTab === 'diseno' && currentUser.role === 'Administrador' && (
+        <div className="space-y-6 animate-fade-in">
+          <div className="bg-gradient-to-r from-indigo-500/10 via-purple-500/5 to-transparent border border-indigo-500/10 p-6 rounded-2xl">
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+              <div className="space-y-1">
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/10 tracking-widest uppercase">
+                  ⭐ PANEL DE GESTIÓN DE UIX GLOBAL
+                </div>
+                <h2 className="text-lg font-extrabold text-slate-900 dark:text-white">
+                  Personalización Visual del Ecosistema
+                </h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400 max-w-2xl leading-relaxed">
+                  Cambie el estilo estético del sistema completo de manera global. Al elegir una plantilla, el tipo de letra, el fondo en movimiento y la mascota 3D interactiva se actualizarán al instante para <strong>todos los usuarios activos</strong> de la plataforma.
+                </p>
+              </div>
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800/80 rounded-xl shadow-sm text-[11px] text-slate-500 dark:text-slate-400 font-medium">
+                <span>Tema Activo: </span>
+                <span className="font-extrabold uppercase text-indigo-600 dark:text-indigo-400">
+                  {selectedTheme}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[
+              {
+                id: 'predeterminado',
+                name: 'Pizarra Profesional',
+                desc: 'El diseño sobrio, formal e institucional original con tonos azulados y pizarra. Ideal para entornos clásicos de alta productividad.',
+                font: 'Plus Jakarta Sans / Inter',
+                colors: ['bg-slate-900', 'bg-slate-600', 'bg-indigo-600'],
+                motion: 'Efectos de color estáticos y transiciones limpias.',
+                mascot: 'Ninguno (Enfoque Corporativo)',
+                avatarSvg: (
+                  <svg viewBox="0 0 100 100" className="w-16 h-16 text-slate-400 dark:text-slate-500 shrink-0">
+                    <circle cx="50" cy="50" r="40" className="fill-slate-100 dark:fill-slate-800 stroke-slate-200 dark:stroke-slate-700 stroke-2" />
+                    <path d="M35 45h30M35 55h20M35 65h30" className="stroke-slate-400 dark:stroke-slate-500/50 stroke-3 stroke-linecap-round" />
+                  </svg>
+                )
+              },
+              {
+                id: 'nubes',
+                name: 'Cielo Soñador (Nubes 3D)',
+                desc: 'Fondo suave cielo-azul con un flujo continuo de nubes animadas que se desplazan lentamente. Aporta un espacio inspirador y amigable.',
+                font: 'Outfit (Redondeada y moderna)',
+                colors: ['bg-sky-400', 'bg-blue-300', 'bg-white'],
+                motion: 'Nubes animadas flotando en capas en el fondo.',
+                mascot: 'Nubis (La Inteligencia en las Nubes)',
+                avatarSvg: (
+                  <svg viewBox="0 0 100 100" className="w-16 h-16 shrink-0 animate-float-mascot">
+                    <defs>
+                      <linearGradient id="cloudGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stopColor="#ffffff" />
+                        <stop offset="100%" stopColor="#bae6fd" />
+                      </linearGradient>
+                    </defs>
+                    <path d="M25 60 a15 15 0 0 1 10 -25 a20 20 0 0 1 30 -5 a15 15 0 0 1 15 15 a15 15 0 0 1 -10 15 z" fill="url(#cloudGrad)" className="stroke-sky-200 stroke-2" />
+                    <circle cx="43" cy="46" r="3" fill="#0369a1" />
+                    <circle cx="57" cy="46" r="3" fill="#0369a1" />
+                    <path d="M47 53 q3 3 6 0" fill="none" stroke="#0369a1" strokeWidth="2" strokeLinecap="round" />
+                    <circle cx="38" cy="51" r="2.5" fill="#f43f5e" opacity="0.4" />
+                    <circle cx="62" cy="51" r="2.5" fill="#f43f5e" opacity="0.4" />
+                  </svg>
+                )
+              },
+              {
+                id: 'neon',
+                name: 'Cyberpunk UGEL (Neón)',
+                desc: 'Fondo oscuro de alta tecnología con rejilla interactiva y bordes de luz neón fluorescente. Brinda un aspecto tecnológico futurista.',
+                font: 'JetBrains Mono (Espaciado de Programador)',
+                colors: ['bg-slate-950', 'bg-cyan-400', 'bg-fuchsia-500'],
+                motion: 'Fondo de cuadrícula ciber y línea láser de escaneo.',
+                mascot: 'Cyber-V2 (Dron de Trámite Digital)',
+                avatarSvg: (
+                  <svg viewBox="0 0 100 100" className="w-16 h-16 shrink-0 animate-float-mascot">
+                    <defs>
+                      <filter id="neonGlow" x="-20%" y="-20%" width="140%" height="140%">
+                        <feGaussianBlur stdDeviation="3" result="blur" />
+                        <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                      </filter>
+                    </defs>
+                    <rect x="25" y="30" width="50" height="40" rx="10" fill="#1e1b4b" stroke="#06b6d4" strokeWidth="2" filter="url(#neonGlow)" />
+                    <rect x="42" y="70" width="16" height="8" fill="#475569" />
+                    <rect x="32" y="38" width="36" height="20" rx="4" fill="#000000" stroke="#a21caf" strokeWidth="1.5" />
+                    <circle cx="43" cy="48" r="2.5" fill="#06b6d4" className="animate-pulse" />
+                    <circle cx="57" cy="48" r="2.5" fill="#06b6d4" className="animate-pulse" />
+                    <line x1="46" y1="53" x2="54" y2="53" stroke="#06b6d4" strokeWidth="1.5" strokeLinecap="round" />
+                    <line x1="50" y1="30" x2="50" y2="20" stroke="#06b6d4" strokeWidth="2" filter="url(#neonGlow)" />
+                    <circle cx="50" cy="18" r="4" fill="#d946ef" filter="url(#neonGlow)" />
+                  </svg>
+                )
+              },
+              {
+                id: 'bosque',
+                name: 'Bosque Andino (Natural)',
+                desc: 'Diseño inspirado en la naturaleza de los andes. Combina verdes musgo, terracota y madera suave con partículas de luciérnagas.',
+                font: 'Playfair Display (Tipografía de Serifa)',
+                colors: ['bg-emerald-800', 'bg-amber-600', 'bg-orange-200'],
+                motion: 'Luciérnagas mágicas y hojas flotantes.',
+                mascot: 'Paco la Llama (Saludadora)',
+                avatarSvg: (
+                  <svg viewBox="0 0 100 100" className="w-16 h-16 shrink-0 animate-float-mascot">
+                    <path d="M40 25 l3 -10 l5 10 z" fill="#f8fafc" stroke="#e2e8f0" strokeWidth="1.5" />
+                    <path d="M60 25 l-3 -10 l-5 10 z" fill="#f8fafc" stroke="#e2e8f0" strokeWidth="1.5" />
+                    <rect x="42" y="24" width="16" height="40" rx="8" fill="#f8fafc" stroke="#e2e8f0" strokeWidth="1" />
+                    <ellipse cx="50" cy="35" rx="8" ry="6" fill="#f1f5f9" />
+                    <circle cx="50" cy="33" r="1.5" fill="#475569" />
+                    <path d="M48 37 q2 2 4 0" fill="none" stroke="#475569" strokeWidth="1.5" strokeLinecap="round" />
+                    <circle cx="45" cy="30" r="2.5" fill="#1e293b" />
+                    <circle cx="55" cy="30" r="2.5" fill="#1e293b" />
+                    <path d="M42 50 h16 v10 h-16 z" fill="#ea580c" />
+                    <line x1="45" y1="50" x2="45" y2="60" stroke="#facc15" strokeWidth="2" />
+                    <line x1="50" y1="50" x2="50" y2="60" stroke="#3b82f6" strokeWidth="2" />
+                    <line x1="55" y1="50" x2="55" y2="60" stroke="#10b981" strokeWidth="2" />
+                    <circle cx="41" cy="33" r="2" fill="#f43f5e" opacity="0.5" />
+                    <circle cx="59" cy="33" r="2" fill="#f43f5e" opacity="0.5" />
+                  </svg>
+                )
+              },
+              {
+                id: 'galaxy',
+                name: 'Cosmos del Saber (Estelar)',
+                desc: 'Un viaje a través del universo educativo con fondos translúcidos glasmórficos, nebulosas violetas oscuras y cometas intermitentes.',
+                font: 'Space Grotesk (Estilo Geométrico)',
+                colors: ['bg-violet-950', 'bg-indigo-900', 'bg-purple-500'],
+                motion: 'Constelaciones y estrellas titilantes cruzando.',
+                mascot: 'AstroBoy (Cosmonauta Escolar)',
+                avatarSvg: (
+                  <svg viewBox="0 0 100 100" className="w-16 h-16 shrink-0 animate-float-mascot">
+                    <circle cx="50" cy="46" r="26" fill="#e2e8f0" stroke="#6366f1" strokeWidth="2" />
+                    <ellipse cx="50" cy="44" rx="19" ry="14" fill="#1e1b4b" stroke="#818cf8" strokeWidth="1.5" />
+                    <path d="M38 48 q12 -6 24 0" fill="none" stroke="#818cf8" strokeWidth="2" strokeLinecap="round" opacity="0.6" />
+                    <circle cx="44" cy="44" r="2" fill="#38bdf8" />
+                    <circle cx="56" cy="44" r="2" fill="#38bdf8" />
+                    <path d="M48 50 q2 2 4 0" fill="none" stroke="#38bdf8" strokeWidth="1.5" />
+                    <rect x="36" y="72" width="28" height="12" rx="4" fill="#cbd5e1" stroke="#6366f1" strokeWidth="1.5" />
+                    <rect x="44" y="75" width="12" height="6" fill="#ef4444" rx="1" />
+                    <circle cx="76" cy="24" r="2" fill="#fbbf24" className="animate-pulse" />
+                    <path d="M72 24 h8 M76 20 v8" stroke="#fbbf24" strokeWidth="1" />
+                  </svg>
+                )
+              }
+            ].map((theme) => {
+              const isSelected = selectedTheme === theme.id;
+              return (
+                <div 
+                  key={theme.id}
+                  className={`border rounded-2xl p-5 flex flex-col justify-between transition-all duration-300 relative overflow-hidden bg-white dark:bg-slate-900 shadow-sm ${
+                    isSelected 
+                      ? 'border-indigo-500 ring-2 ring-indigo-500/20 shadow-md transform -translate-y-1' 
+                      : 'border-slate-200/80 dark:border-slate-800/80 hover:border-slate-300 dark:hover:border-slate-700'
+                  }`}
+                >
+                  {/* Active ribbon overlay */}
+                  {isSelected && (
+                    <div className="absolute top-0 right-0 bg-indigo-600 text-white text-[9px] font-extrabold uppercase px-3.5 py-1 rounded-bl-xl shadow-sm tracking-widest flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-ping"></span>
+                      <span>ACTIVO</span>
+                    </div>
+                  )}
+
+                  <div className="space-y-4">
+                    {/* Visual Preview Area */}
+                    <div className="h-28 rounded-xl bg-slate-50 dark:bg-slate-950/40 border border-slate-100 dark:border-slate-800/60 flex items-center justify-center p-4 gap-4 relative overflow-hidden">
+                      {theme.id === 'nubes' && (
+                        <div className="absolute inset-0 opacity-20 pointer-events-none">
+                          <div className="absolute top-2 left-2 w-8 h-4 bg-sky-200 rounded-full animate-clouds-slow"></div>
+                          <div className="absolute bottom-3 right-4 w-12 h-6 bg-sky-200 rounded-full animate-clouds-reverse"></div>
+                        </div>
+                      )}
+                      {theme.id === 'neon' && (
+                        <div className="absolute inset-0 bg-cyber-grid opacity-25 pointer-events-none"></div>
+                      )}
+                      {theme.id === 'bosque' && (
+                        <div className="absolute inset-0 opacity-30 pointer-events-none">
+                          <span className="absolute top-4 left-6 w-1 h-1 bg-amber-400 rounded-full animate-firefly-1"></span>
+                          <span className="absolute bottom-6 right-8 w-1 h-1 bg-amber-400 rounded-full animate-firefly-2"></span>
+                        </div>
+                      )}
+                      {theme.id === 'galaxy' && (
+                        <div className="absolute inset-0 opacity-40 pointer-events-none bg-radial-at-t from-purple-900/10 to-transparent">
+                          <span className="absolute top-6 right-8 w-1 h-1 bg-white rounded-full animate-twinkle"></span>
+                          <span className="absolute bottom-4 left-10 w-1 h-1 bg-white rounded-full animate-twinkle"></span>
+                        </div>
+                      )}
+                      
+                      {theme.avatarSvg}
+
+                      <div className="space-y-1 min-w-0 flex-1">
+                        <div className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider font-mono">
+                          Mascota 3D de Ayuda
+                        </div>
+                        <div className="text-xs font-extrabold text-slate-800 dark:text-slate-200 truncate font-sans">
+                          {theme.mascot}
+                        </div>
+                        <div className="flex items-center gap-1.5 pt-1">
+                          {theme.colors.map((col, idx) => (
+                            <span key={idx} className={`w-3.5 h-3.5 rounded-full border border-white dark:border-slate-800 ${col} shadow-sm`}></span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <h3 className="font-bold text-slate-900 dark:text-white text-sm font-sans flex items-center gap-1.5">
+                        {theme.name}
+                      </h3>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed min-h-[50px]">
+                        {theme.desc}
+                      </p>
+                    </div>
+
+                    <div className="border-t border-slate-100 dark:border-slate-800/60 pt-3 space-y-1.5 text-[10px] font-mono text-slate-600 dark:text-slate-400">
+                      <div className="flex justify-between">
+                        <span className="font-bold">TIPOGRAFÍA:</span>
+                        <span className="text-slate-900 dark:text-slate-100">{theme.font}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="font-bold">MOVIMIENTO:</span>
+                        <span className="text-slate-900 dark:text-slate-100 text-right">{theme.motion}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="pt-4">
+                    <button
+                      onClick={() => handleSaveTheme(theme.id)}
+                      disabled={isSelected || savingTheme}
+                      className={`w-full py-2 rounded-xl text-xs font-bold transition-all ${
+                        isSelected 
+                          ? 'bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 cursor-not-allowed'
+                          : 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm hover:shadow active:scale-95'
+                      }`}
+                    >
+                      {savingTheme && selectedTheme === theme.id ? 'Aplicando...' : isSelected ? 'Plantilla Activa' : 'Activar Plantilla'}
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Custom Modal Overlay */}
+      {customModal.isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in" id="custom_modal_overlay">
+          <div className="w-full max-w-sm bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xl p-6 space-y-4">
+            <div className="flex items-start gap-3">
+              <div className={`p-2.5 rounded-xl shrink-0 ${
+                customModal.type === 'danger' 
+                  ? 'bg-red-500/10 text-red-500' 
+                  : customModal.type === 'warning' 
+                  ? 'bg-amber-500/10 text-amber-500' 
+                  : customModal.type === 'success' 
+                  ? 'bg-emerald-500/10 text-emerald-500' 
+                  : 'bg-indigo-500/10 text-indigo-500'
+              }`}>
+                {customModal.type === 'danger' && <Trash2 size={20} />}
+                {customModal.type === 'warning' && <AlertTriangle size={20} />}
+                {customModal.type === 'success' && <Check size={20} />}
+                {customModal.type === 'info' && <Info size={20} />}
+              </div>
+              <div className="space-y-1 min-w-0 flex-1">
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white truncate">
+                  {customModal.title}
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed whitespace-pre-wrap">
+                  {customModal.message}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800/60">
+              {customModal.cancelText && (
+                <button
+                  type="button"
+                  onClick={customModal.onCancel}
+                  className="px-3.5 py-2 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 text-xs font-semibold transition-all"
+                >
+                  {customModal.cancelText}
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={customModal.onConfirm}
+                className={`px-4 py-2 rounded-lg text-white text-xs font-semibold shadow transition-all ${
+                  customModal.type === 'danger'
+                    ? 'bg-red-500 hover:bg-red-600 shadow-red-500/10'
+                    : customModal.type === 'warning'
+                    ? 'bg-amber-500 hover:bg-amber-600 shadow-amber-500/10'
+                    : 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-500/10'
+                }`}
+              >
+                {customModal.confirmText}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+    </div>
+  );
+}

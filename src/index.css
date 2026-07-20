@@ -1,0 +1,427 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Outfit:wght@300;400;500;600;700&family=Space+Grotesk:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Plus Jakarta Sans", "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  --font-outfit: "Outfit", "Plus Jakarta Sans", sans-serif;
+  --font-space: "Space Grotesk", sans-serif;
+  --font-playfair: "Playfair Display", "Georgia", serif;
+}
+
+@variant dark (&:where(.dark, .dark *));
+
+/* Custom premium scrollbar and effects */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(15, 23, 42, 0.05);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(99, 102, 241, 0.2);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(99, 102, 241, 0.4);
+}
+
+/* Premium Animations */
+@keyframes float {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(-10px) rotate(2deg); }
+}
+
+@keyframes pulse-slow {
+  0%, 100% { opacity: 0.2; }
+  50% { opacity: 0.5; }
+}
+
+.animate-float-premium {
+  animation: float 6s ease-in-out infinite;
+}
+
+.animate-pulse-slow {
+  animation: pulse-slow 8s ease-in-out infinite;
+}
+
+.glass-morphic {
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+}
+
+.dark .glass-morphic {
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* Theme-Specific Keyframes & Utility Animations */
+@keyframes moveCloudsSlow {
+  0% { transform: translate(0, 0); }
+  50% { transform: translate(40px, -15px); }
+  100% { transform: translate(0, 0); }
+}
+
+@keyframes moveCloudsReverse {
+  0% { transform: translate(0, 0); }
+  50% { transform: translate(-30px, 10px); }
+  100% { transform: translate(0, 0); }
+}
+
+.animate-clouds-slow {
+  animation: moveCloudsSlow 25s ease-in-out infinite;
+}
+
+.animate-clouds-reverse {
+  animation: moveCloudsReverse 20s ease-in-out infinite;
+}
+
+@keyframes twinkle {
+  0%, 100% { opacity: 0.2; transform: scale(0.8); }
+  50% { opacity: 1; transform: scale(1.2); }
+}
+
+.animate-twinkle {
+  animation: twinkle 4s ease-in-out infinite;
+}
+
+@keyframes floatMascot {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(-12px) rotate(4deg); }
+}
+
+.animate-float-mascot {
+  animation: floatMascot 5s ease-in-out infinite;
+}
+
+@keyframes scanline {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(100%); }
+}
+
+.animate-scanline {
+  animation: scanline 8s linear infinite;
+}
+
+@keyframes driftFirefly {
+  0% { transform: translate(0, 0) scale(1); opacity: 0.1; }
+  50% { transform: translate(25px, -45px) scale(1.4); opacity: 0.8; }
+  100% { transform: translate(-15px, -90px) scale(0.9); opacity: 0; }
+}
+
+.animate-firefly-1 {
+  animation: driftFirefly 12s ease-in-out infinite;
+}
+
+.animate-firefly-2 {
+  animation: driftFirefly 16s ease-in-out infinite;
+  animation-delay: 3s;
+}
+
+.animate-firefly-3 {
+  animation: driftFirefly 10s ease-in-out infinite;
+  animation-delay: 6s;
+}
+
+/* Cyber Matrix Grid Pattern */
+.bg-cyber-grid {
+  background-size: 50px 50px;
+  background-image: 
+    linear-gradient(to right, rgba(6, 182, 212, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(6, 182, 212, 0.05) 1px, transparent 1px);
+}
+.dark .bg-cyber-grid {
+  background-image: 
+    linear-gradient(to right, rgba(34, 211, 238, 0.08) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(34, 211, 238, 0.08) 1px, transparent 1px);
+}
+
+/* --- Theme 1: Sky/Cloud Theme (nubes) Global Overrides --- */
+.theme-nubes {
+  font-family: "Outfit", sans-serif !important;
+}
+.theme-nubes h1, .theme-nubes h2, .theme-nubes h3, .theme-nubes h4 {
+  font-family: "Outfit", sans-serif !important;
+  color: #0369a1 !important;
+  letter-spacing: -0.02em;
+}
+.theme-nubes .bg-white, 
+.theme-nubes .dark\:bg-slate-900, 
+.theme-nubes .bg-slate-900, 
+.theme-nubes [id^="agenda_view"] .bg-white,
+.theme-nubes [id^="agenda_view"] .dark\:bg-slate-900 {
+  background-color: rgba(255, 255, 255, 0.9) !important;
+  border-color: rgba(186, 230, 253, 0.7) !important;
+  color: #0f172a !important;
+  box-shadow: 0 10px 25px -5px rgba(14, 165, 233, 0.08) !important;
+  border-radius: 1.5rem !important;
+}
+.theme-nubes .bg-slate-100, .theme-nubes .dark\:bg-slate-950, .theme-nubes .bg-slate-950 {
+  background: linear-gradient(to bottom, #f0f9ff, #ffffff) !important;
+}
+.theme-nubes .bg-indigo-600, .theme-nubes .bg-rose-600, .theme-nubes .bg-emerald-600, .theme-nubes .bg-blue-600 {
+  background-color: #0284c7 !important;
+  color: #ffffff !important;
+  border-radius: 1rem !important;
+  box-shadow: 0 4px 12px rgba(2, 132, 199, 0.3) !important;
+}
+.theme-nubes .bg-indigo-600:hover, .theme-nubes .bg-rose-600:hover, .theme-nubes .bg-emerald-600:hover {
+  background-color: #0369a1 !important;
+}
+.theme-nubes .text-slate-900, .theme-nubes .dark\:text-white, .theme-nubes .text-slate-800 {
+  color: #0369a1 !important;
+}
+.theme-nubes .text-slate-500, .theme-nubes .dark\:text-slate-400 {
+  color: #0284c7 !important;
+}
+/* Sidebar custom styles for Clouds */
+.theme-nubes aside, .theme-nubes .bg-slate-950 {
+  background: linear-gradient(180deg, #0284c7 0%, #0369a1 100%) !important;
+  border-right: 1px solid #bae6fd !important;
+}
+.theme-nubes aside span, .theme-nubes aside svg {
+  color: #ffffff !important;
+}
+.theme-nubes aside button:hover {
+  background-color: rgba(255, 255, 255, 0.15) !important;
+}
+
+/* --- Theme 2: Cyberpunk Neon (neon) Global Overrides --- */
+.theme-neon {
+  font-family: "JetBrains Mono", monospace !important;
+}
+.theme-neon h1, .theme-neon h2, .theme-neon h3, .theme-neon h4 {
+  font-family: "JetBrains Mono", monospace !important;
+  color: #06b6d4 !important;
+  text-shadow: 0 0 10px rgba(6, 182, 212, 0.6) !important;
+  letter-spacing: 0.05em;
+}
+.theme-neon .bg-white, 
+.theme-neon .dark\:bg-slate-900, 
+.theme-neon .bg-slate-900,
+.theme-neon [id^="agenda_view"] .bg-white,
+.theme-neon [id^="agenda_view"] .dark\:bg-slate-900 {
+  background-color: rgba(9, 5, 20, 0.95) !important;
+  border: 1px solid #d946ef !important;
+  box-shadow: 0 0 15px rgba(217, 70, 239, 0.25) !important;
+  color: #22d3ee !important;
+  border-radius: 0.5rem !important;
+}
+.theme-neon .bg-slate-100, .theme-neon .dark\:bg-slate-950, .theme-neon .bg-slate-950 {
+  background-color: #03000a !important;
+}
+.theme-neon .bg-indigo-600, .theme-neon .bg-rose-600, .theme-neon .bg-emerald-600, .theme-neon .bg-blue-600 {
+  background-color: #06b6d4 !important;
+  color: #000000 !important;
+  font-weight: 900 !important;
+  border: 1px solid #ffffff !important;
+  box-shadow: 0 0 10px rgba(6, 182, 212, 0.5) !important;
+  border-radius: 0.25rem !important;
+}
+.theme-neon .bg-indigo-600:hover, .theme-neon .bg-rose-600:hover, .theme-neon .bg-emerald-600:hover {
+  background-color: #d946ef !important;
+  box-shadow: 0 0 15px rgba(217, 70, 239, 0.8) !important;
+}
+.theme-neon .text-slate-900, .theme-neon .dark\:text-white, .theme-neon .text-slate-800 {
+  color: #22d3ee !important;
+}
+.theme-neon .text-slate-500, .theme-neon .dark\:text-slate-400 {
+  color: #f43f5e !important;
+}
+/* Sidebar overrides for Neon */
+.theme-neon aside, .theme-neon .bg-slate-950 {
+  background-color: #020005 !important;
+  border-right: 2px solid #06b6d4 !important;
+  box-shadow: 5px 0 15px rgba(6, 182, 212, 0.15) !important;
+}
+.theme-neon aside span, .theme-neon aside svg {
+  color: #06b6d4 !important;
+}
+.theme-neon aside button.bg-indigo-600\/10 {
+  background-color: rgba(6, 182, 212, 0.2) !important;
+  border-left: 3px solid #06b6d4 !important;
+}
+
+/* --- Theme 3: Bosque Andino (bosque) Global Overrides --- */
+.theme-bosque {
+  font-family: "Playfair Display", serif !important;
+}
+.theme-bosque h1, .theme-bosque h2, .theme-bosque h3, .theme-bosque h4 {
+  font-family: "Playfair Display", serif !important;
+  color: #064e3b !important;
+}
+.theme-bosque .bg-white, 
+.theme-bosque .dark\:bg-slate-900, 
+.theme-bosque .bg-slate-900,
+.theme-bosque [id^="agenda_view"] .bg-white,
+.theme-bosque [id^="agenda_view"] .dark\:bg-slate-900 {
+  background-color: #faf7f2 !important;
+  border: 1px solid #d1fae5 !important;
+  color: #064e3b !important;
+  box-shadow: 0 4px 20px rgba(6, 78, 59, 0.04) !important;
+  border-radius: 2rem !important;
+}
+.theme-bosque .bg-slate-100, .theme-bosque .dark\:bg-slate-950, .theme-bosque .bg-slate-950 {
+  background-color: #f5f2eb !important;
+}
+.theme-bosque .bg-indigo-600, .theme-bosque .bg-rose-600, .theme-bosque .bg-emerald-600, .theme-bosque .bg-blue-600 {
+  background-color: #047857 !important;
+  color: #ffffff !important;
+  border-radius: 1.5rem !important;
+}
+.theme-bosque .bg-indigo-600:hover, .theme-bosque .bg-rose-600:hover, .theme-bosque .bg-emerald-600:hover {
+  background-color: #b45309 !important;
+}
+.theme-bosque .text-slate-900, .theme-bosque .dark\:text-white, .theme-bosque .text-slate-800 {
+  color: #064e3b !important;
+}
+.theme-bosque .text-slate-500, .theme-bosque .dark\:text-slate-400 {
+  color: #b45309 !important;
+}
+/* Sidebar overrides for Bosque */
+.theme-bosque aside, .theme-bosque .bg-slate-950 {
+  background-color: #064e3b !important;
+  border-right: 1px solid #059669 !important;
+}
+.theme-bosque aside span, .theme-bosque aside svg {
+  color: #faf7f2 !important;
+}
+
+/* --- Theme 4: Galaxy Cosmos (galaxy) Global Overrides --- */
+.theme-galaxy {
+  font-family: "Space Grotesk", sans-serif !important;
+}
+.theme-galaxy h1, .theme-galaxy h2, .theme-galaxy h3, .theme-galaxy h4 {
+  font-family: "Space Grotesk", sans-serif !important;
+  color: #c084fc !important;
+  text-shadow: 0 0 8px rgba(192, 132, 252, 0.4) !important;
+}
+.theme-galaxy .bg-white, 
+.theme-galaxy .dark\:bg-slate-900, 
+.theme-galaxy .bg-slate-900,
+.theme-galaxy [id^="agenda_view"] .bg-white,
+.theme-galaxy [id^="agenda_view"] .dark\:bg-slate-900 {
+  background: rgba(18, 10, 36, 0.75) !important;
+  border: 1px solid rgba(168, 85, 247, 0.3) !important;
+  backdrop-filter: blur(12px) !important;
+  color: #e9d5ff !important;
+  box-shadow: 0 10px 30px rgba(124, 58, 237, 0.15) !important;
+  border-radius: 1.75rem !important;
+}
+.theme-galaxy .bg-slate-100, .theme-galaxy .dark\:bg-slate-950, .theme-galaxy .bg-slate-950 {
+  background: linear-gradient(135deg, #090014 0%, #120224 100%) !important;
+}
+.theme-galaxy .bg-indigo-600, .theme-galaxy .bg-rose-600, .theme-galaxy .bg-emerald-600, .theme-galaxy .bg-blue-600 {
+  background: linear-gradient(90deg, #7c3aed 0%, #a855f7 100%) !important;
+  color: #ffffff !important;
+  border-radius: 1.25rem !important;
+  box-shadow: 0 4px 15px rgba(124, 58, 237, 0.4) !important;
+}
+.theme-galaxy .bg-indigo-600:hover, .theme-galaxy .bg-rose-600:hover, .theme-galaxy .bg-emerald-600:hover {
+  background: linear-gradient(90deg, #6d28d9 0%, #9333ea 100%) !important;
+}
+.theme-galaxy .text-slate-900, .theme-galaxy .dark\:text-white, .theme-galaxy .text-slate-800 {
+  color: #e9d5ff !important;
+}
+.theme-galaxy .text-slate-500, .theme-galaxy .dark\:text-slate-400 {
+  color: #c084fc !important;
+}
+/* Sidebar overrides for Galaxy */
+.theme-galaxy aside, .theme-galaxy .bg-slate-950 {
+  background: rgba(10, 3, 24, 0.85) !important;
+  backdrop-filter: blur(20px) !important;
+  border-right: 1px solid rgba(168, 85, 247, 0.2) !important;
+}
+.theme-galaxy aside span, .theme-galaxy aside svg {
+  color: #c084fc !important;
+}
+
+/* Animations for figures */
+@keyframes spin-slow {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+.animate-spin-slow {
+  animation: spin-slow 20s linear infinite;
+}
+
+@keyframes pulse-glow {
+  0%, 100% { opacity: 0.3; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(1.1); }
+}
+.animate-pulse-glow {
+  animation: pulse-glow 6s ease-in-out infinite;
+}
+
+@keyframes float-slow {
+  0%, 100% { transform: translateY(0px) translateX(0px) rotate(0deg); }
+  50% { transform: translateY(-15px) translateX(10px) rotate(5deg); }
+}
+.animate-float-slow {
+  animation: float-slow 12s ease-in-out infinite;
+}
+
+@keyframes shooting-star {
+  0% { transform: translateX(0) translateY(0) scale(0); opacity: 0; }
+  5% { opacity: 1; }
+  15% { transform: translateX(300px) translateY(150px) scale(1); opacity: 0; }
+  100% { transform: translateX(300px) translateY(150px) scale(0); opacity: 0; }
+}
+.animate-shooting-star {
+  animation: shooting-star 10s linear infinite;
+}
+.animate-shooting-star-delayed {
+  animation: shooting-star 14s linear infinite;
+  animation-delay: 4s;
+}
+
+/* Custom Global Inputs overrides based on theme */
+.theme-nubes input, .theme-nubes select, .theme-nubes textarea {
+  background-color: #ffffff !important;
+  border-color: #bae6fd !important;
+  color: #0369a1 !important;
+}
+.theme-nubes input:focus, .theme-nubes select:focus, .theme-nubes textarea:focus {
+  border-color: #0284c7 !important;
+  box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.15) !important;
+}
+
+.theme-neon input, .theme-neon select, .theme-neon textarea {
+  background-color: #090514 !important;
+  border-color: #06b6d4 !important;
+  color: #22d3ee !important;
+}
+.theme-neon input:focus, .theme-neon select:focus, .theme-neon textarea:focus {
+  border-color: #d946ef !important;
+  box-shadow: 0 0 0 3px rgba(217, 70, 239, 0.25) !important;
+}
+
+.theme-bosque input, .theme-bosque select, .theme-bosque textarea {
+  background-color: #faf7f2 !important;
+  border-color: #d1fae5 !important;
+  color: #064e3b !important;
+}
+.theme-bosque input:focus, .theme-bosque select:focus, .theme-bosque textarea:focus {
+  border-color: #047857 !important;
+  box-shadow: 0 0 0 3px rgba(52, 211, 153, 0.15) !important;
+}
+
+.theme-galaxy input, .theme-galaxy select, .theme-galaxy textarea {
+  background-color: rgba(18, 10, 36, 0.6) !important;
+  border-color: rgba(168, 85, 247, 0.4) !important;
+  color: #e9d5ff !important;
+}
+.theme-galaxy input:focus, .theme-galaxy select:focus, .theme-galaxy textarea:focus {
+  border-color: #c084fc !important;
+  box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.25) !important;
+}
+
+
