@@ -79,7 +79,10 @@ export class NeonDatabase {
   // Memoised one-time initialisation (create tables, seed, first load).
   ready(): Promise<void> {
     if (!this.initPromise) {
-      this.initPromise = this.init();
+      this.initPromise = this.init().catch(err => {
+        this.initPromise = null;
+        throw err;
+      });
     }
     return this.initPromise;
   }
@@ -87,8 +90,11 @@ export class NeonDatabase {
   private getPool(): pg.Pool {
     if (!this.pool) {
       const url = process.env.DATABASE_URL;
-      if (!url) throw new Error('DATABASE_URL no está configurada.');
+      if (!url) throw new Error('La variable de entorno DATABASE_URL no está configurada en Vercel.');
       this.pool = new pg.Pool({ connectionString: url, ssl: { rejectUnauthorized: false } });
+      this.pool.on('error', (err) => {
+        console.error('Error de conexión en Postgres Pool (Neon):', err);
+      });
     }
     return this.pool;
   }

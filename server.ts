@@ -22,7 +22,7 @@ app.use('/api', async (_req, res, next) => {
     next();
   } catch (err) {
     console.error('Error inicializando la base de datos:', err);
-    res.status(503).json({ error: 'Base de datos no disponible. Intente nuevamente en unos segundos.', detalle: String((err && (err.message || err.code)) || err) });
+    res.status(503).json({ error: 'Base de datos no disponible. Intente nuevamente en unos segundos.' });
   }
 });
 

@@ -50,10 +50,21 @@ export default function Login({ onLoginSuccess }: LoginProps) {
         body: JSON.stringify({ username: username.trim().toLowerCase(), password }),
       });
 
-      const data = await response.json();
+      const contentType = response.headers.get('content-type') || '';
+      let data: any = {};
+      if (contentType.includes('application/json')) {
+        data = await response.json();
+      } else {
+        const text = await response.text();
+        throw new Error(
+          response.status === 503 || response.status === 500
+            ? 'Error de conexión a la base de datos en Vercel. Asegúrese de haber configurado la variable DATABASE_URL en Vercel -> Settings -> Environment Variables.'
+            : `Respuesta no válida del servidor (${response.status}): ${text.slice(0, 100)}`
+        );
+      }
 
       if (!response.ok) {
-        throw new Error(data.error || 'Credenciales inválidas.');
+        throw new Error(data.error || data.detalle || 'Credenciales inválidas.');
       }
 
       if (rememberMe) {
