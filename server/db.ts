@@ -91,7 +91,13 @@ export class NeonDatabase {
     if (!this.pool) {
       const url = process.env.DATABASE_URL;
       if (!url) throw new Error('La variable de entorno DATABASE_URL no está configurada en Vercel.');
-      this.pool = new pg.Pool({ connectionString: url, ssl: { rejectUnauthorized: false } });
+      this.pool = new pg.Pool({
+        connectionString: url,
+        ssl: { rejectUnauthorized: false },
+        connectionTimeoutMillis: 10000,
+        idleTimeoutMillis: 30000,
+        max: 10
+      });
       this.pool.on('error', (err) => {
         console.error('Error de conexión en Postgres Pool (Neon):', err);
       });

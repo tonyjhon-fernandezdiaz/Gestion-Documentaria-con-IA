@@ -64,7 +64,10 @@ export default function Login({ onLoginSuccess }: LoginProps) {
       }
 
       if (!response.ok) {
-        throw new Error(data.error || data.detalle || 'Credenciales inválidas.');
+        const errorMsg = data.error
+          ? `${data.error}${data.detalle ? ` (${data.detalle})` : ''}`
+          : data.detalle || 'Credenciales inválidas.';
+        throw new Error(errorMsg);
       }
 
       if (rememberMe) {
