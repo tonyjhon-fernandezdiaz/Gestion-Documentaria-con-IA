@@ -13,16 +13,26 @@ const PORT = 3000;
 
 app.use(express.json({ limit: '10mb' }));
 
+// Normalize URL path for Vercel serverless function rewrites (/api/index)
+app.use((req, _res, next) => {
+  if (req.url && !req.url.startsWith('/api')) {
+    req.url = '/api' + (req.url.startsWith('/') ? '' : '/') + req.url;
+  }
+  next();
+});
+
 // Ensure the database is initialised and the cache is fresh before each API request.
-// Scoped to /api so the frontend still loads even if the database is warming up.
 app.use('/api', async (_req, res, next) => {
   try {
     await db.ready();
     await db.reload();
     next();
-  } catch (err) {
+  } catch (err: any) {
     console.error('Error inicializando la base de datos:', err);
-    res.status(503).json({ error: 'Base de datos no disponible. Intente nuevamente en unos segundos.' });
+    res.status(503).json({
+      error: 'Base de datos no disponible',
+      detalle: String(err?.message || err?.code || err)
+    });
   }
 });
 

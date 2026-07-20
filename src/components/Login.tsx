@@ -56,11 +56,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
         data = await response.json();
       } else {
         const text = await response.text();
-        throw new Error(
-          response.status === 503 || response.status === 500
-            ? 'Error de conexión a la base de datos en Vercel. Asegúrese de haber configurado la variable DATABASE_URL en Vercel -> Settings -> Environment Variables.'
-            : `Respuesta no válida del servidor (${response.status}): ${text.slice(0, 100)}`
-        );
+        throw new Error(`Error del servidor Vercel (${response.status}): ${text.slice(0, 150) || 'Sin respuesta'}`);
       }
 
       if (!response.ok) {
