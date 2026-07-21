@@ -458,8 +458,7 @@ export default function ConfigView({ providers, currentUser, onUpdateProviders, 
         const customKey = editKeys[p.id];
         return {
           ...p,
-          hasKey: customKey ? true : p.hasKey,
-          apiKey: customKey || undefined
+          apiKey: (customKey && customKey.trim() !== '') ? customKey.trim() : undefined
         };
       });
 
@@ -476,8 +475,17 @@ export default function ConfigView({ providers, currentUser, onUpdateProviders, 
         })
       });
 
-      if (!response.ok) throw new Error('Error al guardar configuración.');
-      onUpdateProviders(payload);
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'Error al guardar configuración.');
+
+      if (result.providers) {
+        const sorted = result.providers.sort((a: any, b: any) => a.priority - b.priority);
+        setLocalProviders(sorted);
+        if (onUpdateProviders) {
+          onUpdateProviders(sorted);
+        }
+      }
+      setEditKeys({});
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
     } catch (err: any) {

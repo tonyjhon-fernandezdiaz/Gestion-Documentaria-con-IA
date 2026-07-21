@@ -404,15 +404,28 @@ app.put('/api/providers', async (req, res) => {
   const currentProviders = db.getProviders();
   const updatedProviders = providers.map((updated: any) => {
     const existing = currentProviders.find((p) => p.id === updated.id);
+    const keyToSave = (updated.apiKey && String(updated.apiKey).trim() !== '')
+      ? String(updated.apiKey).trim()
+      : (existing?.apiKey || BUILTIN_KEYS[updated.id]);
     return {
       ...updated,
-      apiKey: updated.apiKey !== undefined ? updated.apiKey : (existing ? existing.apiKey : undefined)
+      apiKey: keyToSave,
+      hasKey: !!keyToSave
     };
   });
 
   await db.updateProviders(updatedProviders);
   logSystemAction(usuario || 'Admin', 'Proveedores de IA Actualizados', 'Se actualizó la jerarquía, prioridades y llaves API de los proveedores de IA.', 'warning');
-  res.json({ success: true, providers: db.getProviders() });
+
+  const sanitized = db.getProviders().map(p => {
+    const { apiKey, ...rest } = p;
+    return {
+      ...rest,
+      hasKey: !!(apiKey || BUILTIN_KEYS[p.id] || process.env[`${p.id.toUpperCase()}_API_KEY`])
+    };
+  });
+
+  res.json({ success: true, providers: sanitized });
 });
 
 app.post('/api/providers', async (req, res) => {
