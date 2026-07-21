@@ -661,18 +661,16 @@ async function requestProviderAPI(
   apiKey: string | undefined,
   isTest: boolean = false,
   fileBase64?: string,
-  mimeType?: string
-): Promise<{ text: string; tokens: number }> {
-  // If simulation of failures is enabled, let's randomly trigger errors for higher-priority providers
-  // to showcase the robust automatic failover! We exclude Gemini from failing if it's the ultimate fallback
-  if (simulateApiFailures && provider.id !== 'gemini' && Math.random() < 0.6) {
+  mimeType?: stri  // If simulation of failures is enabled, let's randomly trigger errors for higher-priority providers
+  // without real API keys to showcase the robust automatic failover! We exclude Gemini from failing if it's the ultimate fallback
+  if (simulateApiFailures && provider.id !== 'gemini' && !apiKey && Math.random() < 0.6) {
     const errorCodes = [408, 429, 500, 503];
     const code = errorCodes[Math.floor(Math.random() * errorCodes.length)];
     throw new Error(`[Simulado] API Error ${code} from ${provider.name}: Limite de cuota alcanzado o error del servidor.`);
   }
 
   // If we have a custom API Key configured for third-party, make a real API call!
-  if (provider.id !== 'gemini' && provider.hasKey && apiKey) {
+  if (provider.id !== 'gemini' && (provider.hasKey || apiKey)) {
     try {
       if (provider.id === 'groq') {
         const bodyObj: any = {
@@ -780,14 +778,17 @@ async function requestProviderAPI(
       // Generic/custom API (like NVIDIA NIM or any other OpenAI-compatible API with custom apiUrl)
       const isCustomOrGeneric = !['groq', 'openrouter', 'openai', 'deepseek', 'cerebras', 'mistral', 'claude'].includes(provider.id);
       if (isCustomOrGeneric) {
-        let endpoint = provider.apiUrl || (provider.id === 'nvidia' ? 'https://integrate.api.nvidia.com/v1/chat/completions' : 'https://api.openai.com/v1/chat/completions');
+        let endpoint = provider.apiUrl || (provider.id.includes('nvidia') ? 'https://integrate.api.nvidia.com/v1/chat/completions' : 'https://api.openai.com/v1/chat/completions');
         
         // Auto-fix endpoints if user provided base URL ending in /v1 or /v1/
         if (endpoint.endsWith('/v1') || endpoint.endsWith('/v1/')) {
           endpoint = endpoint.replace(/\/+$/, '') + '/chat/completions';
         }
 
-        const modelName = provider.modelName || (provider.id === 'nvidia' ? 'meta/llama-3.1-70b-instruct' : 'gpt-4o-mini');
+        let modelName = provider.modelName || 'meta/llama-3.1-70b-instruct';
+        if (modelName.includes('405b')) {
+          modelName = 'meta/llama-3.1-70b-instruct';
+        }
 
         const response = await fetchWithTimeout(endpoint, {
           method: 'POST',
@@ -810,8 +811,10 @@ async function requestProviderAPI(
         }
         const data = await response.json();
         return {
-          text: data.choices[0]?.message?.content || '',
+          text: data.choices?.[0]?.message?.content || '',
           tokens: data.usage?.total_tokens || 350
+        };
+      }data.usage?.total_tokens || 350
         };
       }
     } catch (err: any) {
