@@ -661,7 +661,9 @@ async function requestProviderAPI(
   apiKey: string | undefined,
   isTest: boolean = false,
   fileBase64?: string,
-  mimeType?: stri  // If simulation of failures is enabled, let's randomly trigger errors for higher-priority providers
+  mimeType?: string
+): Promise<{ text: string; tokens: number }> {
+  // If simulation of failures is enabled, let's randomly trigger errors for higher-priority providers
   // without real API keys to showcase the robust automatic failover! We exclude Gemini from failing if it's the ultimate fallback
   if (simulateApiFailures && provider.id !== 'gemini' && !apiKey && Math.random() < 0.6) {
     const errorCodes = [408, 429, 500, 503];
@@ -813,8 +815,6 @@ async function requestProviderAPI(
         return {
           text: data.choices?.[0]?.message?.content || '',
           tokens: data.usage?.total_tokens || 350
-        };
-      }data.usage?.total_tokens || 350
         };
       }
     } catch (err: any) {
