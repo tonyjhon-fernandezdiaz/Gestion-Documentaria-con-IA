@@ -210,6 +210,64 @@ export default function UploadView({ currentUser, onDocumentAdded }: UploadViewP
   const [saving, setSaving] = useState(false);
   const [savedSuccess, setSavedSuccess] = useState(false);
 
+  // Expanded Document Types and Area Hierarchy
+  const ALL_DOC_TYPES: DocumentType[] = [
+    'Informe',
+    'Oficio',
+    'Memorando',
+    'Carta',
+    'Proveído',
+    'Resolución',
+    'Acta',
+    'Constancia',
+    'Informe Técnico',
+    'Solicitud',
+    'Dictamen',
+    'Directiva',
+    'Circular',
+    'Oficio Múltiple',
+    'Memorando Múltiple',
+    'Nota de Insumo'
+  ];
+
+  const [areasList, setAreasList] = useState<any[]>([]);
+  const [selectedAreaId, setSelectedAreaId] = useState<string>('adm');
+  const [subtipoProposito, setSubtipoProposito] = useState<string>('Certificación Presupuestal');
+  const [templateMatch, setTemplateMatch] = useState<{ found: boolean; matchLevel: string; matchedAreaName?: string; template?: any } | null>(null);
+
+  // Fetch areas on mount
+  useEffect(() => {
+    fetch('/api/areas')
+      .then(r => r.json())
+      .then(data => {
+        if (Array.isArray(data) && data.length > 0) setAreasList(data);
+      })
+      .catch(() => {});
+  }, []);
+
+  // Fetch correlative number when area or docType changes
+  useEffect(() => {
+    if (!selectedAreaId || !docType) return;
+    fetch(`/api/correlativo?areaId=${selectedAreaId}&docType=${encodeURIComponent(docType)}`)
+      .then(r => r.json())
+      .then(data => {
+        if (data.rawNumber) setDocNumber(data.rawNumber);
+        if (data.suffix) setDocSuffix(data.suffix);
+      })
+      .catch(() => {});
+  }, [selectedAreaId, docType]);
+
+  // Check template match and fallback hierarchy
+  useEffect(() => {
+    if (!selectedAreaId || !docType) return;
+    fetch(`/api/area-templates/check?areaId=${selectedAreaId}&docType=${encodeURIComponent(docType)}&subtipo=${encodeURIComponent(subtipoProposito)}`)
+      .then(r => r.json())
+      .then(data => {
+        setTemplateMatch(data);
+      })
+      .catch(() => {});
+  }, [selectedAreaId, docType, subtipoProposito]);
+
   // IA Pipeline logs
   const [ocrLog, setOcrLog] = useState<{ attempted: string[]; iaUtilizada: string; responseTimeMs: number } | null>(null);
   const [draftLog, setDraftLog] = useState<{ attempted: string[]; iaUtilizada: string; responseTimeMs: number } | null>(null);
@@ -1047,16 +1105,72 @@ export default function UploadView({ currentUser, onDocumentAdded }: UploadViewP
 
           <div className="space-y-3">
             
-            {/* Field 1: Tipo de documento */}
+            {/* Field 1: Tipo de documento & Área / Oficina */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <label className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
+                  Tipo de documento
+                </label>
+                <select 
+                  value={docType}
+                  onChange={(e) => setDocType(e.target.value as any)}
+                  className="w-full px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:border-blue-500 transition-colors font-medium"
+                >
+                  {ALL_DOC_TYPES.map(t => (
+                    <option key={t} value={t}>{t}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
+                  Área / Oficina Emisora
+                </label>
+                <select 
+                  value={selectedAreaId}
+                  onChange={(e) => setSelectedAreaId(e.target.value)}
+                  className="w-full px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:border-blue-500 transition-colors font-medium"
+                >
+                  {(areasList.length > 0 ? areasList : [
+                    { id: 'adm', name: 'Área de Administración (ADM)' },
+                    { id: 'agi', name: 'Área de Gestión Institucional (AGI)' },
+                    { id: 'agp', name: 'Área de Gestión Pedagógica (AGP)' },
+                    { id: 'rrhh', name: 'Área de Recursos Humanos (RRHH)' },
+                    { id: 'dir', name: 'Dirección (DIR)' }
+                  ]).map((a: any) => (
+                    <option key={a.id} value={a.id}>
+                      {a.parentAreaId ? `↳ ${a.name}` : a.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Field: Propósito / Subtipo & Template Status Badge */}
             <div className="space-y-1">
-              <label className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
-                Tipo de documento
-              </label>
+              <div className="flex items-center justify-between">
+                <label className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
+                  Propósito o Subtipo del Documento
+                </label>
+                {templateMatch && (
+                  <span className={`text-[9px] font-bold font-mono px-2 py-0.5 rounded border transition-all ${
+                    templateMatch.matchLevel === 'exact' 
+                      ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
+                      : templateMatch.matchLevel === 'parent'
+                      ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30'
+                      : 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/30'
+                  }`}>
+                    {templateMatch.matchLevel === 'exact' && '🟢 Plantilla Específica Encontrada'}
+                    {templateMatch.matchLevel === 'parent' && `🟡 Heredado de Área Superior: ${templateMatch.matchedAreaName}`}
+                    {(templateMatch.matchLevel === 'general_area' || templateMatch.matchLevel === 'none') && '🔵 Generación Estándar por IA'}
+                  </span>
+                )}
+              </div>
               <input 
                 type="text" 
-                placeholder="Buscar o escribir el tipo (ej. Informe, Oficio, Memorando...)"
-                value={docType}
-                onChange={(e) => setDocType(e.target.value)}
+                placeholder="ej. Certificación Presupuestal, Solicitud de Información, Cumplimiento de Directiva..."
+                value={subtipoProposito}
+                onChange={(e) => setSubtipoProposito(e.target.value)}
                 className="w-full px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 text-xs text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:border-blue-500 transition-colors"
               />
             </div>
@@ -1064,28 +1178,33 @@ export default function UploadView({ currentUser, onDocumentAdded }: UploadViewP
             {/* Field 2 & 3 row: N° de documento & Sufijo de numeración */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1">
-                <label className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
-                  N° de documento
-                </label>
+                <div className="flex items-center justify-between">
+                  <label className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
+                    N° de documento (Manual / Correlativo)
+                  </label>
+                  <span className="text-[9px] text-emerald-600 dark:text-emerald-400 font-mono font-bold">
+                    Autoincremento
+                  </span>
+                </div>
                 <input 
                   type="text" 
                   placeholder="0001"
                   value={docNumber}
                   onChange={(e) => setDocNumber(e.target.value)}
-                  className="w-full px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:border-blue-500 transition-colors"
+                  className="w-full px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 text-xs text-slate-800 dark:text-slate-100 font-mono font-bold focus:outline-none focus:border-blue-500 transition-colors"
                 />
               </div>
 
               <div className="space-y-1">
                 <label className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
-                  Sufijo de numeración
+                  Sufijo de numeración por área
                 </label>
                 <input 
                   type="text" 
-                  placeholder="Ej. GRSM-DRE/UGEL-B-AGI/RACIONALI..."
+                  placeholder="Ej. -2026-UGEL-ADM"
                   value={docSuffix}
                   onChange={(e) => setDocSuffix(e.target.value)}
-                  className="w-full px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:border-blue-500 transition-colors"
+                  className="w-full px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 text-xs text-slate-800 dark:text-slate-100 font-mono focus:outline-none focus:border-blue-500 transition-colors"
                 />
               </div>
             </div>

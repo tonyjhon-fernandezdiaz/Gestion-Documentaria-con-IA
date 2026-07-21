@@ -1,6 +1,6 @@
 import pkg from 'pg';
 const { Pool } = pkg;
-import { User, Document, AIProvider, PromptTemplate, SystemLog, DocumentType, LearningCorrection, AgendaEvent } from '../src/types.js';
+import { User, Document, AIProvider, PromptTemplate, SystemLog, DocumentType, LearningCorrection, AgendaEvent, AreaItem, AreaTemplate, CorrelativeCounter } from '../src/types.js';
 
 // -----------------------------------------------------------------
 // Postgres (Neon) backed store with an in-memory cache.
@@ -20,8 +20,29 @@ interface DatabaseSchema {
   logs: SystemLog[];
   learningCorrections: LearningCorrection[];
   agenda: AgendaEvent[];
+  areaTemplates: AreaTemplate[];
+  correlatives: CorrelativeCounter[];
+  areas: AreaItem[];
   activeTheme?: string;
 }
+
+export const DEFAULT_AREAS: AreaItem[] = [
+  { id: 'dir', name: 'Dirección UGEL', code: 'DIR', suffix: '-2026-UGEL-DIR' },
+  { id: 'agi', name: 'Área de Gestión Institucional', code: 'AGI', suffix: '-2026-UGEL-AGI' },
+  { id: 'planificacion', name: 'Planificación y Presupuesto', code: 'AGI-PP', parentAreaId: 'agi', suffix: '-2026-UGEL-AGI-PP' },
+  { id: 'racionalizacion', name: 'Racionalización y Estadística', code: 'AGI-RE', parentAreaId: 'agi', suffix: '-2026-UGEL-AGI-RE' },
+  { id: 'infraestructura', name: 'Infraestructura Educativa', code: 'AGI-IE', parentAreaId: 'agi', suffix: '-2026-UGEL-AGI-IE' },
+  { id: 'agp', name: 'Área de Gestión Pedagógica', code: 'AGP', suffix: '-2026-UGEL-AGP' },
+  { id: 'inicial-primaria', name: 'Educación Inicial y Primaria', code: 'AGP-EIP', parentAreaId: 'agp', suffix: '-2026-UGEL-AGP-EIP' },
+  { id: 'secundaria', name: 'Educación Secundaria y Superior', code: 'AGP-ESS', parentAreaId: 'agp', suffix: '-2026-UGEL-AGP-ESS' },
+  { id: 'acompanamiento', name: 'Acompañamiento Pedagógico', code: 'AGP-AP', parentAreaId: 'agp', suffix: '-2026-UGEL-AGP-AP' },
+  { id: 'adm', name: 'Área de Administración', code: 'ADM', suffix: '-2026-UGEL-ADM' },
+  { id: 'finanzas', name: 'Finanzas y Tesorería', code: 'ADM-FT', parentAreaId: 'adm', suffix: '-2026-UGEL-ADM-FT' },
+  { id: 'contabilidad', name: 'Contabilidad y Abastecimiento', code: 'ADM-CA', parentAreaId: 'adm', suffix: '-2026-UGEL-ADM-CA' },
+  { id: 'rrhh', name: 'Área de Recursos Humanos', code: 'RRHH', suffix: '-2026-UGEL-RRHH' },
+  { id: 'planillas', name: 'Planillas y Escalafón', code: 'RRHH-PE', parentAreaId: 'rrhh', suffix: '-2026-UGEL-RRHH-PE' },
+  { id: 'bienestar', name: 'Bienestar Social', code: 'RRHH-BS', parentAreaId: 'rrhh', suffix: '-2026-UGEL-RRHH-BS' },
+];
 
 const DEFAULT_PROMPTS: Record<DocumentType, string> = {
   Informe: 'Redacte un Informe de estilo libre o tipo carta, que sea un texto formal continuo estructurado en párrafos fluidos y narrativos pero sin divisiones numeradas ni secciones rígidas (NO use "I. ANTECEDENTES", etc.). Se utiliza para informar de manera directa e institucional un asunto.',
@@ -34,7 +55,12 @@ const DEFAULT_PROMPTS: Record<DocumentType, string> = {
   Constancia: 'Redacte una Constancia oficial certificando un hecho, situación académica, laboral o de servicios de un solicitante.',
   'Informe Técnico': 'Redacte un Informe Técnico exhaustivo y estructurado de manera rigurosa. Debe incluir obligatoriamente las secciones oficiales en mayúsculas y negrita numeradas con números romanos: "I. ANTECEDENTES", "II. ANÁLISIS", "III. CONCLUSIONES" y "IV. RECOMENDACIONES", detallando minuciosamente cada punto con base técnica y legal.',
   Solicitud: 'Redacte una Solicitud formal de ciudadano o administrado dirigida a la autoridad competente con fundamentos de hecho y de derecho.',
-  Dictamen: 'Redacte un Dictamen legal o especializado que evalúe jurídicamente la procedencia o improcedencia de un asunto en consulta.'
+  Dictamen: 'Redacte un Dictamen legal o especializado que evalúe jurídicamente la procedencia o improcedencia de un asunto en consulta.',
+  Directiva: 'Redacte una Directiva institucional normativa que establezca disposiciones de cumplimiento obligatorio sobre un procedimiento interno.',
+  Circular: 'Redacte una Circular informativa general dirigida a múltiples oficinas o personal para comunicar acuerdos o pautas institucionales.',
+  'Oficio Múltiple': 'Redacte un Oficio Múltiple con idéntico contenido dirigido simultáneamente a directores de Instituciones Educativas.',
+  'Memorando Múltiple': 'Redacte un Memorando Múltiple dirigido a jefes de área solicitando información simultánea.',
+  'Nota de Insumo': 'Redacte una Nota de Insumo técnico justificando un requerimiento presupuestal o contratación.'
 };
 
 const BUILTIN_KEYS: Record<string, string> = {
@@ -173,10 +199,12 @@ export class NeonDatabase {
     for (const d of INITIAL_DB.documents) await this.upsert('documents', d.id, d);
     for (const l of INITIAL_DB.logs) await this.upsert('logs', l.id, l);
     for (const e of INITIAL_DB.agenda) await this.upsert('agenda', e.id, e);
+    for (const a of DEFAULT_AREAS) await this.upsert('areas', a.id, a);
+    for (const t of INITIAL_AREA_TEMPLATES) await this.upsert('area_templates', t.id, t);
   }
 
   private async load(): Promise<void> {
-    const [users, documents, providers, prompts, logs, agenda, corrections, theme] = await Promise.all([
+    const [users, documents, providers, prompts, logs, agenda, corrections, areaTemplates, correlatives, areas, theme] = await Promise.all([
       this.q('SELECT data FROM users ORDER BY seq ASC'),
       this.q('SELECT data FROM documents ORDER BY seq DESC'),
       this.q('SELECT data FROM providers ORDER BY seq ASC'),
@@ -184,6 +212,9 @@ export class NeonDatabase {
       this.q('SELECT data FROM logs ORDER BY seq DESC LIMIT 1000'),
       this.q('SELECT data FROM agenda ORDER BY seq DESC'),
       this.q('SELECT data FROM learning_corrections ORDER BY seq DESC'),
+      this.q('SELECT data FROM area_templates ORDER BY seq DESC'),
+      this.q('SELECT data FROM correlatives ORDER BY seq ASC'),
+      this.q('SELECT data FROM areas ORDER BY seq ASC'),
       this.q("SELECT value FROM kv WHERE key = 'activeTheme'"),
     ]);
     this.data = {
@@ -202,6 +233,9 @@ export class NeonDatabase {
       logs: logs.map((r: any) => r.data),
       agenda: agenda.map((r: any) => r.data),
       learningCorrections: corrections.map((r: any) => r.data),
+      areaTemplates: areaTemplates.length > 0 ? areaTemplates.map((r: any) => r.data) : INITIAL_AREA_TEMPLATES,
+      correlatives: correlatives.map((r: any) => r.data),
+      areas: areas.length > 0 ? areas.map((r: any) => r.data) : DEFAULT_AREAS,
       activeTheme: theme[0]?.value,
     };
     this.lastLoad = Date.now();
@@ -369,6 +403,118 @@ export class NeonDatabase {
        ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value`,
       [themeName]
     );
+  }
+
+  // ------------------- AREAS & TEMPLATES -------------------
+  getAreas(): AreaItem[] {
+    return this.data.areas && this.data.areas.length > 0 ? this.data.areas : DEFAULT_AREAS;
+  }
+
+  getAreaById(id: string): AreaItem | undefined {
+    return this.getAreas().find(a => a.id === id);
+  }
+
+  getAreaTemplates(): AreaTemplate[] {
+    return this.data.areaTemplates || [];
+  }
+
+  findBestTemplate(areaId: string, docType: DocumentType, subtipo?: string): { template: AreaTemplate | null; matchLevel: 'exact' | 'parent' | 'general_area' | 'none'; matchedAreaName?: string } {
+    const templates = this.getAreaTemplates();
+    const area = this.getAreaById(areaId);
+    if (!area) return { template: null, matchLevel: 'none' };
+
+    // Level 1: Match areaId (or subareaId) AND docType AND subtipo
+    if (subtipo) {
+      const level1 = templates.find(t => 
+        (t.areaId === areaId || t.subareaId === areaId) && 
+        t.documentType === docType && 
+        t.subtipoProposito.toLowerCase() === subtipo.toLowerCase()
+      );
+      if (level1) return { template: level1, matchLevel: 'exact', matchedAreaName: area.name };
+
+      // Level 2: Parent area fallback
+      if (area.parentAreaId) {
+        const parentArea = this.getAreaById(area.parentAreaId);
+        const level2 = templates.find(t => 
+          t.areaId === area.parentAreaId && 
+          t.documentType === docType && 
+          t.subtipoProposito.toLowerCase() === subtipo.toLowerCase()
+        );
+        if (level2) return { template: level2, matchLevel: 'parent', matchedAreaName: parentArea?.name || area.parentAreaId };
+      }
+    }
+
+    // Level 3: Match areaId AND docType (any subtipo)
+    const level3 = templates.find(t => (t.areaId === areaId || t.subareaId === areaId) && t.documentType === docType);
+    if (level3) return { template: level3, matchLevel: 'general_area', matchedAreaName: area.name };
+
+    // Level 4: Match parent area AND docType
+    if (area.parentAreaId) {
+      const parentArea = this.getAreaById(area.parentAreaId);
+      const level4 = templates.find(t => t.areaId === area.parentAreaId && t.documentType === docType);
+      if (level4) return { template: level4, matchLevel: 'parent', matchedAreaName: parentArea?.name || area.parentAreaId };
+    }
+
+    return { template: null, matchLevel: 'none' };
+  }
+
+  async addOrUpdateAreaTemplate(template: AreaTemplate): Promise<AreaTemplate> {
+    if (!this.data.areaTemplates) this.data.areaTemplates = [];
+    const index = this.data.areaTemplates.findIndex(t => t.id === template.id);
+    if (index !== -1) {
+      this.data.areaTemplates[index] = template;
+    } else {
+      this.data.areaTemplates.unshift(template);
+    }
+    await this.upsert('area_templates', template.id, template);
+    return template;
+  }
+
+  async deleteAreaTemplate(id: string): Promise<boolean> {
+    if (!this.data.areaTemplates) return false;
+    const before = this.data.areaTemplates.length;
+    this.data.areaTemplates = this.data.areaTemplates.filter(t => t.id !== id);
+    if (this.data.areaTemplates.length === before) return false;
+    await this.remove('area_templates', id);
+    return true;
+  }
+
+  // ------------------- CORRELATIVES -------------------
+  getCorrelative(areaId: string, docType: DocumentType): { nextNumber: number; formattedNumber: string; rawNumber: string; suffix: string } {
+    const area = this.getAreaById(areaId) || DEFAULT_AREAS.find(a => a.id === 'adm') || DEFAULT_AREAS[0];
+    const key = `${area.id}_${docType}`;
+    const item = (this.data.correlatives || []).find(c => c.id === key);
+    const lastNum = item ? item.lastNumber : 0;
+    const nextNum = lastNum + 1;
+    const rawNumber = String(nextNum).padStart(4, '0');
+    const suffix = area.suffix || `-2026-UGEL-${area.code}`;
+    return {
+      nextNumber: nextNum,
+      formattedNumber: `${rawNumber}${suffix}`,
+      rawNumber,
+      suffix
+    };
+  }
+
+  async updateCorrelative(areaId: string, docType: DocumentType, manualNumber: number, suffixOverride?: string): Promise<void> {
+    if (!this.data.correlatives) this.data.correlatives = [];
+    const area = this.getAreaById(areaId) || DEFAULT_AREAS[0];
+    const key = `${area.id}_${docType}`;
+    const index = this.data.correlatives.findIndex(c => c.id === key);
+    const suffix = suffixOverride || area.suffix || `-2026-UGEL-${area.code}`;
+    const newRecord: CorrelativeCounter = {
+      id: key,
+      areaId: area.id,
+      documentType: docType,
+      lastNumber: manualNumber,
+      suffix
+    };
+    if (index !== -1) {
+      this.data.correlatives[index] = newRecord;
+    } else {
+      this.data.correlatives.push(newRecord);
+    }
+    await this.upsert('correlatives', key, newRecord);
   }
 }
 

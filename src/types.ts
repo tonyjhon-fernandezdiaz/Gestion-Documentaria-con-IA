@@ -20,7 +20,45 @@ export type DocumentType =
   | 'Constancia'
   | 'Informe Técnico'
   | 'Solicitud'
-  | 'Dictamen';
+  | 'Dictamen'
+  | 'Directiva'
+  | 'Circular'
+  | 'Oficio Múltiple'
+  | 'Memorando Múltiple'
+  | 'Nota de Insumo';
+
+export interface AreaItem {
+  id: string;
+  name: string;
+  code: string;
+  parentAreaId?: string; // If sub-office, links to parent area (e.g. 'adm', 'agi')
+  suffix: string; // e.g. '-2026-UGEL-ADM'
+}
+
+export interface AreaTemplate {
+  id: string;
+  documentType: DocumentType;
+  areaId: string; // e.g. 'adm', 'agi', 'agp', 'dir', 'rrhh'
+  subareaId?: string; // e.g. 'finanzas', 'planificacion'
+  subtipoProposito: string; // e.g. 'Certificación Presupuestal', 'Solicitud de Información', 'Cumplimiento'
+  title: string;
+  templateText: string;
+  version: number;
+  historial: {
+    version: number;
+    templateText: string;
+    fecha: string;
+    modificadoPor: string;
+  }[];
+}
+
+export interface CorrelativeCounter {
+  id: string; // e.g. 'adm_Memorando'
+  areaId: string;
+  documentType: DocumentType;
+  lastNumber: number; // e.g. 1, 2, 5
+  suffix: string; // e.g. '-2026-UGEL-ADM'
+}
 
 export interface Document {
   id: string;

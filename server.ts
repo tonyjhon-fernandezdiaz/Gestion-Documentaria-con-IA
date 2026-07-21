@@ -371,6 +371,92 @@ app.put('/api/prompts/:id', async (req, res) => {
 });
 
 // -----------------------------------------------------------------
+// API ROUTES: AREAS & AREA TEMPLATES & CORRELATIVES
+// -----------------------------------------------------------------
+
+app.get('/api/areas', (req, res) => {
+  res.json(db.getAreas());
+});
+
+app.get('/api/correlativo', (req, res) => {
+  const { areaId, docType } = req.query;
+  if (!areaId || !docType) {
+    return res.status(400).json({ error: 'areaId y docType son requeridos.' });
+  }
+  const result = db.getCorrelative(String(areaId), String(docType) as any);
+  res.json(result);
+});
+
+app.post('/api/correlativo', async (req, res) => {
+  const { areaId, docType, manualNumber, suffixOverride } = req.body;
+  if (!areaId || !docType || manualNumber === undefined) {
+    return res.status(400).json({ error: 'areaId, docType y manualNumber son requeridos.' });
+  }
+  await db.updateCorrelative(String(areaId), String(docType) as any, Number(manualNumber), suffixOverride);
+  res.json({ success: true });
+});
+
+app.get('/api/area-templates', (req, res) => {
+  res.json(db.getAreaTemplates());
+});
+
+app.get('/api/area-templates/check', (req, res) => {
+  const { areaId, docType, subtipo } = req.query;
+  if (!areaId || !docType) {
+    return res.status(400).json({ error: 'areaId y docType son requeridos.' });
+  }
+  const result = db.findBestTemplate(String(areaId), String(docType) as any, subtipo ? String(subtipo) : undefined);
+  res.json({
+    found: !!result.template,
+    template: result.template,
+    matchLevel: result.matchLevel,
+    matchedAreaName: result.matchedAreaName
+  });
+});
+
+app.post('/api/area-templates', async (req, res) => {
+  if (!checkIsAdmin(req)) {
+    return res.status(403).json({ error: 'Acceso denegado. Solo el administrador puede gestionar plantillas por área.' });
+  }
+  const { template, usuario } = req.body;
+  if (!template || !template.documentType || !template.areaId || !template.templateText) {
+    return res.status(400).json({ error: 'Faltan campos obligatorios en la plantilla.' });
+  }
+  const id = template.id || `tmpl-${Date.now()}`;
+  const now = new Date().toISOString();
+  const version = (template.version || 0) + 1;
+  const historial = template.historial || [];
+  historial.unshift({
+    version,
+    templateText: template.templateText,
+    fecha: now,
+    modificadoPor: usuario || 'Administrador'
+  });
+  const record = {
+    ...template,
+    id,
+    version,
+    historial
+  };
+  const saved = await db.addOrUpdateAreaTemplate(record);
+  logSystemAction(usuario || 'Administrador', 'Plantilla por Área Guardada', `Plantilla '${saved.title}' para área '${saved.areaId}' y tipo '${saved.documentType}'.`, 'info');
+  res.json(saved);
+});
+
+app.delete('/api/area-templates/:id', async (req, res) => {
+  if (!checkIsAdmin(req)) {
+    return res.status(403).json({ error: 'Acceso denegado. Solo el administrador puede eliminar plantillas.' });
+  }
+  const { id } = req.params;
+  const success = await db.deleteAreaTemplate(id);
+  if (success) {
+    logSystemAction('Administrador', 'Plantilla por Área Eliminada', `Se eliminó la plantilla ID ${id}.`, 'warning');
+    return res.json({ success: true });
+  }
+  return res.status(404).json({ error: 'Plantilla no encontrada.' });
+});
+
+// -----------------------------------------------------------------
 // API ROUTES: PROVIDERS CONFIGURATION
 // -----------------------------------------------------------------
 
