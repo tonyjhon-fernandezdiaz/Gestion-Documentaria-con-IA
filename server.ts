@@ -374,15 +374,23 @@ app.put('/api/prompts/:id', async (req, res) => {
 // API ROUTES: PROVIDERS CONFIGURATION
 // -----------------------------------------------------------------
 
+function maskKey(key?: string): string {
+  if (!key || String(key).trim() === '') return '';
+  const str = String(key).trim();
+  if (str.length <= 12) return '••••••••••••';
+  return `${str.slice(0, 8)}...${str.slice(-4)}`;
+}
+
 app.get('/api/providers', (req, res) => {
   const providers = db.getProviders();
   const sanitized = providers.map((p) => {
-    const hasEnvKey = !!process.env[`${p.id.toUpperCase()}_API_KEY`];
-    const hasKey = p.hasKey || !!p.apiKey || hasEnvKey;
+    const rawKey = p.apiKey || BUILTIN_KEYS[p.id] || process.env[`${p.id.toUpperCase()}_API_KEY`];
+    const hasKey = !!rawKey;
     const { apiKey, ...rest } = p;
     return {
       ...rest,
-      hasKey
+      hasKey,
+      maskedKey: maskKey(rawKey)
     };
   });
   res.json(sanitized);
@@ -418,10 +426,12 @@ app.put('/api/providers', async (req, res) => {
   logSystemAction(usuario || 'Admin', 'Proveedores de IA Actualizados', 'Se actualizó la jerarquía, prioridades y llaves API de los proveedores de IA.', 'warning');
 
   const sanitized = db.getProviders().map(p => {
+    const rawKey = p.apiKey || BUILTIN_KEYS[p.id] || process.env[`${p.id.toUpperCase()}_API_KEY`];
     const { apiKey, ...rest } = p;
     return {
       ...rest,
-      hasKey: !!(apiKey || BUILTIN_KEYS[p.id] || process.env[`${p.id.toUpperCase()}_API_KEY`])
+      hasKey: !!rawKey,
+      maskedKey: maskKey(rawKey)
     };
   });
 

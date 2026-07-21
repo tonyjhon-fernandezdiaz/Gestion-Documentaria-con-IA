@@ -49,6 +49,7 @@ export interface AIProvider {
   apiUrl?: string;
   modelName: string;
   apiKey?: string;
+  maskedKey?: string;
   tokensConsumed?: number;
   balance?: number;
 }

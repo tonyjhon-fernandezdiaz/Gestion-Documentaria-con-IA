@@ -1487,10 +1487,10 @@ export default function ConfigView({ providers, currentUser, onUpdateProviders, 
                             <div className="flex flex-wrap items-center gap-2 mt-2">
                               <input 
                                 type={isKeyVisible ? 'text' : 'password'}
-                                value={editKeyVal}
+                                value={editKeyVal || (isKeyVisible ? (prov.apiKey || prov.maskedKey || '') : '')}
                                 onChange={(e) => handleKeyChange(prov.id, e.target.value)}
-                                placeholder={prov.hasKey ? '•••••••••••••••• (Guardada)' : 'Sin configurar - Ingrese API Key'}
-                                className="text-[10px] font-mono bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 px-2 py-0.5 rounded outline-none text-slate-800 dark:text-slate-200 w-44"
+                                placeholder={prov.maskedKey ? `Guardada (${prov.maskedKey})` : (prov.hasKey ? '•••••••••••••••• (Guardada)' : 'Sin configurar - Ingrese API Key')}
+                                className="text-[10px] font-mono bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 px-2 py-0.5 rounded outline-none text-slate-800 dark:text-slate-200 w-52"
                               />
                               <button 
                                 type="button"
@@ -1503,12 +1503,17 @@ export default function ConfigView({ providers, currentUser, onUpdateProviders, 
                               <button
                                 type="button"
                                 onClick={() => testSingleProvider(prov.id)}
-                                className="text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 text-[10px] font-bold flex items-center gap-1 px-2 py-0.5 rounded border border-indigo-500/10 hover:border-indigo-500/30 bg-indigo-500/5 transition-all"
+                                className="text-indigo-600 hover:bg-indigo-500/10 dark:hover:bg-indigo-500/20 text-[10px] font-bold flex items-center gap-1 px-2 py-0.5 rounded border border-indigo-500/20 transition-all"
                                 title="Probar conexión con esta clave enviando 2+2"
                               >
                                 <Activity size={10} />
                                 <span>Probar</span>
                               </button>
+                              {prov.maskedKey && !editKeyVal && (
+                                <span className="text-[9px] font-mono font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 rounded">
+                                  ✓ Activa: {prov.maskedKey}
+                                </span>
+                              )}
                             </div>
                           ) : (
                             <div className="flex flex-wrap items-center gap-3 mt-2">
