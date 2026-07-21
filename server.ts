@@ -711,17 +711,21 @@ async function requestProviderAPI(
             'Authorization': `Bearer ${apiKey}`,
           },
           body: JSON.stringify({
-            model: provider.modelName,
+            model: provider.modelName || 'google/gemini-2.5-flash',
+            max_tokens: 4000,
             messages: [
               { role: 'system', content: systemInstruction },
               { role: 'user', content: userPrompt }
             ]
           }),
         }, 15000);
-        if (!response.ok) throw new Error(`OpenRouter HTTP ${response.status}`);
+        if (!response.ok) {
+          const errBody = await response.text().catch(() => '');
+          throw new Error(`OpenRouter HTTP ${response.status}: ${errBody.slice(0, 150)}`);
+        }
         const data = await response.json();
         return {
-          text: data.choices[0].message.content,
+          text: data.choices[0]?.message?.content || '',
           tokens: data.usage?.total_tokens || 400
         };
       }
