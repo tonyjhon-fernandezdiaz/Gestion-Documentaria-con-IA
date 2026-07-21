@@ -27,7 +27,9 @@ export type DocumentType =
   | 'Circular'
   | 'Oficio Múltiple'
   | 'Memorando Múltiple'
-  | 'Nota de Insumo';
+  | 'Nota de Insumo'
+  | 'Nota de Coordinación'
+  | 'Otros';
 
 export interface AreaItem {
   id: string;

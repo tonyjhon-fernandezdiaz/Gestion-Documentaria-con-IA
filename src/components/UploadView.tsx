@@ -98,6 +98,7 @@ RECOMENDACIONES:
 export default function UploadView({ currentUser, onDocumentAdded }: UploadViewProps) {
   // Document state matching the left fields
   const [docType, setDocType] = useState<string>('Informe Técnico');
+  const [customDocType, setCustomDocType] = useState<string>('');
   const [docNumber, setDocNumber] = useState<string>('0001');
   const [docSuffix, setDocSuffix] = useState<string>('-2026-UGEL-AGI');
   const [recipients, setRecipients] = useState<{ id: string; nombre: string; cargo: string }[]>([
@@ -110,6 +111,7 @@ export default function UploadView({ currentUser, onDocumentAdded }: UploadViewP
   const [contextoNotas, setContextoNotas] = useState<string>('');
 
   // Computed values for backward compatibility
+  const activeDocTypeLabel = docType === 'Otros' ? (customDocType.trim() || 'Otros') : docType;
   const destinatario = recipients[0]?.nombre || '';
   const cargoDestinatario = recipients[0]?.cargo || '';
 
@@ -227,7 +229,9 @@ export default function UploadView({ currentUser, onDocumentAdded }: UploadViewP
     'Circular',
     'Oficio Múltiple',
     'Memorando Múltiple',
-    'Nota de Insumo'
+    'Nota de Insumo',
+    'Nota de Coordinación',
+    'Otros'
   ];
 
   const [areasList, setAreasList] = useState<any[]>([]);
@@ -687,7 +691,7 @@ export default function UploadView({ currentUser, onDocumentAdded }: UploadViewP
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           metadata: metadata,
-          docType: docType,
+          docType: activeDocTypeLabel,
           originalText: combinedOriginalText || undefined,
           usuario: currentUser.name,
           fileBase64: uploadedFileBase64 || undefined,
@@ -805,7 +809,7 @@ export default function UploadView({ currentUser, onDocumentAdded }: UploadViewP
           referencia: referencia || 'S/R',
           solicitante: recipients.map(r => r.nombre).filter(Boolean).join(', ') || 'Anónimo',
           tema: asunto || 'Sin tema especificado',
-          tipo: docType,
+          tipo: activeDocTypeLabel,
           datosExtraidos: {
             cargo_destinatario: cargoDestinatario,
             destinatarios: recipients,
@@ -936,7 +940,7 @@ export default function UploadView({ currentUser, onDocumentAdded }: UploadViewP
         </div>
 
         <h2 style="text-align: center; text-decoration: underline; margin-bottom: 25px; font-size: 13pt; font-family: Arial, sans-serif; font-weight: bold; text-transform: uppercase;">
-          ${docType.toUpperCase()} ${getFullDocCode()}
+          ${activeDocTypeLabel.toUpperCase()} ${getFullDocCode()}
         </h2>
         <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 11pt; font-family: Arial, sans-serif; line-height: 1.15;">
           <tr>
@@ -1004,7 +1008,7 @@ export default function UploadView({ currentUser, onDocumentAdded }: UploadViewP
       printWindow.document.write(`
         <html>
           <head>
-            <title>${docType} ${getFullDocCode()}</title>
+            <title>${activeDocTypeLabel} ${getFullDocCode()}</title>
             <style>
               body { font-family: 'Times New Roman', Georgia, serif; padding: 40px; color: #1e293b; line-height: 1.6; }
               .header-container { display: flex; align-items: center; border-bottom: 2px solid #8B3A3A; padding-bottom: 15px; margin-bottom: 25px; }
@@ -1054,7 +1058,7 @@ export default function UploadView({ currentUser, onDocumentAdded }: UploadViewP
               </div>
             `}
             
-            <div class="title">${docType.toUpperCase()} ${getFullDocCode()}</div>
+            <div class="title">${activeDocTypeLabel.toUpperCase()} ${getFullDocCode()}</div>
             
             <table class="meta-list">
               <tr>
@@ -1157,6 +1161,16 @@ export default function UploadView({ currentUser, onDocumentAdded }: UploadViewP
                     <option key={t} value={t}>{t}</option>
                   ))}
                 </select>
+                {docType === 'Otros' && (
+                  <input 
+                    type="text"
+                    required
+                    placeholder="Especifique tipo de documento..."
+                    value={customDocType}
+                    onChange={(e) => setCustomDocType(e.target.value)}
+                    className="w-full mt-1.5 px-3 py-1.5 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:border-blue-500 transition-all font-semibold uppercase"
+                  />
+                )}
               </div>
 
               <div className="space-y-1">
@@ -1691,7 +1705,7 @@ export default function UploadView({ currentUser, onDocumentAdded }: UploadViewP
 
                 {/* Document Main Title centered and underlined (as shown in second image) */}
                 <div className="text-center font-extrabold text-slate-900 dark:text-white uppercase text-xs sm:text-xs tracking-wide underline pt-1 font-sans">
-                  {docType.toUpperCase() || 'DOCUMENTO'} {getFullDocCode()}
+                  {activeDocTypeLabel.toUpperCase() || 'DOCUMENTO'} {getFullDocCode()}
                 </div>
 
                 {/* Metadata Sheet List (perfectly left-aligned to the margin, matching the red vertical line from Image 2) */}

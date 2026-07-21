@@ -64,7 +64,9 @@ const DEFAULT_PROMPTS: Record<DocumentType, string> = {
   Circular: 'Redacte una Circular informativa general dirigida a múltiples oficinas o personal para comunicar acuerdos o pautas institucionales.',
   'Oficio Múltiple': 'Redacte un Oficio Múltiple con idéntico contenido dirigido simultáneamente a directores de Instituciones Educativas.',
   'Memorando Múltiple': 'Redacte un Memorando Múltiple dirigido a jefes de área solicitando información simultánea.',
-  'Nota de Insumo': 'Redacte una Nota de Insumo técnico justificando un requerimiento presupuestal o contratación.'
+  'Nota de Insumo': 'Redacte una Nota de Insumo técnico justificando un requerimiento presupuestal o contratación.',
+  'Nota de Coordinación': 'Redacte una Nota de Coordinación interna para coordinar actividades, solicitudes o consultas de manera formal y colaborativa entre diferentes áreas u oficinas de la UGEL.',
+  'Otros': 'Redacte el documento oficial de manera formal y técnica estructurando el cuerpo y las secciones según el tipo de documento especificado por el usuario.'
 };
 
 const BUILTIN_KEYS: Record<string, string> = {
