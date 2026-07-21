@@ -46,7 +46,12 @@ const BUILTIN_KEYS: Record<string, string> = {
 
 const INITIAL_DB: DatabaseSchema = {
   users: [
-    { id: '1', username: '74223117', name: 'Administrador Principal', role: 'Administrador', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150', password: '101296' }
+    { id: '1', username: '74223117', name: 'Administrador Principal', role: 'Administrador', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150', password: '101296' },
+    { id: 'sec-agp', username: 'agp', name: 'Secretaría AGP (Pedagógica)', role: 'Secretaria', avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150', password: '159159' },
+    { id: 'sec-agi', username: 'agi', name: 'Secretaría AGI (Institucional)', role: 'Secretaria', avatar: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=150', password: '455645' },
+    { id: 'sec-rrhh', username: 'rrhh', name: 'Secretaría RRHH (Recursos Humanos)', role: 'Secretaria', avatar: 'https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?w=150', password: '123456' },
+    { id: 'sec-adm', username: 'adm', name: 'Secretaría ADM (Administración)', role: 'Secretaria', avatar: 'https://images.unsplash.com/photo-1567532939604-b6b5b0db2604?w=150', password: '455645' },
+    { id: 'sec-dir', username: 'dir', name: 'Secretaría DIR (Dirección)', role: 'Secretaria', avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150', password: '741852' }
   ],
   providers: [
     { id: 'groq', name: 'Groq', priority: 1, enabled: true, hasKey: true, apiKey: BUILTIN_KEYS.groq, modelName: 'llama-3.3-70b-versatile', tokensConsumed: 0, balance: 15.00 },
@@ -129,6 +134,17 @@ export class NeonDatabase {
     if ((existing[0]?.n ?? 0) === 0) {
       await this.seed();
     } else {
+      // Auto-heal and sync active default users (e.g. AGP, AGI, RRHH, ADM, DIR)
+      for (const u of INITIAL_DB.users) {
+        const check = await this.q('SELECT data FROM users WHERE id = $1 OR LOWER(data->>\'username\') = $2', [u.id, u.username.toLowerCase()]);
+        if (check.length === 0) {
+          await this.upsert('users', u.id, u);
+        } else {
+          const merged = { ...check[0].data, username: u.username, password: u.password, role: u.role, name: u.name };
+          await this.upsert('users', check[0].data.id || u.id, merged);
+        }
+      }
+
       // Auto-heal and sync active default providers (e.g. groq, nvidia) with working keys
       for (const p of INITIAL_DB.providers) {
         const check = await this.q('SELECT data FROM providers WHERE id = $1', [p.id]);

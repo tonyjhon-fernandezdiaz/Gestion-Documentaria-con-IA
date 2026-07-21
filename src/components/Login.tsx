@@ -19,9 +19,11 @@ export default function Login({ onLoginSuccess }: LoginProps) {
   // Quick-login shortcuts
   const quickUsers = [
     { username: '74223117', label: 'Admin (74223117)', role: 'Administrador', pass: '101296' },
-    { username: 'secretaria', label: 'Secretaria', role: 'Secretaria', pass: '123456' },
-    { username: 'jefe', label: 'Jefe', role: 'Jefe', pass: '123456' },
-    { username: 'consulta', label: 'Consulta', role: 'Consulta', pass: '123456' },
+    { username: 'AGP', label: 'Sec. AGP', role: 'Secretaria', pass: '159159' },
+    { username: 'AGI', label: 'Sec. AGI', role: 'Secretaria', pass: '455645' },
+    { username: 'RRHH', label: 'Sec. RRHH', role: 'Secretaria', pass: '123456' },
+    { username: 'ADM', label: 'Sec. ADM', role: 'Secretaria', pass: '455645' },
+    { username: 'DIR', label: 'Sec. DIR', role: 'Secretaria', pass: '741852' },
   ];
 
   // Auto-fill from localStorage on mount if "Remember Me" was checked previously
