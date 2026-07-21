@@ -368,7 +368,17 @@ app.put('/api/prompts/:id', async (req, res) => {
 // -----------------------------------------------------------------
 
 app.get('/api/providers', (req, res) => {
-  res.json(db.getProviders());
+  const providers = db.getProviders();
+  const sanitized = providers.map((p) => {
+    const hasEnvKey = !!process.env[`${p.id.toUpperCase()}_API_KEY`];
+    const hasKey = p.hasKey || !!p.apiKey || hasEnvKey;
+    const { apiKey, ...rest } = p;
+    return {
+      ...rest,
+      hasKey
+    };
+  });
+  res.json(sanitized);
 });
 
 app.put('/api/providers', async (req, res) => {

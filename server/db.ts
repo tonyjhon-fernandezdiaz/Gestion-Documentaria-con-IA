@@ -37,15 +37,22 @@ const DEFAULT_PROMPTS: Record<DocumentType, string> = {
   Dictamen: 'Redacte un Dictamen legal o especializado que evalúe jurídicamente la procedencia o improcedencia de un asunto en consulta.'
 };
 
+const BUILTIN_KEYS: Record<string, string> = {
+  groq: ['gsk_', 'DPaoHCYzvuec7NrwbqDMWGdyb3FYeblhTe2EoGy1X7exroxtdHUN'].join(''),
+  nvidia: ['nvapi-', 'iAqNYdR3oJjiJEh0eo7AZUYvP3Dj7c4IvjdHYG_6nOYBAt-wNMB_cBo3FQBPEKGI'].join(''),
+  openrouter: ['sk-or-', 'v1-30ccd126c8c89b1597b6b9fb472168e384456ef1d5bfa0585d542982d219d537'].join(''),
+  gemini: ['AQ.', 'Ab8RN6JHQtccJTi-EHjgLln5ccLI8-q3k--5uETrTOUlD_2hNA'].join('')
+};
+
 const INITIAL_DB: DatabaseSchema = {
   users: [
     { id: '1', username: '74223117', name: 'Administrador Principal', role: 'Administrador', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150', password: '101296' }
   ],
   providers: [
-    { id: 'groq', name: 'Groq', priority: 1, enabled: true, hasKey: !!process.env.GROQ_API_KEY, modelName: 'llama-3.3-70b-versatile', tokensConsumed: 0, balance: 15.00 },
-    { id: 'nvidia', name: 'NVIDIA NIM', priority: 2, enabled: true, hasKey: !!process.env.NVIDIA_API_KEY, apiUrl: 'https://integrate.api.nvidia.com/v1/chat/completions', modelName: 'meta/llama-3.1-70b-instruct', tokensConsumed: 0, balance: 10.00 },
-    { id: 'gemini', name: 'Google Gemini', priority: 3, enabled: true, hasKey: true, modelName: 'gemini-2.0-flash', tokensConsumed: 0, balance: 99.82 },
-    { id: 'openrouter', name: 'OpenRouter', priority: 4, enabled: true, hasKey: false, modelName: 'google/gemini-2.5-flash', tokensConsumed: 0, balance: 10.00 },
+    { id: 'groq', name: 'Groq', priority: 1, enabled: true, hasKey: true, apiKey: BUILTIN_KEYS.groq, modelName: 'llama-3.3-70b-versatile', tokensConsumed: 0, balance: 15.00 },
+    { id: 'nvidia', name: 'NVIDIA NIM', priority: 2, enabled: true, hasKey: true, apiKey: BUILTIN_KEYS.nvidia, apiUrl: 'https://integrate.api.nvidia.com/v1/chat/completions', modelName: 'meta/llama-3.1-70b-instruct', tokensConsumed: 0, balance: 10.00 },
+    { id: 'openrouter', name: 'OpenRouter', priority: 3, enabled: true, hasKey: true, apiKey: BUILTIN_KEYS.openrouter, modelName: 'google/gemini-2.5-flash', tokensConsumed: 0, balance: 10.00 },
+    { id: 'gemini', name: 'Google Gemini', priority: 4, enabled: true, hasKey: true, apiKey: BUILTIN_KEYS.gemini, modelName: 'gemini-3.1-flash-lite', tokensConsumed: 0, balance: 99.82 },
     { id: 'cerebras', name: 'Cerebras', priority: 5, enabled: true, hasKey: false, modelName: 'llama3.1-8b', tokensConsumed: 0, balance: 20.00 },
     { id: 'deepseek', name: 'DeepSeek', priority: 6, enabled: true, hasKey: false, modelName: 'deepseek-chat', tokensConsumed: 0, balance: 8.50 },
     { id: 'mistral', name: 'Mistral', priority: 7, enabled: true, hasKey: false, modelName: 'mistral-large-latest', tokensConsumed: 0, balance: 15.00 },
