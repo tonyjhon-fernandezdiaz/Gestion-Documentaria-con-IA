@@ -84,12 +84,12 @@ const INITIAL_DB: DatabaseSchema = {
     { id: 'sec-dir', username: 'dir', name: 'Secretaría DIR (Dirección)', role: 'Secretaria', avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150', password: '741852', areaId: 'dir', cargo: 'Secretaria de Dirección' }
   ],
   providers: [
-    { id: 'groq', name: 'Groq', priority: 1, enabled: true, hasKey: true, apiKey: BUILTIN_KEYS.groq, modelName: 'llama-3.3-70b-versatile', tokensConsumed: 0, balance: 15.00 },
-    { id: 'nvidia', name: 'NVIDIA NIM', priority: 2, enabled: true, hasKey: true, apiKey: BUILTIN_KEYS.nvidia, apiUrl: 'https://integrate.api.nvidia.com/v1/chat/completions', modelName: 'meta/llama-3.1-70b-instruct', tokensConsumed: 0, balance: 10.00 },
-    { id: 'openrouter', name: 'OpenRouter', priority: 3, enabled: true, hasKey: true, apiKey: BUILTIN_KEYS.openrouter, modelName: 'google/gemini-2.5-flash', tokensConsumed: 0, balance: 10.00 },
-    { id: 'gemini', name: 'Google Gemini', priority: 4, enabled: true, hasKey: true, apiKey: BUILTIN_KEYS.gemini, modelName: 'gemini-3.1-flash-lite', tokensConsumed: 0, balance: 99.82 },
-    { id: 'cerebras', name: 'Cerebras', priority: 5, enabled: true, hasKey: false, modelName: 'llama3.1-8b', tokensConsumed: 0, balance: 20.00 },
-    { id: 'deepseek', name: 'DeepSeek', priority: 6, enabled: true, hasKey: false, modelName: 'deepseek-chat', tokensConsumed: 0, balance: 8.50 },
+    { id: 'gemini', name: 'Google Gemini', priority: 1, enabled: true, hasKey: true, apiKey: BUILTIN_KEYS.gemini, modelName: 'gemini-2.5-flash', tokensConsumed: 0, balance: 99.82 },
+    { id: 'deepseek', name: 'DeepSeek', priority: 2, enabled: true, hasKey: false, modelName: 'deepseek-chat', tokensConsumed: 0, balance: 8.50 },
+    { id: 'groq', name: 'Groq', priority: 3, enabled: true, hasKey: true, apiKey: BUILTIN_KEYS.groq, modelName: 'llama-3.3-70b-versatile', tokensConsumed: 0, balance: 15.00 },
+    { id: 'nvidia', name: 'NVIDIA NIM', priority: 4, enabled: true, hasKey: true, apiKey: BUILTIN_KEYS.nvidia, apiUrl: 'https://integrate.api.nvidia.com/v1/chat/completions', modelName: 'meta/llama-3.1-70b-instruct', tokensConsumed: 0, balance: 10.00 },
+    { id: 'openrouter', name: 'OpenRouter', priority: 5, enabled: true, hasKey: true, apiKey: BUILTIN_KEYS.openrouter, modelName: 'google/gemini-2.5-flash', tokensConsumed: 0, balance: 10.00 },
+    { id: 'cerebras', name: 'Cerebras', priority: 6, enabled: true, hasKey: false, modelName: 'llama3.1-8b', tokensConsumed: 0, balance: 20.00 },
     { id: 'mistral', name: 'Mistral', priority: 7, enabled: true, hasKey: false, modelName: 'mistral-large-latest', tokensConsumed: 0, balance: 15.00 },
     { id: 'openai', name: 'OpenAI', priority: 8, enabled: true, hasKey: false, modelName: 'gpt-4o-mini', tokensConsumed: 0, balance: 4.90 },
     { id: 'claude', name: 'Claude', priority: 9, enabled: true, hasKey: false, modelName: 'claude-3-5-sonnet-latest', tokensConsumed: 0, balance: 12.30 }
@@ -156,7 +156,7 @@ export class NeonDatabase {
 
   private async init(): Promise<void> {
     for (const t of TABLES) {
-      await this.q(`CREATE TABLE IF NOT EXISTS ${t} (id text PRIMARY KEY, seq bigserial, data jsonb NOT NULL)`);
+      await this.q(`CREATE TABLE IF NOT EXISTS ${t} (id text PRIMARY KEY, seq bigserial, data jsonb NOT NULL)`).catch(e => console.error(`Error creando tabla ${t}:`, e));
     }
     await this.q(`CREATE TABLE IF NOT EXISTS kv (key text PRIMARY KEY, value text)`);
 
@@ -175,17 +175,18 @@ export class NeonDatabase {
         }
       }
 
-      // Auto-heal and sync active default providers (groq, nvidia, openrouter, gemini) with working keys
+      // Auto-heal and sync active default providers with working keys
       for (const p of INITIAL_DB.providers) {
         const check = await this.q('SELECT data FROM providers WHERE id = $1', [p.id]);
         if (check.length === 0) {
           await this.upsert('providers', p.id, p);
-        } else if (p.apiKey) {
-          // ALWAYS sync active working key into PostgreSQL database row!
+        } else {
+          // ALWAYS sync active working key, priority, and modelName into PostgreSQL database row!
           const merged = { 
             ...check[0].data, 
-            apiKey: p.apiKey, 
-            hasKey: true, 
+            priority: p.priority,
+            apiKey: p.apiKey || check[0].data.apiKey,
+            hasKey: !!(p.apiKey || check[0].data.apiKey),
             modelName: p.modelName || check[0].data.modelName,
             apiUrl: p.apiUrl || check[0].data.apiUrl 
           };

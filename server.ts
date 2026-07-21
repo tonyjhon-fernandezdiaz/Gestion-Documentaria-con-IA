@@ -717,6 +717,60 @@ app.post('/api/learning', async (req, res) => {
   res.json({ success: true, correction });
 });
 
+// Strategy 5: Compress Context - strips repetitive footers, watermarks and compresses whitespace
+function cleanDocumentText(text: string): string {
+  if (!text) return '';
+  let clean = text.replace(/\r\n/g, '\n');
+  
+  // Remove repetitive page numbers and footers
+  clean = clean.replace(/Página\s*\d+\s*de\s*\d+/gi, '');
+  clean = clean.replace(/Pág\.\s*\d+/gi, '');
+  clean = clean.replace(/Page\s*\d+/gi, '');
+  
+  // Remove digital signature and watermark warnings typical of Peruvian public management
+  clean = clean.replace(/Documento\s*Firmado\s*Digitalmente/gi, '');
+  clean = clean.replace(/Firma\s*Digital/gi, '');
+  clean = clean.replace(/GGR\s*-\s*GRSM/gi, '');
+  clean = clean.replace(/UGEL\s*BELLAVISTA/gi, '');
+  
+  // Compress consecutive whitespace and empty lines
+  clean = clean.replace(/\n\s*\n\s*\n+/g, '\n\n');
+  
+  return clean.trim();
+}
+
+// Strategy 1: Summarize large PDFs/text before sending to main generator to save up to 50% tokens
+async function summarizeLargeTextIfLong(text: string): Promise<{ text: string; wasSummarized: boolean }> {
+  if (!text || text.length < 5000) {
+    return { text, wasSummarized: false };
+  }
+
+  const sortedProviders = db.getProviders()
+    .filter((p) => p.enabled)
+    .sort((a, b) => a.priority - b.priority);
+
+  // Attempt preliminary summarization using the first active provider
+  for (const provider of sortedProviders) {
+    try {
+      const systemInstruction = "Eres un asistente de síntesis institucional. Extrae únicamente los datos clave (nombres, fechas, conclusiones principales, derivaciones o acuerdos) en un texto de resumen denso de menos de 250 palabras. Evita cualquier texto introductorio.";
+      const userPrompt = `Por favor resume el siguiente documento de referencia institucional:\n\n${text}`;
+      
+      const key = provider.apiKey;
+      const res = await requestProviderAPI(provider, systemInstruction, userPrompt, key, true);
+      if (res.text && res.text.trim().length > 50) {
+        return { 
+          text: `[SÍNTESIS INTELIGENTE DE ANTECEDENTES (AHORRO DE TOKENS ACTIVO)]:\n${res.text.trim()}`, 
+          wasSummarized: true 
+        };
+      }
+    } catch (e) {
+      console.warn(`Falló síntesis de antecedente con ${provider.name}, intentando siguiente...`);
+    }
+  }
+
+  return { text, wasSummarized: false };
+}
+
 // Helper to optimize document length to save tokens (keeps 1st and last pages if > 5 pages)
 function optimizeDocumentPages(text: string): { optimizedText: string; isOptimized: boolean; originalPageCount: number } {
   if (!text) return { optimizedText: '', isOptimized: false, originalPageCount: 0 };
@@ -1054,7 +1108,22 @@ app.post('/api/ai/ocr', async (req, res) => {
   const startTime = Date.now();
   
   // 1. Optimize document length to reduce token consumption (keep only 1st and last page if > 5 pages)
-  const { optimizedText, isOptimized, originalPageCount } = optimizeDocumentPages(text);
+  let optimizedText = '';
+  let isOptimized = false;
+  let originalPageCount = 0;
+  if (text) {
+    const cleanText = cleanDocumentText(text);
+    const summaryOpt = await summarizeLargeTextIfLong(cleanText);
+    if (summaryOpt.wasSummarized) {
+      optimizedText = summaryOpt.text;
+      isOptimized = true;
+    } else {
+      const opt = optimizeDocumentPages(cleanText);
+      optimizedText = opt.optimizedText;
+      isOptimized = opt.isOptimized;
+      originalPageCount = opt.originalPageCount;
+    }
+  }
 
   // 2. Load past corrections for real-time machine learning (few-shot context injection)
   const learningList = db.getLearningCorrections();
@@ -1199,15 +1268,22 @@ app.post('/api/ai/draft', async (req, res) => {
 
   const startTime = Date.now();
   
-  // 1. Optimize document length for drafting as well to save tokens (keeps 1st and last pages if > 5 pages)
+  // 1. Clean, compress, and auto-summarize long text before drafting to save up to 50% tokens
   let optimizedOriginalText = '';
   let isOptimized = false;
   let originalPageCount = 0;
   if (originalText) {
-    const opt = optimizeDocumentPages(originalText);
-    optimizedOriginalText = opt.optimizedText;
-    isOptimized = opt.isOptimized;
-    originalPageCount = opt.originalPageCount;
+    const cleanText = cleanDocumentText(originalText);
+    const summaryOpt = await summarizeLargeTextIfLong(cleanText);
+    if (summaryOpt.wasSummarized) {
+      optimizedOriginalText = summaryOpt.text;
+      isOptimized = true;
+    } else {
+      const opt = optimizeDocumentPages(cleanText);
+      optimizedOriginalText = opt.optimizedText;
+      isOptimized = opt.isOptimized;
+      originalPageCount = opt.originalPageCount;
+    }
   }
 
   // 2. Load past corrections for real-time machine learning (few-shot context injection)

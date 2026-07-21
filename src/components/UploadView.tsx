@@ -459,12 +459,15 @@ export default function UploadView({ currentUser, onDocumentAdded }: UploadViewP
     triggerAlert('Directorio Actualizado', `El destinatario "${newRec.nombre}" con cargo "${newRec.cargo}" ha sido registrado con éxito en su directorio institucional.`, 'success');
   };
 
-  // Upload file handler
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       setUploadedFileName(file.name);
       setUploadedFileMimeType(file.type || 'application/octet-stream');
+
+      if (file.size > 2 * 1024 * 1024) {
+        triggerAlert('Documento Extenso Detectado', 'El archivo seleccionado es grande. El sistema aplicará compresión de contexto y resumen inteligente para optimizar el consumo de tokens.', 'info');
+      }
       
       const reader = new FileReader();
       if (file.type === 'application/pdf' || file.name.endsWith('.pdf')) {
