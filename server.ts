@@ -7,6 +7,8 @@ import path from 'path';
 import { GoogleGenAI, Type } from '@google/genai';
 import { db } from './server/db.js';
 import { DocumentType, AIProvider } from './src/types.js';
+import fs from 'fs';
+import { exec } from 'child_process';
 
 const app = express();
 const PORT = 3000;
@@ -771,6 +773,56 @@ async function summarizeLargeTextIfLong(text: string): Promise<{ text: string; w
   return { text, wasSummarized: false };
 }
 
+// Helper to locally parse document text using python subprocess for PDF and DOCX
+function extractTextLocally(fileBase64: string, filename: string): Promise<string> {
+  return new Promise((resolve) => {
+    try {
+      const base64Data = fileBase64.includes(',') ? fileBase64.split(',')[1] : fileBase64;
+      const buffer = Buffer.from(base64Data, 'base64');
+      
+      const tempDir = path.join(process.cwd(), 'temp_uploads');
+      if (!fs.existsSync(tempDir)) {
+        fs.mkdirSync(tempDir, { recursive: true });
+      }
+      
+      const fileExt = path.extname(filename).toLowerCase() || (filename.endsWith('.pdf') ? '.pdf' : '.docx');
+      const tempFilePath = path.join(tempDir, `ocr_${Date.now()}${fileExt}`);
+      
+      fs.writeFileSync(tempFilePath, buffer);
+      
+      const pythonScript = path.join(process.cwd(), 'scratch', 'local_extractor.py');
+      const alternativeScript = "C:\\Users\\Lenovo\\.gemini\\antigravity\\brain\\71af1868-75b9-4207-9e7c-576191fa1828\\scratch\\local_extractor.py";
+      const scriptToUse = fs.existsSync(pythonScript) ? pythonScript : alternativeScript;
+      
+      exec(`python "${scriptToUse}" "${tempFilePath}"`, (error, stdout, stderr) => {
+        try {
+          fs.unlinkSync(tempFilePath);
+        } catch (_) {}
+        
+        if (error) {
+          console.error("Local text extraction failed:", error.message);
+          resolve("");
+          return;
+        }
+        
+        try {
+          const res = JSON.parse(stdout);
+          if (res.success && res.text) {
+            resolve(res.text);
+          } else {
+            resolve("");
+          }
+        } catch (_) {
+          resolve("");
+        }
+      });
+    } catch (e) {
+      console.error("Error setting up local extraction:", e);
+      resolve("");
+    }
+  });
+}
+
 // Helper to optimize document length to save tokens (keeps 1st and last pages if > 5 pages)
 function optimizeDocumentPages(text: string): { optimizedText: string; isOptimized: boolean; originalPageCount: number } {
   if (!text) return { optimizedText: '', isOptimized: false, originalPageCount: 0 };
@@ -1107,12 +1159,25 @@ app.post('/api/ai/ocr', async (req, res) => {
 
   const startTime = Date.now();
   
-  // 1. Optimize document length to reduce token consumption (keep only 1st and last page if > 5 pages)
+  // 1. Local extraction & optimization to save tokens (keeps 1st and last page if > 5 pages)
+  let rawText = text || '';
+  let isDocxOrPdfUploaded = false;
+  
+  if (!rawText && fileBase64) {
+    // Attempt local PDF/DOCX text extraction (100% free local parsing)
+    const localText = await extractTextLocally(fileBase64, filename);
+    if (localText && localText.trim().length > 50) {
+      rawText = localText;
+      isDocxOrPdfUploaded = true;
+    }
+  }
+
   let optimizedText = '';
   let isOptimized = false;
   let originalPageCount = 0;
-  if (text) {
-    const cleanText = cleanDocumentText(text);
+  
+  if (rawText) {
+    const cleanText = cleanDocumentText(rawText);
     const summaryOpt = await summarizeLargeTextIfLong(cleanText);
     if (summaryOpt.wasSummarized) {
       optimizedText = summaryOpt.text;
@@ -1190,8 +1255,8 @@ Debe contener obligatoriamente estos campos:
         userPrompt,
         key,
         false,
-        fileBase64,
-        mimeType
+        isDocxOrPdfUploaded ? undefined : fileBase64,
+        isDocxOrPdfUploaded ? undefined : mimeType
       );
 
       resultJSON = JSON.parse(response.text);
