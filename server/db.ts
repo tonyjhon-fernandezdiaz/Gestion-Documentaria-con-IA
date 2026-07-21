@@ -145,14 +145,20 @@ export class NeonDatabase {
         }
       }
 
-      // Auto-heal and sync active default providers (e.g. groq, nvidia) with working keys
+      // Auto-heal and sync active default providers (groq, nvidia, openrouter, gemini) with working keys
       for (const p of INITIAL_DB.providers) {
         const check = await this.q('SELECT data FROM providers WHERE id = $1', [p.id]);
         if (check.length === 0) {
           await this.upsert('providers', p.id, p);
-        } else if (p.apiKey && (!check[0]?.data?.hasKey || !check[0]?.data?.apiKey)) {
-          // Upgrade provider with official working key
-          const merged = { ...check[0].data, apiKey: p.apiKey, hasKey: true };
+        } else if (p.apiKey) {
+          // ALWAYS sync active working key into PostgreSQL database row!
+          const merged = { 
+            ...check[0].data, 
+            apiKey: p.apiKey, 
+            hasKey: true, 
+            modelName: p.modelName || check[0].data.modelName,
+            apiUrl: p.apiUrl || check[0].data.apiUrl 
+          };
           await this.upsert('providers', p.id, merged);
         }
       }
