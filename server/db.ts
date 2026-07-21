@@ -105,13 +105,13 @@ const INITIAL_DB: DatabaseSchema = {
   agenda: []
 };
 
-const TABLES = ['users', 'documents', 'providers', 'prompts', 'logs', 'agenda', 'learning_corrections'];
+const TABLES = ['users', 'documents', 'providers', 'prompts', 'logs', 'agenda', 'learning_corrections', 'area_templates', 'correlatives', 'areas'];
 const RELOAD_THROTTLE_MS = 3000;
 
 export class NeonDatabase {
   private pool: InstanceType<typeof Pool> | null = null;
   private data: DatabaseSchema = {
-    users: [], documents: [], providers: [], prompts: [], logs: [], learningCorrections: [], agenda: []
+    users: [], documents: [], providers: [], prompts: [], logs: [], learningCorrections: [], agenda: [], areaTemplates: [], correlatives: [], areas: []
   };
   private initPromise: Promise<void> | null = null;
   private lastLoad = 0;
@@ -205,17 +205,17 @@ export class NeonDatabase {
 
   private async load(): Promise<void> {
     const [users, documents, providers, prompts, logs, agenda, corrections, areaTemplates, correlatives, areas, theme] = await Promise.all([
-      this.q('SELECT data FROM users ORDER BY seq ASC'),
-      this.q('SELECT data FROM documents ORDER BY seq DESC'),
-      this.q('SELECT data FROM providers ORDER BY seq ASC'),
-      this.q('SELECT data FROM prompts ORDER BY seq ASC'),
-      this.q('SELECT data FROM logs ORDER BY seq DESC LIMIT 1000'),
-      this.q('SELECT data FROM agenda ORDER BY seq DESC'),
-      this.q('SELECT data FROM learning_corrections ORDER BY seq DESC'),
-      this.q('SELECT data FROM area_templates ORDER BY seq DESC'),
-      this.q('SELECT data FROM correlatives ORDER BY seq ASC'),
-      this.q('SELECT data FROM areas ORDER BY seq ASC'),
-      this.q("SELECT value FROM kv WHERE key = 'activeTheme'"),
+      this.q('SELECT data FROM users ORDER BY seq ASC').catch(() => []),
+      this.q('SELECT data FROM documents ORDER BY seq DESC').catch(() => []),
+      this.q('SELECT data FROM providers ORDER BY seq ASC').catch(() => []),
+      this.q('SELECT data FROM prompts ORDER BY seq ASC').catch(() => []),
+      this.q('SELECT data FROM logs ORDER BY seq DESC LIMIT 1000').catch(() => []),
+      this.q('SELECT data FROM agenda ORDER BY seq DESC').catch(() => []),
+      this.q('SELECT data FROM learning_corrections ORDER BY seq DESC').catch(() => []),
+      this.q('SELECT data FROM area_templates ORDER BY seq DESC').catch(() => []),
+      this.q('SELECT data FROM correlatives ORDER BY seq ASC').catch(() => []),
+      this.q('SELECT data FROM areas ORDER BY seq ASC').catch(() => []),
+      this.q("SELECT value FROM kv WHERE key = 'activeTheme'").catch(() => []),
     ]);
     this.data = {
       users: users.map((r: any) => r.data),
