@@ -30,8 +30,8 @@ export default function App() {
   const [providers, setProviders] = useState<AIProvider[]>([]);
   const [logs, setLogs] = useState<SystemLog[]>([]);
   
-  // Theme state
-  const [darkMode, setDarkMode] = useState<boolean>(true);
+  // Theme state (modo claro por defecto)
+  const [darkMode, setDarkMode] = useState<boolean>(false);
   const [currentTheme, setCurrentTheme] = useState<string>('predeterminado');
   const [showMascotBubble, setShowMascotBubble] = useState<boolean>(true);
   const [agendaEvents, setAgendaEvents] = useState<any[]>([]);

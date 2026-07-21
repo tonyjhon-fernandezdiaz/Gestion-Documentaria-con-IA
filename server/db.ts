@@ -42,15 +42,15 @@ const INITIAL_DB: DatabaseSchema = {
     { id: '1', username: '74223117', name: 'Administrador Principal', role: 'Administrador', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150', password: '101296' }
   ],
   providers: [
-    { id: 'groq', name: 'Groq', priority: 1, enabled: true, hasKey: false, modelName: 'llama-3.3-70b-versatile', tokensConsumed: 0, balance: 15.00 },
-    { id: 'gemini', name: 'Google Gemini', priority: 2, enabled: true, hasKey: true, modelName: 'gemini-3.5-flash', tokensConsumed: 0, balance: 99.82 },
-    { id: 'openrouter', name: 'OpenRouter', priority: 3, enabled: true, hasKey: false, modelName: 'google/gemini-2.5-flash', tokensConsumed: 0, balance: 10.00 },
-    { id: 'cerebras', name: 'Cerebras', priority: 4, enabled: true, hasKey: false, modelName: 'llama3.1-8b', tokensConsumed: 0, balance: 20.00 },
-    { id: 'deepseek', name: 'DeepSeek', priority: 5, enabled: true, hasKey: false, modelName: 'deepseek-chat', tokensConsumed: 0, balance: 8.50 },
-    { id: 'mistral', name: 'Mistral', priority: 6, enabled: true, hasKey: false, modelName: 'mistral-large-latest', tokensConsumed: 0, balance: 15.00 },
-    { id: 'openai', name: 'OpenAI', priority: 7, enabled: true, hasKey: false, modelName: 'gpt-4o-mini', tokensConsumed: 0, balance: 4.90 },
-    { id: 'claude', name: 'Claude', priority: 8, enabled: true, hasKey: false, modelName: 'claude-3-5-sonnet-latest', tokensConsumed: 0, balance: 12.30 },
-    { id: 'nvidia', name: 'NVIDIA NIM', priority: 9, enabled: true, hasKey: false, modelName: 'meta/llama-3.1-70b-instruct', tokensConsumed: 0, balance: 10.00 }
+    { id: 'groq', name: 'Groq', priority: 1, enabled: true, hasKey: !!process.env.GROQ_API_KEY, modelName: 'llama-3.3-70b-versatile', tokensConsumed: 0, balance: 15.00 },
+    { id: 'nvidia', name: 'NVIDIA NIM', priority: 2, enabled: true, hasKey: !!process.env.NVIDIA_API_KEY, apiUrl: 'https://integrate.api.nvidia.com/v1/chat/completions', modelName: 'meta/llama-3.1-70b-instruct', tokensConsumed: 0, balance: 10.00 },
+    { id: 'gemini', name: 'Google Gemini', priority: 3, enabled: true, hasKey: true, modelName: 'gemini-2.0-flash', tokensConsumed: 0, balance: 99.82 },
+    { id: 'openrouter', name: 'OpenRouter', priority: 4, enabled: true, hasKey: false, modelName: 'google/gemini-2.5-flash', tokensConsumed: 0, balance: 10.00 },
+    { id: 'cerebras', name: 'Cerebras', priority: 5, enabled: true, hasKey: false, modelName: 'llama3.1-8b', tokensConsumed: 0, balance: 20.00 },
+    { id: 'deepseek', name: 'DeepSeek', priority: 6, enabled: true, hasKey: false, modelName: 'deepseek-chat', tokensConsumed: 0, balance: 8.50 },
+    { id: 'mistral', name: 'Mistral', priority: 7, enabled: true, hasKey: false, modelName: 'mistral-large-latest', tokensConsumed: 0, balance: 15.00 },
+    { id: 'openai', name: 'OpenAI', priority: 8, enabled: true, hasKey: false, modelName: 'gpt-4o-mini', tokensConsumed: 0, balance: 4.90 },
+    { id: 'claude', name: 'Claude', priority: 9, enabled: true, hasKey: false, modelName: 'claude-3-5-sonnet-latest', tokensConsumed: 0, balance: 12.30 }
   ],
   prompts: Object.keys(DEFAULT_PROMPTS).map((type, index) => ({
     id: `p-${index + 1}`,
@@ -122,11 +122,15 @@ export class NeonDatabase {
     if ((existing[0]?.n ?? 0) === 0) {
       await this.seed();
     } else {
-      // Auto-heal missing default providers (e.g. groq, nvidia) so they are never lost
+      // Auto-heal and sync active default providers (e.g. groq, nvidia) with working keys
       for (const p of INITIAL_DB.providers) {
-        const check = await this.q('SELECT id FROM providers WHERE id = $1', [p.id]);
+        const check = await this.q('SELECT data FROM providers WHERE id = $1', [p.id]);
         if (check.length === 0) {
           await this.upsert('providers', p.id, p);
+        } else if (p.apiKey && (!check[0]?.data?.hasKey || !check[0]?.data?.apiKey)) {
+          // Upgrade provider with official working key
+          const merged = { ...check[0].data, apiKey: p.apiKey, hasKey: true };
+          await this.upsert('providers', p.id, merged);
         }
       }
     }

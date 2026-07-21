@@ -470,11 +470,11 @@ app.post('/api/providers/:id/test', async (req, res) => {
     return res.status(404).json({ error: 'Proveedor no encontrado.' });
   }
 
-  // Determine key to use
-  let keyToUse = apiKey !== undefined ? apiKey : provider.apiKey;
+  // Determine key to use (supports input, saved DB key, or process.env variables)
+  const keyToUse = (apiKey !== undefined && apiKey !== '') ? apiKey : (provider.apiKey || process.env[`${id.toUpperCase()}_API_KEY`]);
 
   if (!keyToUse) {
-    return res.status(400).json({ error: 'Clave API no configurada para este proveedor.' });
+    return res.status(400).json({ error: 'Clave API no configurada para este proveedor. Ingrese la clave o agréguela en Vercel Settings -> Environment Variables.' });
   }
 
   // Build a test provider clone with temporary key override
