@@ -210,7 +210,7 @@ app.post('/api/users', async (req, res) => {
   if (!checkIsAdmin(req)) {
     return res.status(403).json({ error: 'Acceso denegado. Se requiere rol de Administrador.' });
   }
-  const { username, name, role, password, avatar } = req.body;
+  const { username, name, role, password, avatar, areaId, cargo } = req.body;
   if (!username || !name || !role || !password) {
     return res.status(400).json({ error: 'Faltan campos obligatorios.' });
   }
@@ -226,7 +226,9 @@ app.post('/api/users', async (req, res) => {
     name,
     role,
     password,
-    avatar: avatar || `https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150`
+    avatar: avatar || `https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150`,
+    areaId: areaId || undefined,
+    cargo: cargo || undefined
   };
 
   await db.addUser(newUser);
@@ -1280,6 +1282,8 @@ REQUISITOS DE REDACCIÓN DE LA UGEL:
 - Asunto / Tema: ${metadata.tema || 'No especificado'}
 - Código o Expediente de Referencia: ${metadata.expediente || 'No especificado'}
 - Metadatos Clave Extraídos: ${JSON.stringify(metadata.datos_extraidos || {})}
+- Firmante / Remitente Oficial (DE): ${metadata.datos_extraidos?.remitente_nombre || usuario} (${metadata.datos_extraidos?.remitente_cargo || ''})
+- NOTA DE REDACCIÓN: El documento debe redactarse en el tono institucional correspondiente a la firma y competencia del Firmante/Remitente Oficial indicado.
 
 ANTECEDENTES COMPLETOS (Incluye el documento de referencia y notas del usuario):
 ${optimizedOriginalText ? `${optimizedOriginalText}` : 'No se ha adjuntado texto de referencia. Redacte con los metadatos.'}

@@ -245,6 +245,38 @@ export default function UploadView({ currentUser, onDocumentAdded }: UploadViewP
       .catch(() => {});
   }, []);
 
+  const [remitenteNombre, setRemitenteNombre] = useState<string>('');
+  const [remitenteCargo, setRemitenteCargo] = useState<string>('');
+
+  // Default selectedAreaId to user's area on load
+  useEffect(() => {
+    if (currentUser && currentUser.areaId) {
+      setSelectedAreaId(currentUser.areaId);
+    }
+  }, [currentUser]);
+
+  // Auto-set Remitente (Firmante) based on user role, area, and subarea logic
+  useEffect(() => {
+    if (!currentUser) return;
+    
+    // Main areas jefaturas mapping
+    const JEFATURAS: Record<string, { nombre: string; cargo: string }> = {
+      agi: { nombre: 'TONY JHON FERNANDEZ DIAZ', cargo: 'JEFE DEL ÁREA DE GESTIÓN INSTITUCIONAL' },
+      adm: { nombre: 'CPC. LEYDI MARIN QUEZADA', cargo: 'JEFA DE LA OFICINA DE ADMINISTRACIÓN' },
+      agp: { nombre: 'MG. VICTOR VELA RAMIREZ', cargo: 'JEFE DEL ÁREA DE GESTIÓN PEDAGÓGICA' },
+      rrhh: { nombre: 'LIC. ADM. SEGUNDO HIPOLITO SALDAÑA PEREZ', cargo: 'RESPONSABLE DE LA OFICINA DE GESTIÓN DE RECURSOS HUMANOS' },
+      dir: { nombre: 'MG. VICTOR VELA RAMIREZ', cargo: 'DIRECTOR DE LA UGEL BELLAVISTA' }
+    };
+
+    if (currentUser.role === 'Secretaria' && selectedAreaId && JEFATURAS[selectedAreaId]) {
+      setRemitenteNombre(JEFATURAS[selectedAreaId].nombre);
+      setRemitenteCargo(JEFATURAS[selectedAreaId].cargo);
+    } else {
+      setRemitenteNombre(currentUser.name);
+      setRemitenteCargo(currentUser.cargo || currentUser.role);
+    }
+  }, [selectedAreaId, currentUser, areasList]);
+
   // Fetch correlative number when area or docType changes
   useEffect(() => {
     if (!selectedAreaId || !docType) return;
@@ -614,6 +646,8 @@ export default function UploadView({ currentUser, onDocumentAdded }: UploadViewP
         notas_adicionales: contextoNotas,
         numero: docNumber,
         sufijo: docSuffix,
+        remitente_nombre: remitenteNombre,
+        remitente_cargo: remitenteCargo,
         // Send the internally saved OCR reference metadata to the AI as context
         referencia_interna: referenceOcrMetadata
       }
@@ -1209,6 +1243,35 @@ export default function UploadView({ currentUser, onDocumentAdded }: UploadViewP
               </div>
             </div>
 
+            {/* Field: Remitente / Firmante */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 border-t border-slate-100 dark:border-slate-800/60 pt-3">
+              <div className="space-y-1">
+                <label className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
+                  Nombre de Remitente (Firma)
+                </label>
+                <input 
+                  type="text" 
+                  value={remitenteNombre}
+                  onChange={(e) => setRemitenteNombre(e.target.value)}
+                  placeholder="Ej. TONY JHON FERNANDEZ DIAZ"
+                  className="w-full px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 text-xs text-slate-800 dark:text-slate-100 font-semibold focus:outline-none focus:border-blue-500 transition-colors uppercase"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
+                  Cargo de Remitente (Firma)
+                </label>
+                <input 
+                  type="text" 
+                  value={remitenteCargo}
+                  onChange={(e) => setRemitenteCargo(e.target.value)}
+                  placeholder="Ej. JEFE DEL ÁREA DE GESTIÓN INSTITUCIONAL"
+                  className="w-full px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:border-blue-500 transition-colors uppercase"
+                />
+              </div>
+            </div>
+
             {/* Recipients Section */}
             <div className="space-y-3 border-t border-slate-100 dark:border-slate-800/60 pt-3" id="recipients_section">
               <div className="flex items-center justify-between">
@@ -1664,9 +1727,9 @@ export default function UploadView({ currentUser, onDocumentAdded }: UploadViewP
                     <div className="px-1.5 font-extrabold shrink-0 text-slate-950 dark:text-white">:</div>
                     <div className="flex-1 font-bold text-slate-950 dark:text-white">
                       <div className="uppercase">
-                        {savedUserName || currentUser.name}
+                        {remitenteNombre || currentUser.name}
                         <span className="block text-[9px] sm:text-[10px] text-slate-600 dark:text-slate-400 font-extrabold mt-0.5 uppercase">
-                          {savedUserRole || currentUser.role}
+                          {remitenteCargo || currentUser.role}
                         </span>
                       </div>
                     </div>

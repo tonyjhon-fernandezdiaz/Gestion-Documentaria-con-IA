@@ -44,6 +44,10 @@ export const DEFAULT_AREAS: AreaItem[] = [
   { id: 'bienestar', name: 'Bienestar Social', code: 'RRHH-BS', parentAreaId: 'rrhh', suffix: '-2026-UGEL-RRHH-BS' },
 ];
 
+// Plantillas de área: aún no se cargan datos iniciales. Se define como lista vacía
+// para que el arranque/sembrado no falle (antes faltaba y rompía la base de datos).
+const INITIAL_AREA_TEMPLATES: AreaTemplate[] = [];
+
 const DEFAULT_PROMPTS: Record<DocumentType, string> = {
   Informe: 'Redacte un Informe de estilo libre o tipo carta, que sea un texto formal continuo estructurado en párrafos fluidos y narrativos pero sin divisiones numeradas ni secciones rígidas (NO use "I. ANTECEDENTES", etc.). Se utiliza para informar de manera directa e institucional un asunto.',
   Oficio: 'Redacte un Oficio de comunicación externa. Debe ser formal, contener destinatario, asunto, referencia y cuerpo estructurado con tono institucional.',
@@ -72,12 +76,12 @@ const BUILTIN_KEYS: Record<string, string> = {
 
 const INITIAL_DB: DatabaseSchema = {
   users: [
-    { id: '1', username: '74223117', name: 'Administrador Principal', role: 'Administrador', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150', password: '101296' },
-    { id: 'sec-agp', username: 'agp', name: 'Secretaría AGP (Pedagógica)', role: 'Secretaria', avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150', password: '159159' },
-    { id: 'sec-agi', username: 'agi', name: 'Secretaría AGI (Institucional)', role: 'Secretaria', avatar: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=150', password: '455645' },
-    { id: 'sec-rrhh', username: 'rrhh', name: 'Secretaría RRHH (Recursos Humanos)', role: 'Secretaria', avatar: 'https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?w=150', password: '123456' },
-    { id: 'sec-adm', username: 'adm', name: 'Secretaría ADM (Administración)', role: 'Secretaria', avatar: 'https://images.unsplash.com/photo-1567532939604-b6b5b0db2604?w=150', password: '455645' },
-    { id: 'sec-dir', username: 'dir', name: 'Secretaría DIR (Dirección)', role: 'Secretaria', avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150', password: '741852' }
+    { id: '1', username: '74223117', name: 'Administrador Principal', role: 'Administrador', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150', password: '101296', areaId: 'dir', cargo: 'Administrador del Sistema' },
+    { id: 'sec-agp', username: 'agp', name: 'Secretaría AGP (Pedagógica)', role: 'Secretaria', avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150', password: '159159', areaId: 'agp', cargo: 'Secretaria de Gestión Pedagógica' },
+    { id: 'sec-agi', username: 'agi', name: 'Secretaría AGI (Institucional)', role: 'Secretaria', avatar: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=150', password: '455645', areaId: 'agi', cargo: 'Secretaria de Gestión Institucional' },
+    { id: 'sec-rrhh', username: 'rrhh', name: 'Secretaría RRHH (Recursos Humanos)', role: 'Secretaria', avatar: 'https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?w=150', password: '123456', areaId: 'rrhh', cargo: 'Secretaria de Recursos Humanos' },
+    { id: 'sec-adm', username: 'adm', name: 'Secretaría ADM (Administración)', role: 'Secretaria', avatar: 'https://images.unsplash.com/photo-1567532939604-b6b5b0db2604?w=150', password: '455645', areaId: 'adm', cargo: 'Secretaria de Administración' },
+    { id: 'sec-dir', username: 'dir', name: 'Secretaría DIR (Dirección)', role: 'Secretaria', avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150', password: '741852', areaId: 'dir', cargo: 'Secretaria de Dirección' }
   ],
   providers: [
     { id: 'groq', name: 'Groq', priority: 1, enabled: true, hasKey: true, apiKey: BUILTIN_KEYS.groq, modelName: 'llama-3.3-70b-versatile', tokensConsumed: 0, balance: 15.00 },
@@ -166,7 +170,7 @@ export class NeonDatabase {
         if (check.length === 0) {
           await this.upsert('users', u.id, u);
         } else {
-          const merged = { ...check[0].data, username: u.username, password: u.password, role: u.role, name: u.name };
+          const merged = { ...check[0].data, username: u.username, password: u.password, role: u.role, name: u.name, areaId: check[0].data.areaId || u.areaId, cargo: check[0].data.cargo || u.cargo };
           await this.upsert('users', check[0].data.id || u.id, merged);
         }
       }

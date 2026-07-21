@@ -7,6 +7,8 @@ export interface User {
   role: UserRole;
   avatar: string;
   password?: string;
+  areaId?: string; // linked office or sub-office
+  cargo?: string; // custom institutional job title
 }
 
 export type DocumentType =

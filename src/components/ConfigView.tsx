@@ -168,6 +168,18 @@ export default function ConfigView({ providers, currentUser, onUpdateProviders, 
   const [newUserRole, setNewUserRole] = useState<'Administrador' | 'Secretaria' | 'Jefe' | 'Consulta'>('Secretaria');
   const [userSearch, setUserSearch] = useState('');
   const [userSuccessMessage, setUserSuccessMessage] = useState('');
+  const [areasList, setAreasList] = useState<any[]>([]);
+  const [newUserAreaId, setNewUserAreaId] = useState('adm');
+  const [newUserCargo, setNewUserCargo] = useState('');
+
+  useEffect(() => {
+    fetch('/api/areas')
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) setAreasList(data);
+      })
+      .catch(() => {});
+  }, []);
 
   // Visual Theme States
   const [selectedTheme, setSelectedTheme] = useState<string>(currentTheme || 'predeterminado');
@@ -616,7 +628,9 @@ export default function ConfigView({ providers, currentUser, onUpdateProviders, 
           username: newUserUsername.trim(),
           name: newUserName.trim(),
           role: newUserRole,
-          password: newUserPassword.trim()
+          password: newUserPassword.trim(),
+          areaId: newUserAreaId,
+          cargo: newUserCargo.trim()
         })
       });
 
@@ -630,6 +644,7 @@ export default function ConfigView({ providers, currentUser, onUpdateProviders, 
       setNewUserName('');
       setNewUserPassword('');
       setNewUserRole('Secretaria');
+      setNewUserCargo('');
       setShowAddUserForm(false);
       fetchSystemUsers();
       setTimeout(() => setUserSuccessMessage(''), 3000);
@@ -653,7 +668,9 @@ export default function ConfigView({ providers, currentUser, onUpdateProviders, 
         body: JSON.stringify({
           name: editingUser.name.trim(),
           role: editingUser.role,
-          password: editingUser.password || undefined
+          password: editingUser.password || undefined,
+          areaId: editingUser.areaId,
+          cargo: editingUser.cargo?.trim()
         })
       });
 
@@ -1723,7 +1740,7 @@ export default function ConfigView({ providers, currentUser, onUpdateProviders, 
                 </button>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                 <div className="space-y-1">
                   <label className="text-[10px] font-bold uppercase text-slate-500">Usuario / DNI (Login)</label>
                   <input 
@@ -1774,6 +1791,46 @@ export default function ConfigView({ providers, currentUser, onUpdateProviders, 
                     <option value="Jefe">Jefe de Área</option>
                     <option value="Consulta">Consulta Externa</option>
                   </select>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold uppercase text-slate-500">Área / Oficina UGEL</label>
+                  <select
+                    value={editingUser ? (editingUser.areaId || '') : newUserAreaId}
+                    onChange={(e) => {
+                      const area = e.target.value;
+                      if (editingUser) {
+                        setEditingUser({ ...editingUser, areaId: area });
+                      } else {
+                        setNewUserAreaId(area);
+                      }
+                    }}
+                    className="w-full px-3 py-2 rounded bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs text-slate-800 dark:text-slate-200 focus:outline-none font-medium"
+                  >
+                    <option value="">Ninguna - Externo</option>
+                    {areasList.map((a: any) => (
+                      <option key={a.id} value={a.id}>
+                        {a.parentAreaId ? `↳ ${a.name}` : a.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold uppercase text-slate-500">Cargo Institucional (Firma)</label>
+                  <input 
+                    type="text"
+                    value={editingUser ? (editingUser.cargo || '') : newUserCargo}
+                    onChange={(e) => {
+                      if (editingUser) {
+                        setEditingUser({ ...editingUser, cargo: e.target.value });
+                      } else {
+                        setNewUserCargo(e.target.value);
+                      }
+                    }}
+                    placeholder="Ej. Especialista en Finanzas, Jefa de ADM"
+                    className="w-full px-3 py-2 rounded bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs text-slate-800 dark:text-slate-200 focus:outline-none"
+                  />
                 </div>
 
                 <div className="space-y-1">
@@ -1841,6 +1898,8 @@ export default function ConfigView({ providers, currentUser, onUpdateProviders, 
                     <tr className="bg-slate-50 dark:bg-slate-950/50 border-b border-slate-100 dark:border-slate-800 font-bold text-slate-500 dark:text-slate-400">
                       <th className="p-3">Usuario (Login / DNI)</th>
                       <th className="p-3">Nombre Completo</th>
+                      <th className="p-3">Área / Oficina</th>
+                      <th className="p-3">Cargo Institucional</th>
                       <th className="p-3">Rol del Sistema</th>
                       <th className="p-3 text-right w-24">Acciones</th>
                     </tr>
@@ -1855,6 +1914,12 @@ export default function ConfigView({ providers, currentUser, onUpdateProviders, 
                         <tr key={user.id} className="hover:bg-slate-50 dark:hover:bg-slate-950/20 text-slate-700 dark:text-slate-300 font-sans">
                           <td className="p-3 font-mono font-bold text-slate-900 dark:text-white">{user.username}</td>
                           <td className="p-3 font-semibold uppercase">{user.name}</td>
+                          <td className="p-3 font-medium text-slate-500 dark:text-slate-400">
+                            {areasList.find(a => a.id === user.areaId)?.name || 'Externo / Ninguna'}
+                          </td>
+                          <td className="p-3 font-medium text-slate-500 dark:text-slate-400 italic">
+                            {user.cargo || 'No especificado'}
+                          </td>
                           <td className="p-3">
                             <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
                               user.role === 'Administrador'
