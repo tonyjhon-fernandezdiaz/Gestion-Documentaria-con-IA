@@ -812,7 +812,7 @@ async function requestProviderAPI(
       }
 
       // Generic/custom API (like NVIDIA NIM or any other OpenAI-compatible API with custom apiUrl)
-      const isCustomOrGeneric = !['groq', 'openrouter', 'openai', 'deepseek', 'cerebras', 'mistral', 'claude'].includes(provider.id);
+      const isCustomOrGeneric = !['gemini', 'groq', 'openrouter', 'openai', 'deepseek', 'cerebras', 'mistral', 'claude'].includes(provider.id);
       if (isCustomOrGeneric) {
         let endpoint = provider.apiUrl || (provider.id.includes('nvidia') ? 'https://integrate.api.nvidia.com/v1/chat/completions' : 'https://api.openai.com/v1/chat/completions');
         

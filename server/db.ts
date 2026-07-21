@@ -189,7 +189,15 @@ export class NeonDatabase {
     this.data = {
       users: users.map((r: any) => r.data),
       documents: documents.map((r: any) => r.data),
-      providers: providers.map((r: any) => r.data),
+      providers: providers.map((r: any) => {
+        const p = r.data;
+        const key = (p.apiKey && String(p.apiKey).trim() !== '') ? String(p.apiKey).trim() : BUILTIN_KEYS[p.id];
+        return {
+          ...p,
+          apiKey: key,
+          hasKey: !!key
+        };
+      }),
       prompts: prompts.map((r: any) => r.data),
       logs: logs.map((r: any) => r.data),
       agenda: agenda.map((r: any) => r.data),
@@ -266,12 +274,32 @@ export class NeonDatabase {
   }
 
   // ------------------- PROVIDERS -------------------
-  getProviders(): AIProvider[] { return this.data.providers; }
+  getProviders(): AIProvider[] { 
+    return (this.data.providers || []).map(p => {
+      const key = (p.apiKey && String(p.apiKey).trim() !== '') ? String(p.apiKey).trim() : BUILTIN_KEYS[p.id];
+      return {
+        ...p,
+        apiKey: key,
+        hasKey: !!key
+      };
+    }); 
+  }
 
   async updateProviders(providers: AIProvider[]): Promise<void> {
-    this.data.providers = providers;
+    const merged = providers.map(p => {
+      const existing = (this.data.providers || []).find(c => c.id === p.id);
+      const keyToSave = (p.apiKey && String(p.apiKey).trim() !== '') 
+        ? String(p.apiKey).trim() 
+        : (existing?.apiKey || BUILTIN_KEYS[p.id]);
+      return {
+        ...p,
+        apiKey: keyToSave,
+        hasKey: !!keyToSave
+      };
+    });
+    this.data.providers = merged;
     await this.q('DELETE FROM providers');
-    for (const p of providers) await this.upsert('providers', p.id, p);
+    for (const p of merged) await this.upsert('providers', p.id, p);
   }
 
   // ------------------- PROMPTS -------------------
