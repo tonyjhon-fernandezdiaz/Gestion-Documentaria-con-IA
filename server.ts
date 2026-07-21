@@ -5,8 +5,8 @@ dotenv.config();
 import express from 'express';
 import path from 'path';
 import { GoogleGenAI, Type } from '@google/genai';
-import { db } from './server/db';
-import { DocumentType, AIProvider } from './src/types';
+import { db } from './server/db.js';
+import { DocumentType, AIProvider } from './src/types.js';
 
 const app = express();
 const PORT = 3000;
@@ -37,8 +37,8 @@ app.use('/api', async (_req, res, next) => {
 });
 
 // Initialise Google Gemini client on server (using a lazy getter for robustness and hot reloading)
-function getGeminiClient(): GoogleGenAI | null {
-  const apiKey = process.env.GEMINI_API_KEY;
+function getGeminiClient(overrideKey?: string): GoogleGenAI | null {
+  const apiKey = overrideKey || process.env.GEMINI_API_KEY;
   if (!apiKey) return null;
   return new GoogleGenAI({
     apiKey,
@@ -472,18 +472,15 @@ app.post('/api/providers/:id/test', async (req, res) => {
 
   // Determine key to use
   let keyToUse = apiKey !== undefined ? apiKey : provider.apiKey;
-  if (id === 'gemini') {
-    keyToUse = geminiApiKey;
-  }
 
-  if (id !== 'gemini' && !keyToUse) {
+  if (!keyToUse) {
     return res.status(400).json({ error: 'Clave API no configurada para este proveedor.' });
   }
 
   // Build a test provider clone with temporary key override
   const testProvider = {
     ...provider,
-    hasKey: id === 'gemini' ? true : !!keyToUse,
+    hasKey: !!keyToUse,
     apiKey: keyToUse
   };
 
@@ -780,10 +777,18 @@ async function requestProviderAPI(
         };
       }
 
-      // Generic/custom API (like NVIDIA or any other OpenAI-compatible API with custom apiUrl)
+      // Generic/custom API (like NVIDIA NIM or any other OpenAI-compatible API with custom apiUrl)
       const isCustomOrGeneric = !['groq', 'openrouter', 'openai', 'deepseek', 'cerebras', 'mistral', 'claude'].includes(provider.id);
       if (isCustomOrGeneric) {
-        const endpoint = provider.apiUrl || 'https://api.openai.com/v1/chat/completions';
+        let endpoint = provider.apiUrl || (provider.id === 'nvidia' ? 'https://integrate.api.nvidia.com/v1/chat/completions' : 'https://api.openai.com/v1/chat/completions');
+        
+        // Auto-fix endpoints if user provided base URL ending in /v1 or /v1/
+        if (endpoint.endsWith('/v1') || endpoint.endsWith('/v1/')) {
+          endpoint = endpoint.replace(/\/+$/, '') + '/chat/completions';
+        }
+
+        const modelName = provider.modelName || (provider.id === 'nvidia' ? 'meta/llama-3.1-70b-instruct' : 'gpt-4o-mini');
+
         const response = await fetchWithTimeout(endpoint, {
           method: 'POST',
           headers: {
@@ -791,17 +796,21 @@ async function requestProviderAPI(
             'Authorization': `Bearer ${apiKey}`,
           },
           body: JSON.stringify({
-            model: provider.modelName,
+            model: modelName,
             messages: [
               { role: 'system', content: systemInstruction },
               { role: 'user', content: userPrompt }
             ]
           }),
         }, 15000);
-        if (!response.ok) throw new Error(`${provider.name} HTTP ${response.status}`);
+
+        if (!response.ok) {
+          const errBody = await response.text().catch(() => '');
+          throw new Error(`${provider.name} HTTP ${response.status}: ${errBody.slice(0, 150)}`);
+        }
         const data = await response.json();
         return {
-          text: data.choices[0].message.content,
+          text: data.choices[0]?.message?.content || '',
           tokens: data.usage?.total_tokens || 350
         };
       }
@@ -810,9 +819,8 @@ async function requestProviderAPI(
     }
   }
 
-  // FALLBACK TO THE INJECTED GOOGLE GEMINI KEY FOR REAL processing while maintaining transparent log
-  // This executes if they don't have key but is enabled, simulating the real output using Gemini!
-  const ai = getGeminiClient();
+  // Use the Gemini provider's own API key (configured in the app) to process the request.
+  const ai = getGeminiClient(apiKey);
   if (ai) {
     if (isTest) {
       // If it is a basic test, don't enforce document JSON schema
@@ -903,9 +911,9 @@ app.post('/api/ai/ocr', async (req, res) => {
     return res.status(400).json({ error: 'Contenido del documento vacío.' });
   }
 
-  const ai = getGeminiClient();
-  if (!ai) {
-    return res.status(500).json({ error: 'El servicio de IA no está disponible. Verifique GEMINI_API_KEY.' });
+  const hasUsableProvider = db.getProviders().some(p => p.enabled && (p.apiKey || (p.id === 'gemini' && process.env.GEMINI_API_KEY)));
+  if (!hasUsableProvider) {
+    return res.status(500).json({ error: 'No hay ningún proveedor de IA configurado con una API key. Configúrelo en Configuraciones -> Proveedores de IA.' });
   }
 
   const startTime = Date.now();
@@ -971,7 +979,7 @@ Debe contener obligatoriamente estos campos:
       const userPrompt = `DOCUMENTO ORIGINAL DE REFERENCIA:\n${optimizedText}\n\nAnaliza de manera sumamente precisa y técnica, prestando especial atención a las Conclusiones y Recomendaciones de origen y delimitando correctamente el área responsable. Extrae los metadatos en un formato JSON válido.`;
 
       // Simular clave si es necesario
-      const key = provider.id === 'gemini' ? geminiApiKey : provider.apiKey;
+      const key = provider.apiKey;
       const response = await requestProviderAPI(
         provider,
         systemInstruction,
@@ -1049,9 +1057,9 @@ app.post('/api/ai/draft', async (req, res) => {
     return res.status(400).json({ error: 'El tipo de documento a redactar es obligatorio.' });
   }
 
-  const ai = getGeminiClient();
-  if (!ai) {
-    return res.status(500).json({ error: 'Servicio de IA no configurado.' });
+  const hasUsableProvider = db.getProviders().some(p => p.enabled && (p.apiKey || (p.id === 'gemini' && process.env.GEMINI_API_KEY)));
+  if (!hasUsableProvider) {
+    return res.status(500).json({ error: 'No hay ningún proveedor de IA configurado con una API key. Configúrelo en Configuraciones -> Proveedores de IA.' });
   }
 
   const startTime = Date.now();
@@ -1145,7 +1153,7 @@ ${optimizedOriginalText ? `${optimizedOriginalText}` : 'No se ha adjuntado texto
 
 Por favor, lee detalladamente toda la información anterior (especialmente el documento de referencia adjunto), extrae los detalles, nombres de áreas, derivaciones sugeridas, y redacta de manera pulcra, formal y completa el cuerpo de desarrollo en el campo "texto_redactado" del JSON de respuesta.`;
 
-      const key = provider.id === 'gemini' ? geminiApiKey : provider.apiKey;
+      const key = provider.apiKey;
       const response = await requestProviderAPI(
         provider,
         systemInstruction,
@@ -1361,7 +1369,7 @@ app.post('/api/ai/detect-errors', async (req, res) => {
     return res.status(400).json({ error: 'El texto del borrador es obligatorio para analizar.' });
   }
 
-  const ai = getGeminiClient();
+  const ai = getGeminiClient(db.getProviders().find(p => p.id === 'gemini')?.apiKey);
   // If Gemini client is ready, perform dynamic AI auditing
   if (ai) {
     try {

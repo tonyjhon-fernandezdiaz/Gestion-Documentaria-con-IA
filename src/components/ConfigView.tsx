@@ -65,7 +65,7 @@ const DEFAULT_RECIPIENTS: Recipient[] = [
 
 export default function ConfigView({ providers, currentUser, onUpdateProviders, logs = [], onThemeChanged, currentTheme }: ConfigViewProps) {
   // Tabs management
-  const [activeTab, setActiveTab] = useState<'area' | 'destinatarios' | 'ia' | 'usuarios' | 'logs' | 'diseno'>('area');
+  const [activeTab, setActiveTab] = useState<'area' | 'destinatarios' | 'ia' | 'usuarios' | 'logs'>('area');
 
   // Custom Alert / Confirm Modal State
   const [customModal, setCustomModal] = useState<{
@@ -408,10 +408,6 @@ export default function ConfigView({ providers, currentUser, onUpdateProviders, 
   const toggleEnabled = (id: string) => {
     const updated = localProviders.map(p => {
       if (p.id === id) {
-        if (id === 'gemini' && p.enabled) {
-          showAlert('Acción Restringida', 'Google Gemini es el fallback garantizado del sistema y no puede desactivarse.', 'warning');
-          return p;
-        }
         return { ...p, enabled: !p.enabled };
       }
       return p;
@@ -462,7 +458,7 @@ export default function ConfigView({ providers, currentUser, onUpdateProviders, 
         const customKey = editKeys[p.id];
         return {
           ...p,
-          hasKey: p.id === 'gemini' ? true : (customKey ? true : p.hasKey),
+          hasKey: customKey ? true : p.hasKey,
           apiKey: customKey || undefined
         };
       });
@@ -752,7 +748,7 @@ export default function ConfigView({ providers, currentUser, onUpdateProviders, 
     setTestingAll(true);
     // Filter and run tests in parallel for providers that are configured or are Google Gemini fallback
     const promises = localProviders.map(prov => {
-      const isConfigured = prov.id === 'gemini' || prov.hasKey || !!editKeys[prov.id];
+      const isConfigured = prov.hasKey || !!editKeys[prov.id];
       if (isConfigured) {
         return testSingleProvider(prov.id);
       }
@@ -844,18 +840,6 @@ export default function ConfigView({ providers, currentUser, onUpdateProviders, 
             >
               <History size={14} />
               <span>Bitácora del Sistema</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab('diseno')}
-              className={`flex items-center gap-2 px-4 py-2.5 text-xs font-semibold border-b-2 transition-all ${
-                activeTab === 'diseno'
-                  ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400 bg-indigo-50/20 dark:bg-slate-900/40 rounded-t-lg'
-                  : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
-              }`}
-            >
-              <Sparkles size={14} className="text-yellow-500 animate-pulse" />
-              <span>Estilo Visual 3D y Plantillas</span>
             </button>
           </>
         )}
@@ -1294,6 +1278,32 @@ export default function ConfigView({ providers, currentUser, onUpdateProviders, 
                 </button>
               ) : (
                 <form onSubmit={handleAddCustomProvider} className="space-y-3 pt-2 border-t border-slate-100 dark:border-slate-800 animate-fade-in">
+                  <div className="flex flex-wrap gap-1.5 pb-1">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setNewProvId('nvidia');
+                        setNewProvName('NVIDIA NIM');
+                        setNewProvModelName('meta/llama-3.1-70b-instruct');
+                        setNewProvApiUrl('https://integrate.api.nvidia.com/v1/chat/completions');
+                      }}
+                      className="px-2 py-1 text-[10px] font-semibold rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20 transition-all"
+                    >
+                      ⚡ Llenar NVIDIA NIM
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setNewProvId('groq');
+                        setNewProvName('Groq');
+                        setNewProvModelName('llama-3.3-70b-versatile');
+                        setNewProvApiUrl('https://api.groq.com/openai/v1/chat/completions');
+                      }}
+                      className="px-2 py-1 text-[10px] font-semibold rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 hover:bg-amber-500/20 transition-all"
+                    >
+                      ⚡ Llenar Groq
+                    </button>
+                  </div>
                   <div>
                     <label className="text-[10px] font-bold uppercase text-slate-400">ID Único (ej: nvidia)</label>
                     <input 
@@ -1317,23 +1327,23 @@ export default function ConfigView({ providers, currentUser, onUpdateProviders, 
                     />
                   </div>
                   <div>
-                    <label className="text-[10px] font-bold uppercase text-slate-400">Nombre del Modelo (ej: meta/llama-3.1-405b)</label>
+                    <label className="text-[10px] font-bold uppercase text-slate-400">Nombre del Modelo (ej: meta/llama-3.1-70b-instruct)</label>
                     <input 
                       type="text"
                       required
                       value={newProvModelName}
                       onChange={(e) => setNewProvModelName(e.target.value)}
-                      placeholder="meta/llama-3.1-405b"
+                      placeholder="meta/llama-3.1-70b-instruct"
                       className="w-full px-2.5 py-1.5 rounded bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500 font-mono"
                     />
                   </div>
                   <div>
-                    <label className="text-[10px] font-bold uppercase text-slate-400">API URL / Endpoint (Opcional)</label>
+                    <label className="text-[10px] font-bold uppercase text-slate-400">API URL / Endpoint</label>
                     <input 
                       type="text"
                       value={newProvApiUrl}
                       onChange={(e) => setNewProvApiUrl(e.target.value)}
-                      placeholder="https://integrate.api.nvidia.com/v1"
+                      placeholder="https://integrate.api.nvidia.com/v1/chat/completions"
                       className="w-full px-2.5 py-1.5 rounded bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500 font-mono"
                     />
                   </div>
@@ -1465,7 +1475,7 @@ export default function ConfigView({ providers, currentUser, onUpdateProviders, 
                             </div>
                           )}
                           
-                          {prov.id !== 'gemini' ? (
+                          {true ? (
                             <div className="flex flex-wrap items-center gap-2 mt-2">
                               <input 
                                 type={isKeyVisible ? 'text' : 'password'}
@@ -1887,252 +1897,6 @@ export default function ConfigView({ providers, currentUser, onUpdateProviders, 
       {activeTab === 'logs' && currentUser.role === 'Administrador' && (
         <div className="animate-fade-in">
           <LogsView logs={logs} />
-        </div>
-      )}
-
-      {/* Tab 5: Estilo Visual 3D y Plantillas (Admin Only) */}
-      {activeTab === 'diseno' && currentUser.role === 'Administrador' && (
-        <div className="space-y-6 animate-fade-in">
-          <div className="bg-gradient-to-r from-indigo-500/10 via-purple-500/5 to-transparent border border-indigo-500/10 p-6 rounded-2xl">
-            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-              <div className="space-y-1">
-                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/10 tracking-widest uppercase">
-                  ⭐ PANEL DE GESTIÓN DE UIX GLOBAL
-                </div>
-                <h2 className="text-lg font-extrabold text-slate-900 dark:text-white">
-                  Personalización Visual del Ecosistema
-                </h2>
-                <p className="text-xs text-slate-500 dark:text-slate-400 max-w-2xl leading-relaxed">
-                  Cambie el estilo estético del sistema completo de manera global. Al elegir una plantilla, el tipo de letra, el fondo en movimiento y la mascota 3D interactiva se actualizarán al instante para <strong>todos los usuarios activos</strong> de la plataforma.
-                </p>
-              </div>
-              <div className="flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800/80 rounded-xl shadow-sm text-[11px] text-slate-500 dark:text-slate-400 font-medium">
-                <span>Tema Activo: </span>
-                <span className="font-extrabold uppercase text-indigo-600 dark:text-indigo-400">
-                  {selectedTheme}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[
-              {
-                id: 'predeterminado',
-                name: 'Pizarra Profesional',
-                desc: 'El diseño sobrio, formal e institucional original con tonos azulados y pizarra. Ideal para entornos clásicos de alta productividad.',
-                font: 'Plus Jakarta Sans / Inter',
-                colors: ['bg-slate-900', 'bg-slate-600', 'bg-indigo-600'],
-                motion: 'Efectos de color estáticos y transiciones limpias.',
-                mascot: 'Ninguno (Enfoque Corporativo)',
-                avatarSvg: (
-                  <svg viewBox="0 0 100 100" className="w-16 h-16 text-slate-400 dark:text-slate-500 shrink-0">
-                    <circle cx="50" cy="50" r="40" className="fill-slate-100 dark:fill-slate-800 stroke-slate-200 dark:stroke-slate-700 stroke-2" />
-                    <path d="M35 45h30M35 55h20M35 65h30" className="stroke-slate-400 dark:stroke-slate-500/50 stroke-3 stroke-linecap-round" />
-                  </svg>
-                )
-              },
-              {
-                id: 'nubes',
-                name: 'Cielo Soñador (Nubes 3D)',
-                desc: 'Fondo suave cielo-azul con un flujo continuo de nubes animadas que se desplazan lentamente. Aporta un espacio inspirador y amigable.',
-                font: 'Outfit (Redondeada y moderna)',
-                colors: ['bg-sky-400', 'bg-blue-300', 'bg-white'],
-                motion: 'Nubes animadas flotando en capas en el fondo.',
-                mascot: 'Nubis (La Inteligencia en las Nubes)',
-                avatarSvg: (
-                  <svg viewBox="0 0 100 100" className="w-16 h-16 shrink-0 animate-float-mascot">
-                    <defs>
-                      <linearGradient id="cloudGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                        <stop offset="0%" stopColor="#ffffff" />
-                        <stop offset="100%" stopColor="#bae6fd" />
-                      </linearGradient>
-                    </defs>
-                    <path d="M25 60 a15 15 0 0 1 10 -25 a20 20 0 0 1 30 -5 a15 15 0 0 1 15 15 a15 15 0 0 1 -10 15 z" fill="url(#cloudGrad)" className="stroke-sky-200 stroke-2" />
-                    <circle cx="43" cy="46" r="3" fill="#0369a1" />
-                    <circle cx="57" cy="46" r="3" fill="#0369a1" />
-                    <path d="M47 53 q3 3 6 0" fill="none" stroke="#0369a1" strokeWidth="2" strokeLinecap="round" />
-                    <circle cx="38" cy="51" r="2.5" fill="#f43f5e" opacity="0.4" />
-                    <circle cx="62" cy="51" r="2.5" fill="#f43f5e" opacity="0.4" />
-                  </svg>
-                )
-              },
-              {
-                id: 'neon',
-                name: 'Cyberpunk UGEL (Neón)',
-                desc: 'Fondo oscuro de alta tecnología con rejilla interactiva y bordes de luz neón fluorescente. Brinda un aspecto tecnológico futurista.',
-                font: 'JetBrains Mono (Espaciado de Programador)',
-                colors: ['bg-slate-950', 'bg-cyan-400', 'bg-fuchsia-500'],
-                motion: 'Fondo de cuadrícula ciber y línea láser de escaneo.',
-                mascot: 'Cyber-V2 (Dron de Trámite Digital)',
-                avatarSvg: (
-                  <svg viewBox="0 0 100 100" className="w-16 h-16 shrink-0 animate-float-mascot">
-                    <defs>
-                      <filter id="neonGlow" x="-20%" y="-20%" width="140%" height="140%">
-                        <feGaussianBlur stdDeviation="3" result="blur" />
-                        <feComposite in="SourceGraphic" in2="blur" operator="over" />
-                      </filter>
-                    </defs>
-                    <rect x="25" y="30" width="50" height="40" rx="10" fill="#1e1b4b" stroke="#06b6d4" strokeWidth="2" filter="url(#neonGlow)" />
-                    <rect x="42" y="70" width="16" height="8" fill="#475569" />
-                    <rect x="32" y="38" width="36" height="20" rx="4" fill="#000000" stroke="#a21caf" strokeWidth="1.5" />
-                    <circle cx="43" cy="48" r="2.5" fill="#06b6d4" className="animate-pulse" />
-                    <circle cx="57" cy="48" r="2.5" fill="#06b6d4" className="animate-pulse" />
-                    <line x1="46" y1="53" x2="54" y2="53" stroke="#06b6d4" strokeWidth="1.5" strokeLinecap="round" />
-                    <line x1="50" y1="30" x2="50" y2="20" stroke="#06b6d4" strokeWidth="2" filter="url(#neonGlow)" />
-                    <circle cx="50" cy="18" r="4" fill="#d946ef" filter="url(#neonGlow)" />
-                  </svg>
-                )
-              },
-              {
-                id: 'bosque',
-                name: 'Bosque Andino (Natural)',
-                desc: 'Diseño inspirado en la naturaleza de los andes. Combina verdes musgo, terracota y madera suave con partículas de luciérnagas.',
-                font: 'Playfair Display (Tipografía de Serifa)',
-                colors: ['bg-emerald-800', 'bg-amber-600', 'bg-orange-200'],
-                motion: 'Luciérnagas mágicas y hojas flotantes.',
-                mascot: 'Paco la Llama (Saludadora)',
-                avatarSvg: (
-                  <svg viewBox="0 0 100 100" className="w-16 h-16 shrink-0 animate-float-mascot">
-                    <path d="M40 25 l3 -10 l5 10 z" fill="#f8fafc" stroke="#e2e8f0" strokeWidth="1.5" />
-                    <path d="M60 25 l-3 -10 l-5 10 z" fill="#f8fafc" stroke="#e2e8f0" strokeWidth="1.5" />
-                    <rect x="42" y="24" width="16" height="40" rx="8" fill="#f8fafc" stroke="#e2e8f0" strokeWidth="1" />
-                    <ellipse cx="50" cy="35" rx="8" ry="6" fill="#f1f5f9" />
-                    <circle cx="50" cy="33" r="1.5" fill="#475569" />
-                    <path d="M48 37 q2 2 4 0" fill="none" stroke="#475569" strokeWidth="1.5" strokeLinecap="round" />
-                    <circle cx="45" cy="30" r="2.5" fill="#1e293b" />
-                    <circle cx="55" cy="30" r="2.5" fill="#1e293b" />
-                    <path d="M42 50 h16 v10 h-16 z" fill="#ea580c" />
-                    <line x1="45" y1="50" x2="45" y2="60" stroke="#facc15" strokeWidth="2" />
-                    <line x1="50" y1="50" x2="50" y2="60" stroke="#3b82f6" strokeWidth="2" />
-                    <line x1="55" y1="50" x2="55" y2="60" stroke="#10b981" strokeWidth="2" />
-                    <circle cx="41" cy="33" r="2" fill="#f43f5e" opacity="0.5" />
-                    <circle cx="59" cy="33" r="2" fill="#f43f5e" opacity="0.5" />
-                  </svg>
-                )
-              },
-              {
-                id: 'galaxy',
-                name: 'Cosmos del Saber (Estelar)',
-                desc: 'Un viaje a través del universo educativo con fondos translúcidos glasmórficos, nebulosas violetas oscuras y cometas intermitentes.',
-                font: 'Space Grotesk (Estilo Geométrico)',
-                colors: ['bg-violet-950', 'bg-indigo-900', 'bg-purple-500'],
-                motion: 'Constelaciones y estrellas titilantes cruzando.',
-                mascot: 'AstroBoy (Cosmonauta Escolar)',
-                avatarSvg: (
-                  <svg viewBox="0 0 100 100" className="w-16 h-16 shrink-0 animate-float-mascot">
-                    <circle cx="50" cy="46" r="26" fill="#e2e8f0" stroke="#6366f1" strokeWidth="2" />
-                    <ellipse cx="50" cy="44" rx="19" ry="14" fill="#1e1b4b" stroke="#818cf8" strokeWidth="1.5" />
-                    <path d="M38 48 q12 -6 24 0" fill="none" stroke="#818cf8" strokeWidth="2" strokeLinecap="round" opacity="0.6" />
-                    <circle cx="44" cy="44" r="2" fill="#38bdf8" />
-                    <circle cx="56" cy="44" r="2" fill="#38bdf8" />
-                    <path d="M48 50 q2 2 4 0" fill="none" stroke="#38bdf8" strokeWidth="1.5" />
-                    <rect x="36" y="72" width="28" height="12" rx="4" fill="#cbd5e1" stroke="#6366f1" strokeWidth="1.5" />
-                    <rect x="44" y="75" width="12" height="6" fill="#ef4444" rx="1" />
-                    <circle cx="76" cy="24" r="2" fill="#fbbf24" className="animate-pulse" />
-                    <path d="M72 24 h8 M76 20 v8" stroke="#fbbf24" strokeWidth="1" />
-                  </svg>
-                )
-              }
-            ].map((theme) => {
-              const isSelected = selectedTheme === theme.id;
-              return (
-                <div 
-                  key={theme.id}
-                  className={`border rounded-2xl p-5 flex flex-col justify-between transition-all duration-300 relative overflow-hidden bg-white dark:bg-slate-900 shadow-sm ${
-                    isSelected 
-                      ? 'border-indigo-500 ring-2 ring-indigo-500/20 shadow-md transform -translate-y-1' 
-                      : 'border-slate-200/80 dark:border-slate-800/80 hover:border-slate-300 dark:hover:border-slate-700'
-                  }`}
-                >
-                  {/* Active ribbon overlay */}
-                  {isSelected && (
-                    <div className="absolute top-0 right-0 bg-indigo-600 text-white text-[9px] font-extrabold uppercase px-3.5 py-1 rounded-bl-xl shadow-sm tracking-widest flex items-center gap-1">
-                      <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-ping"></span>
-                      <span>ACTIVO</span>
-                    </div>
-                  )}
-
-                  <div className="space-y-4">
-                    {/* Visual Preview Area */}
-                    <div className="h-28 rounded-xl bg-slate-50 dark:bg-slate-950/40 border border-slate-100 dark:border-slate-800/60 flex items-center justify-center p-4 gap-4 relative overflow-hidden">
-                      {theme.id === 'nubes' && (
-                        <div className="absolute inset-0 opacity-20 pointer-events-none">
-                          <div className="absolute top-2 left-2 w-8 h-4 bg-sky-200 rounded-full animate-clouds-slow"></div>
-                          <div className="absolute bottom-3 right-4 w-12 h-6 bg-sky-200 rounded-full animate-clouds-reverse"></div>
-                        </div>
-                      )}
-                      {theme.id === 'neon' && (
-                        <div className="absolute inset-0 bg-cyber-grid opacity-25 pointer-events-none"></div>
-                      )}
-                      {theme.id === 'bosque' && (
-                        <div className="absolute inset-0 opacity-30 pointer-events-none">
-                          <span className="absolute top-4 left-6 w-1 h-1 bg-amber-400 rounded-full animate-firefly-1"></span>
-                          <span className="absolute bottom-6 right-8 w-1 h-1 bg-amber-400 rounded-full animate-firefly-2"></span>
-                        </div>
-                      )}
-                      {theme.id === 'galaxy' && (
-                        <div className="absolute inset-0 opacity-40 pointer-events-none bg-radial-at-t from-purple-900/10 to-transparent">
-                          <span className="absolute top-6 right-8 w-1 h-1 bg-white rounded-full animate-twinkle"></span>
-                          <span className="absolute bottom-4 left-10 w-1 h-1 bg-white rounded-full animate-twinkle"></span>
-                        </div>
-                      )}
-                      
-                      {theme.avatarSvg}
-
-                      <div className="space-y-1 min-w-0 flex-1">
-                        <div className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider font-mono">
-                          Mascota 3D de Ayuda
-                        </div>
-                        <div className="text-xs font-extrabold text-slate-800 dark:text-slate-200 truncate font-sans">
-                          {theme.mascot}
-                        </div>
-                        <div className="flex items-center gap-1.5 pt-1">
-                          {theme.colors.map((col, idx) => (
-                            <span key={idx} className={`w-3.5 h-3.5 rounded-full border border-white dark:border-slate-800 ${col} shadow-sm`}></span>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <h3 className="font-bold text-slate-900 dark:text-white text-sm font-sans flex items-center gap-1.5">
-                        {theme.name}
-                      </h3>
-                      <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed min-h-[50px]">
-                        {theme.desc}
-                      </p>
-                    </div>
-
-                    <div className="border-t border-slate-100 dark:border-slate-800/60 pt-3 space-y-1.5 text-[10px] font-mono text-slate-600 dark:text-slate-400">
-                      <div className="flex justify-between">
-                        <span className="font-bold">TIPOGRAFÍA:</span>
-                        <span className="text-slate-900 dark:text-slate-100">{theme.font}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="font-bold">MOVIMIENTO:</span>
-                        <span className="text-slate-900 dark:text-slate-100 text-right">{theme.motion}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="pt-4">
-                    <button
-                      onClick={() => handleSaveTheme(theme.id)}
-                      disabled={isSelected || savingTheme}
-                      className={`w-full py-2 rounded-xl text-xs font-bold transition-all ${
-                        isSelected 
-                          ? 'bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 cursor-not-allowed'
-                          : 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm hover:shadow active:scale-95'
-                      }`}
-                    >
-                      {savingTheme && selectedTheme === theme.id ? 'Aplicando...' : isSelected ? 'Plantilla Activa' : 'Activar Plantilla'}
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
         </div>
       )}
 

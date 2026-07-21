@@ -1,5 +1,6 @@
-import pg from 'pg';
-import { User, Document, AIProvider, PromptTemplate, SystemLog, DocumentType, LearningCorrection, AgendaEvent } from '../src/types';
+import pkg from 'pg';
+const { Pool } = pkg;
+import { User, Document, AIProvider, PromptTemplate, SystemLog, DocumentType, LearningCorrection, AgendaEvent } from '../src/types.js';
 
 // -----------------------------------------------------------------
 // Postgres (Neon) backed store with an in-memory cache.
@@ -48,7 +49,8 @@ const INITIAL_DB: DatabaseSchema = {
     { id: 'deepseek', name: 'DeepSeek', priority: 5, enabled: true, hasKey: false, modelName: 'deepseek-chat', tokensConsumed: 0, balance: 8.50 },
     { id: 'mistral', name: 'Mistral', priority: 6, enabled: true, hasKey: false, modelName: 'mistral-large-latest', tokensConsumed: 0, balance: 15.00 },
     { id: 'openai', name: 'OpenAI', priority: 7, enabled: true, hasKey: false, modelName: 'gpt-4o-mini', tokensConsumed: 0, balance: 4.90 },
-    { id: 'claude', name: 'Claude', priority: 8, enabled: true, hasKey: false, modelName: 'claude-3-5-sonnet-latest', tokensConsumed: 0, balance: 12.30 }
+    { id: 'claude', name: 'Claude', priority: 8, enabled: true, hasKey: false, modelName: 'claude-3-5-sonnet-latest', tokensConsumed: 0, balance: 12.30 },
+    { id: 'nvidia', name: 'NVIDIA NIM', priority: 9, enabled: true, hasKey: false, modelName: 'meta/llama-3.1-70b-instruct', tokensConsumed: 0, balance: 10.00 }
   ],
   prompts: Object.keys(DEFAULT_PROMPTS).map((type, index) => ({
     id: `p-${index + 1}`,
@@ -69,7 +71,7 @@ const TABLES = ['users', 'documents', 'providers', 'prompts', 'logs', 'agenda', 
 const RELOAD_THROTTLE_MS = 3000;
 
 export class NeonDatabase {
-  private pool: pg.Pool | null = null;
+  private pool: InstanceType<typeof Pool> | null = null;
   private data: DatabaseSchema = {
     users: [], documents: [], providers: [], prompts: [], logs: [], learningCorrections: [], agenda: []
   };
@@ -87,11 +89,11 @@ export class NeonDatabase {
     return this.initPromise;
   }
 
-  private getPool(): pg.Pool {
+  private getPool(): InstanceType<typeof Pool> {
     if (!this.pool) {
       const url = process.env.DATABASE_URL;
       if (!url) throw new Error('La variable de entorno DATABASE_URL no está configurada en Vercel.');
-      this.pool = new pg.Pool({
+      this.pool = new Pool({
         connectionString: url,
         ssl: { rejectUnauthorized: false },
         connectionTimeoutMillis: 10000,
@@ -119,6 +121,14 @@ export class NeonDatabase {
     const existing = await this.q('SELECT COUNT(*)::int AS n FROM users');
     if ((existing[0]?.n ?? 0) === 0) {
       await this.seed();
+    } else {
+      // Auto-heal missing default providers (e.g. groq, nvidia) so they are never lost
+      for (const p of INITIAL_DB.providers) {
+        const check = await this.q('SELECT id FROM providers WHERE id = $1', [p.id]);
+        if (check.length === 0) {
+          await this.upsert('providers', p.id, p);
+        }
+      }
     }
     await this.load();
   }
