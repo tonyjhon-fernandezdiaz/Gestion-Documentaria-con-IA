@@ -930,73 +930,137 @@ export default function UploadView({ currentUser, onDocumentAdded }: UploadViewP
           .join('')
       : '<p style="margin-top: 0; margin-bottom: 11pt; line-height: 1.15; font-family: Arial, sans-serif; font-size: 11pt; color: #000000;">◇ la IA redactará el cuerpo aquí</p>';
 
-    const body = `
-      <div class="Section1">
-        <!-- Native Word Header element -->
-        <div style="mso-element:header" id="h1">
-          <div class="MsoHeader">
-            ${headerBlock}
+    const isCarta = activeDocTypeLabel.toLowerCase() === 'carta';
+
+    let body = '';
+
+    if (isCarta) {
+      // Precise Carta 2026 Layout matching the analyzed .docx structure:
+      // Date Right Aligned -> Code Left Aligned -> SEÑOR Block -> ASUNTO -> REF (if exists) -> Dotted line -> Justified body -> Centered Atentamente -> Left aligned pie
+      body = `
+        <div class="Section1" style="font-family: Arial, sans-serif;">
+          <!-- Native Word Header element -->
+          <div style="mso-element:header" id="h1">
+            <div class="MsoHeader">
+              ${headerBlock}
+            </div>
           </div>
-        </div>
 
-        <h2 style="text-align: center; text-decoration: underline; margin-bottom: 25px; font-size: 13pt; font-family: Arial, sans-serif; font-weight: bold; text-transform: uppercase;">
-          ${activeDocTypeLabel.toUpperCase()} ${getFullDocCode()}
-        </h2>
-        <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 11pt; font-family: Arial, sans-serif; line-height: 1.15;">
-          <tr>
-            <td style="width: 140px; font-weight: bold; padding: 6px 0; vertical-align: top;">AL</td>
-            <td style="width: 15px; font-weight: bold; padding: 6px 0; vertical-align: top;">:</td>
-            <td style="padding: 6px 0; vertical-align: top;">
-              ${recipients.map((dest, idx) => `
-                ${idx > 0 ? '<div style="margin-top: 10px;"></div>' : ''}
-                <strong style="text-transform: uppercase; font-size: 11pt;">${dest.nombre || '-----'}</strong>
-                ${dest.cargo ? `<br/><span style="font-size: 10pt; color: #334155; text-transform: uppercase; font-weight: bold;">${dest.cargo}</span>` : ''}
-              `).join('')}
-            </td>
-          </tr>
-          <tr>
-            <td style="font-weight: bold; padding: 6px 0; vertical-align: top;">DE</td>
-            <td style="font-weight: bold; padding: 6px 0; vertical-align: top;">:</td>
-            <td style="padding: 6px 0; vertical-align: top;">
-              <strong style="text-transform: uppercase; font-size: 11pt;">${latestUserName}</strong>
-              <br/><span style="font-size: 10pt; color: #334155; text-transform: uppercase; font-weight: bold;">${latestUserRole}</span>
-            </td>
-          </tr>
-          <tr>
-            <td style="font-weight: bold; padding: 6px 0; vertical-align: top;">ASUNTO</td>
-            <td style="font-weight: bold; padding: 6px 0; vertical-align: top;">:</td>
-            <td style="padding: 6px 0; vertical-align: top; font-weight: bold; text-transform: uppercase;">${asunto}</td>
-          </tr>
-          <tr>
-            <td style="font-weight: bold; padding: 6px 0; vertical-align: top;">REFERENCIA</td>
-            <td style="font-weight: bold; padding: 6px 0; vertical-align: top;">:</td>
-            <td style="padding: 6px 0; vertical-align: top; color: #1e293b;">${referencia || 'SIN REFERENCIA'}</td>
-          </tr>
-          <tr>
-            <td style="font-weight: bold; padding: 6px 0; vertical-align: top;">LUGAR Y FECHA</td>
-            <td style="font-weight: bold; padding: 6px 0; vertical-align: top;">:</td>
-            <td style="padding: 6px 0; vertical-align: top; color: #1e293b;">Bellavista, ${new Date().toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })}</td>
-          </tr>
-        </table>
-        <hr style="border: 0; border-top: 1px dashed #777777; margin-bottom: 25px;" />
-        <div style="font-size: 11pt; text-align: justify; line-height: 1.15; font-family: Arial, sans-serif; color: #000000; padding-top: 5px;">
-          ${formattedParagraphs}
-        </div>
+          <div style="text-align: right; font-size: 11pt; margin-bottom: 20px; font-family: Arial, sans-serif;">
+            Bellavista, ${new Date().toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })}.
+          </div>
 
-        <!-- Center-aligned "Atentamente" signature area -->
-        <br/><br/>
-        <table style="width: 100%; border-collapse: collapse; margin-top: 40px; font-family: Arial, sans-serif; font-size: 11pt; text-align: center;">
-          <tr>
-            <td style="text-align: center; width: 100%;">
-              <span style="font-weight: bold; display: block; margin-bottom: 60px;">Atentamente,</span>
-            </td>
-          </tr>
-        </table>
-      </div>
-    </body></html>`;
+          <div style="text-align: left; font-weight: bold; font-size: 11pt; margin-bottom: 15px; font-family: Arial, sans-serif;">
+            CARTA N° &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ${docSuffix.trim() ? docSuffix.trim() : '-2026-GRSM- DRE-UGEL-B.'}
+          </div>
+
+          <div style="text-align: left; font-size: 11pt; margin-bottom: 15px; font-family: Arial, sans-serif; line-height: 1.3;">
+            <strong style="text-transform: uppercase;">SEÑOR&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; : &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ${recipients[0]?.nombre || '-----'}</strong>
+            ${recipients[0]?.cargo ? `<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="font-size: 10pt; text-transform: uppercase; font-weight: bold; color: #334155;">${recipients[0].cargo}</span>` : ''}
+            <br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong style="text-transform: uppercase;">BELLAVISTA.-</strong>
+          </div>
+
+          <div style="text-align: left; font-size: 11pt; margin-bottom: 10px; font-family: Arial, sans-serif; line-height: 1.3;">
+            <strong>ASUNTO &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; : &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="text-transform: uppercase;">${asunto || '-----'}</span></strong>
+          </div>
+
+          ${referencia ? `
+          <div style="text-align: left; font-size: 11pt; margin-bottom: 15px; font-family: Arial, sans-serif; line-height: 1.3;">
+            <strong>REF. &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; : &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="text-transform: uppercase;">${referencia}</span></strong>
+          </div>
+          ` : ''}
+
+          <div style="text-align: center; margin-bottom: 20px; font-family: Arial, sans-serif; letter-spacing: -1px; color: #777777;">
+            ------------------------------------------------------------------------------------------------------------------------
+          </div>
+
+          <div style="font-size: 11pt; text-align: justify; line-height: 1.15; font-family: Arial, sans-serif; color: #000000;">
+            ${formattedParagraphs}
+          </div>
+
+          <!-- Center-aligned "Atentamente" signature area -->
+          <br/><br/>
+          <table style="width: 100%; border-collapse: collapse; margin-top: 40px; font-family: Arial, sans-serif; font-size: 11pt; text-align: center;">
+            <tr>
+              <td style="text-align: center; width: 100%;">
+                <span style="font-weight: bold; display: block; margin-bottom: 85px;">Atentamente,</span>
+              </td>
+            </tr>
+          </table>
+        </div>
+      `;
+    } else {
+      body = `
+        <div class="Section1">
+          <!-- Native Word Header element -->
+          <div style="mso-element:header" id="h1">
+            <div class="MsoHeader">
+              ${headerBlock}
+            </div>
+          </div>
+
+          <h2 style="text-align: center; text-decoration: underline; margin-bottom: 25px; font-size: 13pt; font-family: Arial, sans-serif; font-weight: bold; text-transform: uppercase;">
+            ${activeDocTypeLabel.toUpperCase()} ${getFullDocCode()}
+          </h2>
+          <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 11pt; font-family: Arial, sans-serif; line-height: 1.15;">
+            <tr>
+              <td style="width: 140px; font-weight: bold; padding: 6px 0; vertical-align: top;">AL</td>
+              <td style="width: 15px; font-weight: bold; padding: 6px 0; vertical-align: top;">:</td>
+              <td style="padding: 6px 0; vertical-align: top;">
+                ${recipients.map((dest, idx) => `
+                  ${idx > 0 ? '<div style="margin-top: 10px;"></div>' : ''}
+                  <strong style="text-transform: uppercase; font-size: 11pt;">${dest.nombre || '-----'}</strong>
+                  ${dest.cargo ? `<br/><span style="font-size: 10pt; color: #334155; text-transform: uppercase; font-weight: bold;">${dest.cargo}</span>` : ''}
+                `).join('')}
+              </td>
+            </tr>
+            <tr>
+              <td style="font-weight: bold; padding: 6px 0; vertical-align: top;">DE</td>
+              <td style="font-weight: bold; padding: 6px 0; vertical-align: top;">:</td>
+              <td style="padding: 6px 0; vertical-align: top;">
+                <strong style="text-transform: uppercase; font-size: 11pt;">${latestUserName}</strong>
+                <br/><span style="font-size: 10pt; color: #334155; text-transform: uppercase; font-weight: bold;">${latestUserRole}</span>
+              </td>
+            </tr>
+            <tr>
+              <td style="font-weight: bold; padding: 6px 0; vertical-align: top;">ASUNTO</td>
+              <td style="font-weight: bold; padding: 6px 0; vertical-align: top;">:</td>
+              <td style="padding: 6px 0; vertical-align: top; font-weight: bold; text-transform: uppercase;">${asunto}</td>
+            </tr>
+            <tr>
+              <td style="font-weight: bold; padding: 6px 0; vertical-align: top;">REFERENCIA</td>
+              <td style="font-weight: bold; padding: 6px 0; vertical-align: top;">:</td>
+              <td style="padding: 6px 0; vertical-align: top; color: #1e293b;">${referencia || 'SIN REFERENCIA'}</td>
+            </tr>
+            <tr>
+              <td style="font-weight: bold; padding: 6px 0; vertical-align: top;">LUGAR Y FECHA</td>
+              <td style="font-weight: bold; padding: 6px 0; vertical-align: top;">:</td>
+              <td style="padding: 6px 0; vertical-align: top; color: #1e293b;">Bellavista, ${new Date().toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })}</td>
+            </tr>
+          </table>
+          <hr style="border: 0; border-top: 1px dashed #777777; margin-bottom: 25px;" />
+          <div style="font-size: 11pt; text-align: justify; line-height: 1.15; font-family: Arial, sans-serif; color: #000000; padding-top: 5px;">
+            ${formattedParagraphs}
+          </div>
+
+          <!-- Center-aligned "Atentamente" signature area -->
+          <br/><br/>
+          <table style="width: 100%; border-collapse: collapse; margin-top: 40px; font-family: Arial, sans-serif; font-size: 11pt; text-align: center;">
+            <tr>
+              <td style="text-align: center; width: 100%;">
+                <span style="font-weight: bold; display: block; margin-bottom: 60px;">Atentamente,</span>
+              </td>
+            </tr>
+          </table>
+        </div>
+      `;
+    }
+    
+    const bodyEnd = `</body></html>`;
+    const finalBody = body + bodyEnd;
     
     const filename = `${getFullDocCode().replace(/\s+/g, '_')}_Draft.doc`;
-    const blob = new Blob(['﻿' + header + body], { type: 'application/msword' });
+    const blob = new Blob(['\uFEFF' + header + finalBody], { type: 'application/msword' });
     saveDocument(filename, blob, 'application/msword');
   };
 
@@ -1703,84 +1767,123 @@ export default function UploadView({ currentUser, onDocumentAdded }: UploadViewP
                   </div>
                 )}
 
-                {/* Document Main Title centered and underlined (as shown in second image) */}
-                <div className="text-center font-extrabold text-slate-900 dark:text-white uppercase text-xs sm:text-xs tracking-wide underline pt-1 font-sans">
-                  {activeDocTypeLabel.toUpperCase() || 'DOCUMENTO'} {getFullDocCode()}
-                </div>
-
-                {/* Metadata Sheet List (perfectly left-aligned to the margin, matching the red vertical line from Image 2) */}
-                <div className="space-y-1.5 pt-2 text-[10px] sm:text-[11px] font-sans text-slate-900 dark:text-slate-100">
-                  
-                  <div className="flex items-start">
-                    <div className="w-20 sm:w-24 font-extrabold tracking-wide shrink-0 text-slate-950 dark:text-white">AL</div>
-                    <div className="px-1.5 font-extrabold shrink-0 text-slate-950 dark:text-white">:</div>
-                    <div className="flex-1 font-bold text-slate-950 dark:text-white">
-                      {recipients.length > 0 && recipients[0].nombre ? (
-                        <div className="space-y-2">
-                          {recipients.map((rec) => (
-                            <div key={rec.id} className="uppercase">
-                              {rec.nombre}
-                              {rec.cargo && (
-                                <span className="block text-[9px] sm:text-[10px] text-slate-600 dark:text-slate-400 font-extrabold mt-0.5 uppercase">
-                                  {rec.cargo}
-                                </span>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <div className="text-slate-300 dark:text-slate-700 italic">
-                          TONY JHON FERNANDEZ DIAZ
-                          <span className="block text-[9px] sm:text-[10px] text-slate-400 dark:text-slate-600 font-bold mt-0.5 uppercase">
-                            JEFE DEL ÁREA DE GESTIÓN INSTITUCIONAL
-                          </span>
-                        </div>
-                      )}
+                {activeDocTypeLabel.toLowerCase() === 'carta' ? (
+                  /* --- CARTA OFFICIAL PREVIEW LAYOUT --- */
+                  <div className="space-y-3 font-sans text-[11px] text-slate-900 dark:text-slate-100">
+                    <div className="text-right text-slate-500 font-medium">
+                      Bellavista, {new Date().toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })}.
                     </div>
-                  </div>
+                    
+                    <div className="text-left font-bold text-slate-950 dark:text-white uppercase">
+                      CARTA N° &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {docSuffix.trim() ? docSuffix.trim() : '-2026-GRSM- DRE-UGEL-B.'}
+                    </div>
 
-                  <div className="flex items-start">
-                    <div className="w-20 sm:w-24 font-extrabold tracking-wide shrink-0 text-slate-950 dark:text-white">DE</div>
-                    <div className="px-1.5 font-extrabold shrink-0 text-slate-950 dark:text-white">:</div>
-                    <div className="flex-1 font-bold text-slate-950 dark:text-white">
-                      <div className="uppercase">
-                        {remitenteNombre || currentUser.name}
-                        <span className="block text-[9px] sm:text-[10px] text-slate-600 dark:text-slate-400 font-extrabold mt-0.5 uppercase">
-                          {remitenteCargo || currentUser.role}
+                    <div className="text-left leading-normal">
+                      <strong className="uppercase">SEÑOR&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; : &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {recipients[0]?.nombre || '-----'}</strong>
+                      {recipients[0]?.cargo && (
+                        <span className="block text-[10px] font-extrabold text-slate-600 dark:text-slate-400 uppercase mt-0.5 ml-20 sm:ml-24">
+                          {recipients[0].cargo}
                         </span>
+                      )}
+                      <span className="block font-bold mt-0.5 uppercase ml-20 sm:ml-24">BELLAVISTA.-</span>
+                    </div>
+
+                    <div className="text-left">
+                      <strong>ASUNTO &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; : &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span className="uppercase">{asunto || '-----'}</span></strong>
+                    </div>
+
+                    {referencia && (
+                      <div className="text-left">
+                        <strong>REF. &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; : &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span className="uppercase">{referencia}</span></strong>
                       </div>
+                    )}
+
+                    <div className="text-center text-slate-300 dark:text-slate-700 tracking-tighter select-none font-extrabold">
+                      ------------------------------------------------------------------------------------------------------------------------
                     </div>
                   </div>
-
-                  <div className="flex items-start">
-                    <div className="w-20 sm:w-24 font-extrabold tracking-wide shrink-0 text-slate-950 dark:text-white">ASUNTO</div>
-                    <div className="px-1.5 font-extrabold shrink-0 text-slate-950 dark:text-white">:</div>
-                    <div className="flex-1 font-bold text-slate-950 dark:text-white uppercase">
-                      {asunto || <span className="text-slate-300 dark:text-slate-700 italic font-bold">REQUERIMIENTO DE PLAZAS PARA 2025</span>}
+                ) : (
+                  /* --- STANDARD MEMORANDO/INFORME/OFICIO PREVIEW LAYOUT --- */
+                  <>
+                    {/* Document Main Title centered and underlined (as shown in second image) */}
+                    <div className="text-center font-extrabold text-slate-900 dark:text-white uppercase text-xs sm:text-xs tracking-wide underline pt-1 font-sans">
+                      {activeDocTypeLabel.toUpperCase() || 'DOCUMENTO'} {getFullDocCode()}
                     </div>
-                  </div>
 
-                  <div className="flex items-start">
-                    <div className="w-20 sm:w-24 font-extrabold tracking-wide shrink-0 text-slate-950 dark:text-white">REFERENCIA</div>
-                    <div className="px-1.5 font-extrabold shrink-0 text-slate-950 dark:text-white">:</div>
-                    <div className="flex-1 font-semibold text-slate-800 dark:text-slate-200">
-                      {referencia || <span className="text-slate-300 dark:text-slate-700 italic font-semibold font-sans">OFICIO N° 169-2024 DIR-ODEC-J</span>}
+                    {/* Metadata Sheet List (perfectly left-aligned to the margin, matching the red vertical line from Image 2) */}
+                    <div className="space-y-1.5 pt-2 text-[10px] sm:text-[11px] font-sans text-slate-900 dark:text-slate-100">
+                      
+                      <div className="flex items-start">
+                        <div className="w-20 sm:w-24 font-extrabold tracking-wide shrink-0 text-slate-950 dark:text-white">AL</div>
+                        <div className="px-1.5 font-extrabold shrink-0 text-slate-950 dark:text-white">:</div>
+                        <div className="flex-1 font-bold text-slate-950 dark:text-white">
+                          {recipients.length > 0 && recipients[0].nombre ? (
+                            <div className="space-y-2">
+                              {recipients.map((rec) => (
+                                <div key={rec.id} className="uppercase">
+                                  {rec.nombre}
+                                  {rec.cargo && (
+                                    <span className="block text-[9px] sm:text-[10px] text-slate-600 dark:text-slate-400 font-extrabold mt-0.5 uppercase">
+                                      {rec.cargo}
+                                    </span>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="text-slate-300 dark:text-slate-700 italic">
+                              TONY JHON FERNANDEZ DIAZ
+                              <span className="block text-[9px] sm:text-[10px] text-slate-400 dark:text-slate-600 font-bold mt-0.5 uppercase">
+                                JEFE DEL ÁREA DE GESTIÓN INSTITUCIONAL
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="flex items-start">
+                        <div className="w-20 sm:w-24 font-extrabold tracking-wide shrink-0 text-slate-950 dark:text-white">DE</div>
+                        <div className="px-1.5 font-extrabold shrink-0 text-slate-950 dark:text-white">:</div>
+                        <div className="flex-1 font-bold text-slate-950 dark:text-white">
+                          <div className="uppercase">
+                            {remitenteNombre || currentUser.name}
+                            <span className="block text-[9px] sm:text-[10px] text-slate-600 dark:text-slate-400 font-extrabold mt-0.5 uppercase">
+                              {remitenteCargo || currentUser.role}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-start">
+                        <div className="w-20 sm:w-24 font-extrabold tracking-wide shrink-0 text-slate-950 dark:text-white">ASUNTO</div>
+                        <div className="px-1.5 font-extrabold shrink-0 text-slate-950 dark:text-white">:</div>
+                        <div className="flex-1 font-bold text-slate-950 dark:text-white uppercase">
+                          {asunto || <span className="text-slate-300 dark:text-slate-700 italic font-bold">REQUERIMIENTO DE PLAZAS PARA 2025</span>}
+                        </div>
+                      </div>
+
+                      <div className="flex items-start">
+                        <div className="w-20 sm:w-24 font-extrabold tracking-wide shrink-0 text-slate-950 dark:text-white">REFERENCIA</div>
+                        <div className="px-1.5 font-extrabold shrink-0 text-slate-950 dark:text-white">:</div>
+                        <div className="flex-1 font-semibold text-slate-800 dark:text-slate-200">
+                          {referencia || <span className="text-slate-300 dark:text-slate-700 italic font-semibold font-sans">OFICIO N° 169-2024 DIR-ODEC-J</span>}
+                        </div>
+                      </div>
+
+                      <div className="flex items-start">
+                        <div className="w-20 sm:w-24 font-extrabold tracking-wide shrink-0 text-slate-950 dark:text-white">LUGAR Y FECHA</div>
+                        <div className="px-1.5 font-extrabold shrink-0 text-slate-950 dark:text-white">:</div>
+                        <div className="flex-1 font-medium text-slate-800 dark:text-slate-200">
+                          Bellavista, {new Date().toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })}
+                        </div>
+                      </div>
+
                     </div>
-                  </div>
 
-                  <div className="flex items-start">
-                    <div className="w-20 sm:w-24 font-extrabold tracking-wide shrink-0 text-slate-950 dark:text-white">LUGAR Y FECHA</div>
-                    <div className="px-1.5 font-extrabold shrink-0 text-slate-950 dark:text-white">:</div>
-                    <div className="flex-1 font-medium text-slate-800 dark:text-slate-200">
-                      Bellavista, {new Date().toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })}
-                    </div>
-                  </div>
-
-                </div>
-
-                {/* Dotted/Dashed divider as shown in Image 2 */}
-                <div className="border-t border-dashed border-slate-300 dark:border-slate-800 my-2.5 select-none font-sans" />
-
+                    {/* Dotted/Dashed divider as shown in Image 2 */}
+                    <div className="border-t border-dashed border-slate-300 dark:border-slate-800 my-2.5 select-none font-sans" />
+                  </>
+                )}
               </div>
 
               {/* Document Sheet Body Area */}

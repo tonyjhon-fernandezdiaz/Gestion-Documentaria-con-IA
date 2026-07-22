@@ -1400,7 +1400,9 @@ DIRECTIVAS CRÍTICAS DE CONTENIDO Y REDACCIÓN:
 6. DISTINCIÓN CRÍTICA ENTRE INFORME E INFORME TÉCNICO:
    - Si el tipo de documento es "Informe Técnico", estructúralo obligatoria y rigurosamente con secciones numeradas en mayúsculas y negrita: "I. ANTECEDENTES", "II. ANÁLISIS", "III. CONCLUSIONES" y "IV. RECOMENDACIONES", detallando de manera técnica y legal cada punto.
    - Si el tipo de documento es "Informe" (sin el término "Técnico"), redacta un documento "tipo carta" o de comunicación continua, es decir, un cuerpo formal en párrafos fluidos y directos, SIN secciones rígidas, SIN numeraciones de secciones ("I. ANTECEDENTES", "II. ANÁLISIS", etc.) y de manera más integrada y narrativa. El "Informe" común debe fluir como una carta informativa sin separadores rígidos.
-7. EXCLUSIÓN DE CABECERAS EN "texto_redactado": Redacta exclusivamente el CUERPO del documento (los párrafos de desarrollo), empezando directamente con el saludo o párrafo introductorio. NO incluyas cabeceras repetitivas como "MEMORANDO N°...", "A:", "DE:", "ASUNTO:", "FECHA:", ya que la interfaz del sistema las renderiza automáticamente.
+7. EXCLUSIÓN DE CABECERAS Y FIRMAS EN "texto_redactado": Redacta exclusivamente el cuerpo de desarrollo.
+   - Si el tipo es "Carta", empieza directamente en el primer párrafo con el saludo oficial (ejemplo: "Tengo el agrado de dirigirme a usted para expresarle mi cordial y afectuoso saludo en representación de la Unidad de Gestión Educativa Local de Bellavista, y a la vez...") y finaliza el cuerpo en el último párrafo con la despedida institucional exacta ("Hago propicia la oportunidad para expresarle muestras de consideración y estima personal." o similar).
+   - NO agregues cabeceras como "Bellavista, ...", "CARTA N°...", "SEÑOR:", "ASUNTO:", ni firmas finales como "Atentamente,", "PRHB/D-UGEL-B" al principio o final del campo "texto_redactado", ya que estas estructuras son montadas de forma automática y precisa por el visor del sistema.
 8. RESPONDER EN JSON: Debes responder estrictamente en formato JSON plano con la siguiente estructura exacta:
 {
   "expediente": "${metadata.expediente || ''}",
