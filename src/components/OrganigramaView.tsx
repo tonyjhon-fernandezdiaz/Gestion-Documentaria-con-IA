@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Network, Search, Users, Building, UserCheck, HelpCircle, Plus, Layers, 
-  ShieldAlert, FileSpreadsheet, GraduationCap, Scale, HeartHandshake
+  ShieldAlert, FileSpreadsheet, GraduationCap, Scale, HeartHandshake, RefreshCw
 } from 'lucide-react';
 
 interface OrgNode {
@@ -94,19 +94,23 @@ export default function OrganigramaView() {
 
   return (
     <div className="w-full max-w-7xl mx-auto p-4 md:p-6 space-y-6 z-10 relative" id="organigrama_view_container">
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 p-5 rounded-2xl bg-white/70 dark:bg-slate-900/80 border border-slate-200/80 dark:border-slate-800/80 shadow-sm backdrop-blur">
-        <div className="space-y-1">
-          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/10 tracking-widest uppercase">
-            🏛️ Estructura Orgánica UGEL
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 p-5 rounded-2xl bg-white/70 dark:bg-slate-900/80 border border-slate-200/80 dark:border-slate-800/80 shadow-sm backdrop-blur">
+          <div className="space-y-1">
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/10 tracking-widest uppercase">
+              🏛️ Estructura Orgánica UGEL
+            </div>
+            <h2 className="text-xl font-extrabold text-slate-900 dark:text-white uppercase tracking-tight">
+              Organigrama Funcional
+            </h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400 max-w-2xl leading-relaxed">
+              Mapa interactivo con las áreas y oficinas registradas. Seleccione cualquier unidad para ver sus detalles.
+            </p>
           </div>
-          <h2 className="text-xl font-extrabold text-slate-900 dark:text-white uppercase tracking-tight">
-            Organigrama Funcional y Secretarías
-          </h2>
-          <p className="text-xs text-slate-500 dark:text-slate-400 max-w-2xl leading-relaxed">
-            Mapa interactivo con las áreas y oficinas registradas. Seleccione cualquier unidad para ver sus detalles.
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2">
+            <button onClick={() => { fetch('/api/areas').then(r => r.json()).then(setAreas).catch(() => {}); fetch('/api/users').then(r => r.json()).then(data => setUsers(Array.isArray(data) ? data : [])).catch(() => {}); }}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all active:scale-95">
+              <RefreshCw size={13} /> <span>Actualizar</span>
+            </button>
           <div className="px-3.5 py-2 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-center">
             <div className="text-lg font-black text-indigo-600 dark:text-indigo-400">{totalSecretarias}</div>
             <div className="text-[9px] font-bold uppercase text-slate-400">Secretarias Totales</div>
@@ -166,53 +170,48 @@ export default function OrganigramaView() {
                   
                   {officeNodes.map((office) => (
                     <div key={office.id} className="flex flex-col items-center">
-                      {office.id === 'adm' ? (
-                        <>
-                          <div className="hidden sm:block h-8 w-0.5 bg-slate-300 dark:bg-slate-700 -mt-8"></div>
-                          <div className="w-full flex flex-col items-center gap-2 p-2.5 rounded-xl bg-slate-50/50 dark:bg-slate-950/20 border border-slate-200/60 dark:border-slate-800/60">
-                            <button onClick={() => setSelectedNode(office.id)}
-                              className={`w-full p-3 rounded-lg border text-center transition-all duration-300 relative ${selectedNode === office.id ? 'border-indigo-500 bg-indigo-50/50 dark:bg-indigo-950/20 shadow-md' : 'border-slate-200 dark:border-slate-800 bg-white/90 dark:bg-slate-950/80 hover:border-indigo-400'}`}>
-                              <div className="absolute -top-2 left-1/2 -translate-x-1/2 px-1.5 py-0.5 bg-slate-500 text-white text-[7px] font-black uppercase rounded">APOYO</div>
-                              <Layers className="mx-auto text-indigo-500 mb-1" size={15} />
-                              <h5 className="text-[10px] font-bold uppercase text-slate-900 dark:text-white">Administración</h5>
-                              {office.secretarias > 0 ? (
-                                <span className="text-[8px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 font-bold inline-block mt-1 uppercase">👤 {office.secretarias} Secretaria{office.secretarias !== 1 ? 's' : ''}</span>
-                              ) : (
-                                <span className="text-[8px] uppercase text-slate-400 block mt-1">Sin secretaria</span>
-                              )}
-                            </button>
-                            {office.children.filter(c => c.category === 'SubArea').slice(0, 3).map((sub) => (
-                              <React.Fragment key={sub.id}>
-                                <div className="h-3 w-0.5 bg-slate-300 dark:bg-slate-700"></div>
-                                <button onClick={() => setSelectedNode(sub.id)}
-                                  className={`w-full p-2.5 rounded-lg border text-center transition-all duration-300 relative ${selectedNode === sub.id ? 'border-indigo-500 bg-indigo-50/50 dark:bg-indigo-950/20 shadow-md' : 'border-slate-200 dark:border-slate-800 bg-white/90 dark:bg-slate-950/80 hover:border-indigo-400'}`}>
-                                  <div className="absolute -top-2 left-4 px-1.5 py-0.2 bg-rose-500 text-white text-[6px] font-black uppercase rounded">Sub-Área de Adm.</div>
-                                  <Users className="mx-auto text-rose-500 mb-1" size={14} />
-                                  <h6 className="text-[9px] font-bold uppercase text-slate-800 dark:text-slate-100 leading-tight">{sub.name}</h6>
-                                  {sub.secretarias > 0 ? (
-                                    <span className="text-[7.5px] px-1.5 py-0.5 rounded bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-extrabold inline-block mt-1 uppercase">👤👤 {sub.secretarias} Secretarias</span>
-                                  ) : (
-                                    <span className="text-[7.5px] text-slate-400 block mt-1">Sin secretaria</span>
-                                  )}
-                                </button>
-                              </React.Fragment>
-                            ))}
-                          </div>
-                        </>
-                      ) : (
-                        <>
-                          <div className="hidden sm:block h-8 w-0.5 bg-slate-300 dark:bg-slate-700 -mt-8"></div>
+                      <div className="hidden sm:block h-8 w-0.5 bg-slate-300 dark:bg-slate-700 -mt-8"></div>
+                      {office.children.filter(c => c.category === 'SubArea').length > 0 ? (
+                        <div className="w-full flex flex-col items-center gap-2 p-2.5 rounded-xl bg-slate-50/50 dark:bg-slate-950/20 border border-slate-200/60 dark:border-slate-800/60">
                           <button onClick={() => setSelectedNode(office.id)}
-                            className={`w-full p-3 rounded-lg border text-center transition-all duration-300 ${selectedNode === office.id ? 'border-indigo-500 bg-indigo-50/50 dark:bg-indigo-950/20 shadow-md' : 'border-slate-200 dark:border-slate-800 bg-white/90 dark:bg-slate-950/80 hover:border-indigo-400'}`}>
-                            <ShieldAlert className="mx-auto text-slate-400 dark:text-slate-500 mb-1" size={15} />
-                            <h5 className="text-[10px] font-bold uppercase text-slate-800 dark:text-slate-200">Asesoría Jurídica</h5>
+                            className={`w-full p-3 rounded-lg border text-center transition-all duration-300 relative ${selectedNode === office.id ? 'border-indigo-500 bg-indigo-50/50 dark:bg-indigo-950/20 shadow-md' : 'border-slate-200 dark:border-slate-800 bg-white/90 dark:bg-slate-950/80 hover:border-indigo-400'}`}>
+                            <div className="absolute -top-2 left-1/2 -translate-x-1/2 px-1.5 py-0.5 bg-slate-500 text-white text-[7px] font-black uppercase rounded">APOYO</div>
+                            {office.id === 'adm' ? <Layers className="mx-auto text-indigo-500 mb-1" size={15} /> : <ShieldAlert className="mx-auto text-slate-400 dark:text-slate-500 mb-1" size={15} />}
+                            <h5 className="text-[10px] font-bold uppercase text-slate-900 dark:text-white">{office.name}</h5>
                             {office.secretarias > 0 ? (
                               <span className="text-[8px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 font-bold inline-block mt-1 uppercase">👤 {office.secretarias} Secretaria{office.secretarias !== 1 ? 's' : ''}</span>
                             ) : (
-                              <span className="text-[8px] uppercase text-slate-400 block mt-1">Sin secretaria asignada</span>
+                              <span className="text-[8px] uppercase text-slate-400 block mt-1">Sin secretaria</span>
                             )}
                           </button>
-                        </>
+                          {office.children.filter(c => c.category === 'SubArea').map((sub) => (
+                            <React.Fragment key={sub.id}>
+                              <div className="h-3 w-0.5 bg-slate-300 dark:bg-slate-700"></div>
+                              <button onClick={() => setSelectedNode(sub.id)}
+                                className={`w-full p-2.5 rounded-lg border text-center transition-all duration-300 relative ${selectedNode === sub.id ? 'border-indigo-500 bg-indigo-50/50 dark:bg-indigo-950/20 shadow-md' : 'border-slate-200 dark:border-slate-800 bg-white/90 dark:bg-slate-950/80 hover:border-indigo-400'}`}>
+                                <div className="absolute -top-2 left-4 px-1.5 py-0.2 bg-rose-500 text-white text-[6px] font-black uppercase rounded">Sub-Área</div>
+                                <Users className="mx-auto text-rose-500 mb-1" size={14} />
+                                <h6 className="text-[9px] font-bold uppercase text-slate-800 dark:text-slate-100 leading-tight">{sub.name}</h6>
+                                {sub.secretarias > 0 ? (
+                                  <span className="text-[7.5px] px-1.5 py-0.5 rounded bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-extrabold inline-block mt-1 uppercase">👤👤 {sub.secretarias} Secretarias</span>
+                                ) : (
+                                  <span className="text-[7.5px] text-slate-400 block mt-1">Sin secretaria</span>
+                                )}
+                              </button>
+                            </React.Fragment>
+                          ))}
+                        </div>
+                      ) : (
+                        <button onClick={() => setSelectedNode(office.id)}
+                          className={`w-full p-3 rounded-lg border text-center transition-all duration-300 ${selectedNode === office.id ? 'border-indigo-500 bg-indigo-50/50 dark:bg-indigo-950/20 shadow-md' : 'border-slate-200 dark:border-slate-800 bg-white/90 dark:bg-slate-950/80 hover:border-indigo-400'}`}>
+                          {office.id === 'adm' ? <Layers className="mx-auto text-indigo-500 mb-1" size={15} /> : <ShieldAlert className="mx-auto text-slate-400 dark:text-slate-500 mb-1" size={15} />}
+                          <h5 className="text-[10px] font-bold uppercase text-slate-900 dark:text-white">{office.name}</h5>
+                          {office.secretarias > 0 ? (
+                            <span className="text-[8px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 font-bold inline-block mt-1 uppercase">👤 {office.secretarias} Secretaria{office.secretarias !== 1 ? 's' : ''}</span>
+                          ) : (
+                            <span className="text-[8px] uppercase text-slate-400 block mt-1">Sin secretaria</span>
+                          )}
+                        </button>
                       )}
                     </div>
                   ))}
