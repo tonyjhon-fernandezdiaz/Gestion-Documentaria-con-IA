@@ -1765,6 +1765,7 @@ export default function ConfigView({ providers, currentUser, onUpdateProviders, 
                     <option value="Asesor Legal">Asesor Legal</option>
                     <option value="Analista">Analista</option>
                     <option value="Coordinador">Coordinador</option>
+                    <option value="Coordinador PRONOEI">Coordinador PRONOEI</option>
                     <option value="Técnico">Técnico</option>
                     <option value="Practicante">Practicante</option>
                     <option value="Servicio Profesional">Servicio Profesional</option>
@@ -2194,6 +2195,7 @@ export default function ConfigView({ providers, currentUser, onUpdateProviders, 
                                   <option value="Asesor Legal">Asesor Legal</option>
                                   <option value="Analista">Analista</option>
                                   <option value="Coordinador">Coordinador</option>
+                                  <option value="Coordinador PRONOEI">Coordinador PRONOEI</option>
                                   <option value="Técnico">Técnico</option>
                                   <option value="Practicante">Practicante</option>
                                   <option value="Servicio Profesional">Servicio Profesional</option>
