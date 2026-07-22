@@ -848,7 +848,7 @@ export default function UploadView({ currentUser, onDocumentAdded }: UploadViewP
   // Export engines for active document draft preview
   const exportToWord = () => {
     const cleanText = cleanDocumentText(generatedDraft);
-    const latestHeaderImage = currentHeaderImage;
+    const latestHeaderImage = null; // Avoid large Base64 images in Word HTML to prevent MS Word crashes
     const latestUserName = safeStorage.getItem('saved_user_name') || currentUser.name;
     const latestUserRole = safeStorage.getItem('saved_user_role') || currentUser.role;
 
@@ -2075,18 +2075,18 @@ export default function UploadView({ currentUser, onDocumentAdded }: UploadViewP
                 <div className="flex items-center gap-2">
                   <button 
                     onClick={exportToWord}
-                    className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 hover:bg-slate-50 text-xs font-semibold text-slate-700 dark:text-slate-300 shadow-sm"
+                    className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 hover:bg-slate-50 text-xs font-semibold text-slate-700 dark:text-slate-300 shadow-sm transition-all hover:border-slate-300 dark:hover:border-slate-700"
                   >
                     <Download size={14} className="text-blue-500" />
-                    <span>Exportar Word</span>
+                    <span>Descargar Word</span>
                   </button>
 
                   <button 
                     onClick={handlePrint}
-                    className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 hover:bg-slate-50 text-xs font-semibold text-slate-700 dark:text-slate-300 shadow-sm"
+                    className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 hover:bg-slate-50 text-xs font-semibold text-slate-700 dark:text-slate-300 shadow-sm transition-all hover:border-slate-300 dark:hover:border-slate-700"
                   >
-                    <Printer size={14} className="text-blue-500" />
-                    <span>Imprimir / PDF</span>
+                    <FileText size={14} className="text-red-500" />
+                    <span>Descargar PDF</span>
                   </button>
                 </div>
 
