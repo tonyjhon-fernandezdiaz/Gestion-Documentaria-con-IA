@@ -6,3 +6,7 @@ coverage/
 *.log
 .env*
 !.env.example
+*.bak
+~$*
+_test_*
+seed_collaborators*
