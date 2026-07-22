@@ -279,17 +279,22 @@ export default function UploadView({ currentUser, onDocumentAdded }: UploadViewP
   useEffect(() => {
     if (!currentUser) return;
     
-    // El DE (remitente) se vincula automáticamente al usuario que inició sesión
-    // (su nombre y su cargo), al seleccionar un área. Si el área tiene un
-    // responsable configurado explícitamente, se respeta esa configuración.
+    // El DE (remitente) se vincula automáticamente al área del usuario.
+    // Si el área tiene un responsable configurado, se usa ese (jefe/jefa).
+    // Las secretarías nunca firman con su propio nombre, siempre como el jefe del área.
     const selectedAreaObj = areasList.find(a => a.id === selectedAreaId);
     if (selectedAreaObj && selectedAreaObj.responsableNombre) {
       setRemitenteNombre(selectedAreaObj.responsableNombre);
       setRemitenteCargo(selectedAreaObj.responsableCargo || '');
     } else if (selectedAreaObj) {
-      // Even without an explicit responsable, show the area name so the user sees the change
-      setRemitenteNombre(currentUser.name);
-      setRemitenteCargo(currentUser.cargo ? `${currentUser.cargo} — ${selectedAreaObj.name}` : `${currentUser.role} — ${selectedAreaObj.name}`);
+      // Los usuarios con rol Secretaria firman como "Jefe(a)" aunque no haya responsable configurado
+      if (currentUser.role === 'Secretaria') {
+        setRemitenteNombre(`Jefe(a) del ${selectedAreaObj.name}`);
+        setRemitenteCargo(`Jefe(a) del ${selectedAreaObj.name}`);
+      } else {
+        setRemitenteNombre(currentUser.name);
+        setRemitenteCargo(currentUser.cargo ? `${currentUser.cargo} — ${selectedAreaObj.name}` : `${currentUser.role} — ${selectedAreaObj.name}`);
+      }
     } else {
       setRemitenteNombre(currentUser.name);
       setRemitenteCargo(currentUser.cargo || currentUser.role);
@@ -1231,70 +1236,41 @@ export default function UploadView({ currentUser, onDocumentAdded }: UploadViewP
 
           <div className="space-y-3">
             
-            {/* Field 1: Tipo de documento & Área / Oficina */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <div className="flex items-center justify-between">
-                  <label className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
-                    Tipo de documento
-                  </label>
-                  {templateMatch && (templateMatch.matchLevel === 'exact' || templateMatch.matchLevel === 'parent') && (
-                    <span className={`text-[9px] font-bold font-mono px-2 py-0.5 rounded border transition-all ${
-                      templateMatch.matchLevel === 'exact' 
-                        ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
-                        : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30'
-                    }`}>
-                      {templateMatch.matchLevel === 'exact' && '🟢 Plantilla Oficial'}
-                      {templateMatch.matchLevel === 'parent' && `🟡 Heredada`}
-                    </span>
-                  )}
-                </div>
-                <select 
-                  value={docType}
-                  onChange={(e) => setDocType(e.target.value as any)}
-                  className="w-full px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:border-blue-500 transition-colors font-medium"
-                >
-                  {ALL_DOC_TYPES.map(t => (
-                    <option key={t} value={t}>{t}</option>
-                  ))}
-                </select>
-                {docType === 'Otros' && (
-                  <input 
-                    type="text"
-                    required
-                    placeholder="Especifique tipo de documento..."
-                    value={customDocType}
-                    onChange={(e) => setCustomDocType(e.target.value)}
-                    className="w-full mt-1.5 px-3 py-1.5 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:border-blue-500 transition-all font-semibold uppercase"
-                  />
-                )}
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
-                  Área / Oficina Emisora
-                </label>
-                <select 
-                  value={selectedAreaId}
-                  onChange={(e) => setSelectedAreaId(e.target.value)}
-                  className="w-full px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:border-blue-500 transition-colors font-medium"
-                >
-                  {(areasList.length > 0 ? areasList : [
-                    { id: 'adm', name: 'Área de Administración (ADM)' },
-                    { id: 'agi', name: 'Área de Gestión Institucional (AGI)' },
-                    { id: 'agp', name: 'Área de Gestión Pedagógica (AGP)' },
-                    { id: 'rrhh', name: 'Área de Recursos Humanos (RRHH)' },
-                    { id: 'dir', name: 'Dirección (DIR)' }
-                  ]).map((a: any) => (
-                    <option key={a.id} value={a.id}>
-                      {a.parentAreaId ? `↳ ${a.name}` : a.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
+            {/* Field 1: Tipo de documento */}
+            <div className="flex items-center justify-between">
+              <label className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
+                Tipo de documento
+              </label>
+              {templateMatch && (templateMatch.matchLevel === 'exact' || templateMatch.matchLevel === 'parent') && (
+                <span className={`text-[9px] font-bold font-mono px-2 py-0.5 rounded border transition-all ${
+                  templateMatch.matchLevel === 'exact' 
+                    ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
+                    : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30'
+                }`}>
+                  {templateMatch.matchLevel === 'exact' && '🟢 Plantilla Oficial'}
+                  {templateMatch.matchLevel === 'parent' && `🟡 Heredada`}
+                </span>
+              )}
             </div>
-
-
+            <select 
+              value={docType}
+              onChange={(e) => setDocType(e.target.value as any)}
+              className="w-full px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:border-blue-500 transition-colors font-medium"
+            >
+              {ALL_DOC_TYPES.map(t => (
+                <option key={t} value={t}>{t}</option>
+              ))}
+            </select>
+            {docType === 'Otros' && (
+              <input 
+                type="text"
+                required
+                placeholder="Especifique tipo de documento..."
+                value={customDocType}
+                onChange={(e) => setCustomDocType(e.target.value)}
+                className="w-full mt-1.5 px-3 py-1.5 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:border-blue-500 transition-all font-semibold uppercase"
+              />
+            )}
 
             {/* Field 2: N° de documento (Manual / Correlativo) */}
             <div className="space-y-1">
