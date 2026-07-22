@@ -30,53 +30,56 @@ export const DEFAULT_AREAS: AreaItem[] = [
   // --- DIRECCIÓN (raíz de toda la estructura) ---
   {
     id: 'dir', name: 'Dirección UGEL', code: 'DIR', suffix: '-2026-UGEL-DIR',
-    responsableNombre: '', responsableCargo: 'Director(a) de la UGEL Bellavista'
+    responsableNombre: '', responsableCargo: 'Director(a) de la UGEL Bellavista',
+    order: 0
   },
 
   // --- OFICINAS dependen de Dirección ---
   {
     id: 'oaj', name: 'Oficina de Asesoría Jurídica', code: 'OAJ', suffix: '-2026-UGEL-OAJ',
     parentAreaId: 'dir',
-    responsableNombre: '', responsableCargo: 'Jefe de la Oficina de Asesoría Jurídica'
+    responsableNombre: '', responsableCargo: 'Jefe de la Oficina de Asesoría Jurídica',
+    order: 10
   },
   {
     id: 'adm', name: 'Oficina de Administración', code: 'ADM', suffix: '-2026-UGEL-ADM',
     parentAreaId: 'dir',
-    responsableNombre: 'Leydi Marín Quezada', responsableCargo: 'Jefe de la Oficina de Administración'
+    responsableNombre: 'Leydi Marín Quezada', responsableCargo: 'Jefe de la Oficina de Administración',
+    order: 20
   },
-  { id: 'finanzas', name: 'Finanzas y Tesorería', code: 'ADM-FT', parentAreaId: 'adm', suffix: '-2026-UGEL-ADM-FT' },
-  { id: 'contabilidad', name: 'Contabilidad y Abastecimiento', code: 'ADM-CA', parentAreaId: 'adm', suffix: '-2026-UGEL-ADM-CA' },
-  { id: 'logistica', name: 'Logística y Almacén', code: 'ADM-LOG', parentAreaId: 'adm', suffix: '-2026-UGEL-ADM-LOG' },
-  { id: 'patrimonio', name: 'Patrimonio', code: 'ADM-PAT', parentAreaId: 'adm', suffix: '-2026-UGEL-ADM-PAT' },
-  { id: 'informatica', name: 'Tecnologías de la Información', code: 'ADM-TI', parentAreaId: 'adm', suffix: '-2026-UGEL-ADM-TI' },
-  { id: 'tramite', name: 'Trámite Documentario y Atención al Usuario', code: 'ADM-TD', parentAreaId: 'adm', suffix: '-2026-UGEL-ADM-TD' },
-
-  // Gestión de Recursos Humanos dentro de Administración
-  {
-    id: 'rrhh', name: 'Gestión de Recursos Humanos', code: 'RRHH', suffix: '-2026-UGEL-RRHH',
+  { id: 'rrhh', name: 'Gestión de Recursos Humanos', code: 'RRHH', suffix: '-2026-UGEL-RRHH',
     parentAreaId: 'adm',
-    responsableNombre: 'Segundo Hipólito Saldaña Pérez', responsableCargo: 'Jefe de la Oficina de Gestión de Recursos Humanos'
+    responsableNombre: 'Segundo Hipólito Saldaña Pérez', responsableCargo: 'Jefe de la Oficina de Gestión de Recursos Humanos',
+    order: 0
   },
-  { id: 'planillas', name: 'Planillas y Escalafón', code: 'RRHH-PE', parentAreaId: 'rrhh', suffix: '-2026-UGEL-RRHH-PE' },
-  { id: 'bienestar', name: 'Bienestar Social', code: 'RRHH-BS', parentAreaId: 'rrhh', suffix: '-2026-UGEL-RRHH-BS' },
+  { id: 'planillas', name: 'Planillas y Escalafón', code: 'RRHH-PE', parentAreaId: 'rrhh', suffix: '-2026-UGEL-RRHH-PE', order: 0 },
+  { id: 'bienestar', name: 'Bienestar Social', code: 'RRHH-BS', parentAreaId: 'rrhh', suffix: '-2026-UGEL-RRHH-BS', order: 10 },
+  { id: 'finanzas', name: 'Finanzas y Tesorería', code: 'ADM-FT', parentAreaId: 'adm', suffix: '-2026-UGEL-ADM-FT', order: 10 },
+  { id: 'contabilidad', name: 'Contabilidad y Abastecimiento', code: 'ADM-CA', parentAreaId: 'adm', suffix: '-2026-UGEL-ADM-CA', order: 20 },
+  { id: 'logistica', name: 'Logística y Almacén', code: 'ADM-LOG', parentAreaId: 'adm', suffix: '-2026-UGEL-ADM-LOG', order: 30 },
+  { id: 'patrimonio', name: 'Patrimonio', code: 'ADM-PAT', parentAreaId: 'adm', suffix: '-2026-UGEL-ADM-PAT', order: 40 },
+  { id: 'informatica', name: 'Tecnologías de la Información', code: 'ADM-TI', parentAreaId: 'adm', suffix: '-2026-UGEL-ADM-TI', order: 50 },
+  { id: 'tramite', name: 'Trámite Documentario y Atención al Usuario', code: 'ADM-TD', parentAreaId: 'adm', suffix: '-2026-UGEL-ADM-TD', order: 60 },
 
   // --- ÁREAS dependen de Dirección ---
   {
     id: 'agi', name: 'Área de Gestión Institucional', code: 'AGI', suffix: '-2026-UGEL-AGI',
     parentAreaId: 'dir',
-    responsableNombre: 'Tony Jhon Fernandez Díaz', responsableCargo: 'Jefe del Área de Gestión Institucional'
+    responsableNombre: 'Tony Jhon Fernandez Díaz', responsableCargo: 'Jefe del Área de Gestión Institucional',
+    order: 30
   },
-  { id: 'planificacion', name: 'Planificación y Presupuesto', code: 'AGI-PP', parentAreaId: 'agi', suffix: '-2026-UGEL-AGI-PP' },
-  { id: 'racionalizacion', name: 'Racionalización y Estadística', code: 'AGI-RE', parentAreaId: 'agi', suffix: '-2026-UGEL-AGI-RE' },
-  { id: 'infraestructura', name: 'Infraestructura Educativa', code: 'AGI-IE', parentAreaId: 'agi', suffix: '-2026-UGEL-AGI-IE' },
+  { id: 'planificacion', name: 'Planificación y Presupuesto', code: 'AGI-PP', parentAreaId: 'agi', suffix: '-2026-UGEL-AGI-PP', order: 0 },
+  { id: 'racionalizacion', name: 'Racionalización y Estadística', code: 'AGI-RE', parentAreaId: 'agi', suffix: '-2026-UGEL-AGI-RE', order: 10 },
+  { id: 'infraestructura', name: 'Infraestructura Educativa', code: 'AGI-IE', parentAreaId: 'agi', suffix: '-2026-UGEL-AGI-IE', order: 20 },
   {
     id: 'agp', name: 'Área de Gestión Pedagógica', code: 'AGP', suffix: '-2026-UGEL-AGP',
     parentAreaId: 'dir',
-    responsableNombre: 'Oscar Enrique Ayay Sánchez', responsableCargo: 'Jefe del Área de Gestión Pedagógica'
+    responsableNombre: 'Oscar Enrique Ayay Sánchez', responsableCargo: 'Jefe del Área de Gestión Pedagógica',
+    order: 40
   },
-  { id: 'inicial-primaria', name: 'Educación Inicial y Primaria', code: 'AGP-EIP', parentAreaId: 'agp', suffix: '-2026-UGEL-AGP-EIP' },
-  { id: 'secundaria', name: 'Educación Secundaria y Superior', code: 'AGP-ESS', parentAreaId: 'agp', suffix: '-2026-UGEL-AGP-ESS' },
-  { id: 'acompanamiento', name: 'Acompañamiento Pedagógico', code: 'AGP-AP', parentAreaId: 'agp', suffix: '-2026-UGEL-AGP-AP' },
+  { id: 'inicial-primaria', name: 'Educación Inicial y Primaria', code: 'AGP-EIP', parentAreaId: 'agp', suffix: '-2026-UGEL-AGP-EIP', order: 0 },
+  { id: 'secundaria', name: 'Educación Secundaria y Superior', code: 'AGP-ESS', parentAreaId: 'agp', suffix: '-2026-UGEL-AGP-ESS', order: 10 },
+  { id: 'acompanamiento', name: 'Acompañamiento Pedagógico', code: 'AGP-AP', parentAreaId: 'agp', suffix: '-2026-UGEL-AGP-AP', order: 20 },
 ];
 
 // Plantillas de área: aún no se cargan datos iniciales. Se define como lista vacía
@@ -564,7 +567,14 @@ export class NeonDatabase {
 
   // ------------------- AREAS & TEMPLATES -------------------
   getAreas(): AreaItem[] {
-    return this.data.areas && this.data.areas.length > 0 ? this.data.areas : DEFAULT_AREAS;
+    const areas = this.data.areas && this.data.areas.length > 0 ? this.data.areas : DEFAULT_AREAS;
+    return [...areas].sort((a, b) => {
+      const pa = a.parentAreaId || '';
+      const pb = b.parentAreaId || '';
+      if (pa < pb) return -1;
+      if (pa > pb) return 1;
+      return (a.order ?? 999) - (b.order ?? 999);
+    });
   }
 
   getAreaById(id: string): AreaItem | undefined {

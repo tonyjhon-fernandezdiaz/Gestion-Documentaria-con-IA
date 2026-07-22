@@ -43,6 +43,7 @@ export interface AreaItem {
   responsableNombre?: string;
   responsableCargo?: string;
   membreteBase64?: string; // base64 representation of office logo/header
+  order?: number; // sort order within the same parent level
 }
 
 export interface AreaTemplate {

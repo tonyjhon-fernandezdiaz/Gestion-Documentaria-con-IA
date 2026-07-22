@@ -192,6 +192,45 @@ export default function ConfigView({ providers, currentUser, onUpdateProviders, 
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set(['dir']));
   const [showCreateAreaForm, setShowCreateAreaForm] = useState(false);
   const [newAreaData, setNewAreaData] = useState({ id: '', name: '', code: '', parentAreaId: '' });
+  const [reorderingId, setReorderingId] = useState<string | null>(null);
+
+  const handleMoveArea = async (area: any, direction: 'up' | 'down') => {
+    const siblings = areasList
+      .filter(a => (a.parentAreaId || '') === (area.parentAreaId || ''))
+      .sort((a: any, b: any) => (a.order ?? 999) - (b.order ?? 999));
+    const idx = siblings.findIndex((a: any) => a.id === area.id);
+    if (idx === -1) return;
+    const targetIdx = direction === 'up' ? idx - 1 : idx + 1;
+    if (targetIdx < 0 || targetIdx >= siblings.length) return;
+    const target = siblings[targetIdx];
+    const swapOrder = target.order ?? 999;
+    setReorderingId(area.id);
+    try {
+      const token = safeStorage.getItem('saved_session_token');
+      const res = await fetch('/api/areas/reorder', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({
+          orders: [
+            { id: area.id, order: swapOrder },
+            { id: target.id, order: area.order ?? 999 }
+          ]
+        })
+      });
+      if (res.ok) {
+        setAreasList((prev: any) => prev.map((a: any) => {
+          if (a.id === area.id) return { ...a, order: swapOrder };
+          if (a.id === target.id) return { ...a, order: a.order ?? 999 };
+          return a;
+        }));
+      } else {
+        showAlert('Error', 'No se pudo reordenar.', 'danger');
+      }
+    } catch (err: any) {
+      showAlert('Error de Red', err.message, 'danger');
+    }
+    setReorderingId(null);
+  };
 
   useEffect(() => {
     fetch('/api/areas')
@@ -1951,6 +1990,18 @@ export default function ConfigView({ providers, currentUser, onUpdateProviders, 
                       <span className={`truncate ${depth === 0 ? 'font-bold' : depth === 1 ? 'font-semibold' : ''}`}>
                         {node.area.name}
                       </span>
+                      {depth > 0 && (
+                        <span className="flex items-center gap-0.5 ml-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button onClick={(e) => { e.stopPropagation(); handleMoveArea(node.area, 'up'); }} disabled={reorderingId !== null} title="Subir"
+                            className="p-0.5 rounded hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 disabled:opacity-30">
+                            <ArrowUp size={11} />
+                          </button>
+                          <button onClick={(e) => { e.stopPropagation(); handleMoveArea(node.area, 'down'); }} disabled={reorderingId !== null} title="Bajar"
+                            className="p-0.5 rounded hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 disabled:opacity-30">
+                            <ArrowDown size={11} />
+                          </button>
+                        </span>
+                      )}
                       <span className="text-[9px] font-mono text-slate-400 dark:text-slate-500 ml-auto shrink-0">
                         {memberCount}
                       </span>
@@ -2043,13 +2094,16 @@ export default function ConfigView({ providers, currentUser, onUpdateProviders, 
                       if (confirm(`¿Eliminar "${selectedAreaToEdit.name}"?\nTambién se eliminarán sus sub-áreas.`)) {
                         fetch(`/api/areas/${selectedAreaToEdit.id}`, {
                           method: 'DELETE',
-                          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${safeStorage.getItem('saved_session_token')}` }
+                          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${safeStorage.getItem('saved_session_token')}` },
+                          body: JSON.stringify({ usuario: currentUser.username })
                         }).then(async (res) => {
                           if (res.ok) {
-                            setAreasList(prev => prev.filter(a => a.id !== selectedAreaToEdit.id && a.parentAreaId !== selectedAreaToEdit.id));
+                            const result = await res.json();
+                            const deletedIds = result.deletedIds || [selectedAreaToEdit.id];
+                            setAreasList(prev => prev.filter(a => !deletedIds.includes(a.id)));
                             setSelectedAreaToEdit(null);
                             fetchSystemUsers();
-                            showAlert('Área Eliminada', 'El área fue eliminada con éxito.', 'success');
+                            showAlert('Área Eliminada', '', 'success');
                           } else { const err = await res.json(); showAlert('Error', err.error || 'No se pudo eliminar.', 'danger'); }
                         }).catch(() => {});
                       }
@@ -2196,6 +2250,16 @@ export default function ConfigView({ providers, currentUser, onUpdateProviders, 
                 </div>
 
                 <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-slate-100 dark:border-slate-800/80">
+                  <div className="flex items-center gap-1 mr-auto">
+                    <button type="button" onClick={() => handleMoveArea(selectedAreaToEdit, 'up')} disabled={reorderingId !== null} title="Subir"
+                      className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 text-[10px] font-bold transition-all disabled:opacity-30">
+                      <ArrowUp size={12} /> <span>Subir</span>
+                    </button>
+                    <button type="button" onClick={() => handleMoveArea(selectedAreaToEdit, 'down')} disabled={reorderingId !== null} title="Bajar"
+                      className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 text-[10px] font-bold transition-all disabled:opacity-30">
+                      <ArrowDown size={12} /> <span>Bajar</span>
+                    </button>
+                  </div>
                   <button type="button" onClick={async () => {
                     try {
                       const token = safeStorage.getItem('saved_session_token');

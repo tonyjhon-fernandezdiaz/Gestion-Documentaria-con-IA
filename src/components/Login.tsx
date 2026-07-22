@@ -18,7 +18,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
 
   // Quick-login shortcuts
   const quickUsers = [
-    { username: '74223117', label: 'Admin (74223117)', role: 'Administrador', pass: '101296' },
+    { username: 'admin', label: 'Admin (admin)', role: 'Administrador', pass: '1012' },
     { username: 'AGP', label: 'Sec. AGP', role: 'Secretaria', pass: '159159' },
     { username: 'AGI', label: 'Sec. AGI', role: 'Secretaria', pass: '455645' },
     { username: 'RRHH', label: 'Sec. RRHH', role: 'Secretaria', pass: '123456' },

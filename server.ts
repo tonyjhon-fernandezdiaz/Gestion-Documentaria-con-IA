@@ -438,23 +438,45 @@ app.delete('/api/areas/:id', async (req, res) => {
   if (id === 'dir') {
     return res.status(400).json({ error: 'No se puede eliminar la Dirección UGEL.' });
   }
-  // Unlink all users from this area
+  // Collect all children (recursive) to also delete them
+  const childIds: string[] = [];
+  const collectChildren = (parentId: string) => {
+    db.getAreas().forEach(a => {
+      if (a.parentAreaId === parentId) {
+        childIds.push(a.id);
+        collectChildren(a.id);
+      }
+    });
+  };
+  collectChildren(id);
+  const allIds = [id, ...childIds];
+
+  // Unlink all users from all these areas
   const users = db.getUsers();
   for (const user of users) {
-    const areaIds = (user.areaIds || []).filter(aid => aid !== id);
+    const areaIds = (user.areaIds || []).filter(aid => !allIds.includes(aid));
     if (areaIds.length !== (user.areaIds || []).length) {
       await db.updateUser(user.id, {
         areaIds,
-        areaId: user.areaId === id ? (areaIds[0] || undefined) : user.areaId
+        areaId: user.areaId && allIds.includes(user.areaId) ? (areaIds[0] || undefined) : user.areaId
       });
     }
   }
-  const deleted = await db.deleteArea(id);
-  if (!deleted) {
-    return res.status(500).json({ error: 'Error al eliminar el área.' });
+
+  let allDeleted = true;
+  for (const delId of allIds) {
+    const ok = await db.deleteArea(delId);
+    if (!ok) allDeleted = false;
   }
-  logSystemAction(req.body.usuario || 'Administrador', 'Eliminación de Área', `Área "${area.name}" fue eliminada.`, 'warning');
-  return res.json({ success: true });
+  if (!allDeleted) {
+    return res.status(500).json({ error: 'Error al eliminar el área o sus sub-áreas.' });
+  }
+  const childNames = childIds.map(cid => { const a = db.getAreaById(cid); return a ? a.name : cid; });
+  const logDetail = childNames.length > 0
+    ? `Área "${area.name}" y sus sub-áreas (${childNames.join(', ')}) fueron eliminadas.`
+    : `Área "${area.name}" fue eliminada.`;
+  logSystemAction(req.body.usuario || 'Administrador', 'Eliminación de Área', logDetail, 'warning');
+  return res.json({ success: true, deletedIds: allIds });
 });
 
 app.put('/api/areas/:id', async (req, res) => {
@@ -492,6 +514,23 @@ app.put('/api/areas/:id', async (req, res) => {
     return res.json(updatedArea);
   }
   return res.status(404).json({ error: 'Área no encontrada.' });
+});
+
+// Reorder areas (batch)
+app.put('/api/areas/reorder', async (req, res) => {
+  if (!checkIsAdmin(req)) {
+    return res.status(403).json({ error: 'Acceso denegado.' });
+  }
+  const { orders } = req.body;
+  if (!Array.isArray(orders)) {
+    return res.status(400).json({ error: 'orders debe ser un array.' });
+  }
+  for (const { id, order } of orders) {
+    if (id && typeof order === 'number') {
+      await db.updateArea(id, { order });
+    }
+  }
+  return res.json({ success: true });
 });
 
 app.get('/api/correlativo', (req, res) => {
