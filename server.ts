@@ -251,11 +251,11 @@ app.put('/api/users/:id', async (req, res) => {
     return res.status(404).json({ error: 'Usuario no encontrado.' });
   }
 
-  if (existingUser.username === '74223117') {
+  if (existingUser.username === 'admin') {
     if (updates.role && updates.role !== 'Administrador') {
       return res.status(400).json({ error: 'No se puede degradar el rol del Administrador principal.' });
     }
-    if (updates.username && updates.username !== '74223117') {
+    if (updates.username && updates.username !== 'admin') {
       return res.status(400).json({ error: 'No se puede cambiar el nombre de usuario del Administrador principal.' });
     }
   }
@@ -302,7 +302,7 @@ app.delete('/api/users/:id', async (req, res) => {
     return res.status(404).json({ error: 'Usuario no encontrado.' });
   }
 
-  if (userToDelete.username === '74223117') {
+  if (userToDelete.username === 'admin') {
     return res.status(400).json({ error: 'No se puede eliminar el Administrador principal.' });
   }
 
@@ -402,6 +402,59 @@ app.put('/api/prompts/:id', async (req, res) => {
 
 app.get('/api/areas', (req, res) => {
   res.json(db.getAreas());
+});
+
+app.post('/api/areas', async (req, res) => {
+  if (!checkIsAdmin(req)) {
+    return res.status(403).json({ error: 'Acceso denegado. Solo el administrador puede crear áreas.' });
+  }
+  const { id, name, code, parentAreaId, suffix, responsableNombre, responsableCargo } = req.body;
+  if (!id || !name || !code) {
+    return res.status(400).json({ error: 'id, name y code son requeridos.' });
+  }
+  if (db.getAreaById(id)) {
+    return res.status(409).json({ error: 'Ya existe un área con ese ID.' });
+  }
+  const newArea = await db.addArea({
+    id, name, code, parentAreaId: parentAreaId || undefined,
+    suffix: suffix || `-2026-UGEL-${code}`,
+    responsableNombre: responsableNombre || '',
+    responsableCargo: responsableCargo || ''
+  });
+  logSystemAction(req.body.usuario || 'Administrador', 'Creación de Área', `Área "${newArea.name}" fue creada.`, 'info');
+  return res.status(201).json(newArea);
+});
+
+app.delete('/api/areas/:id', async (req, res) => {
+  if (!checkIsAdmin(req)) {
+    return res.status(403).json({ error: 'Acceso denegado. Solo el administrador puede eliminar áreas.' });
+  }
+  const { id } = req.params;
+  const area = db.getAreaById(id);
+  if (!area) {
+    return res.status(404).json({ error: 'Área no encontrada.' });
+  }
+  // Prevent deleting root Dirección
+  if (id === 'dir') {
+    return res.status(400).json({ error: 'No se puede eliminar la Dirección UGEL.' });
+  }
+  // Unlink all users from this area
+  const users = db.getUsers();
+  for (const user of users) {
+    const areaIds = (user.areaIds || []).filter(aid => aid !== id);
+    if (areaIds.length !== (user.areaIds || []).length) {
+      await db.updateUser(user.id, {
+        areaIds,
+        areaId: user.areaId === id ? (areaIds[0] || undefined) : user.areaId
+      });
+    }
+  }
+  const deleted = await db.deleteArea(id);
+  if (!deleted) {
+    return res.status(500).json({ error: 'Error al eliminar el área.' });
+  }
+  logSystemAction(req.body.usuario || 'Administrador', 'Eliminación de Área', `Área "${area.name}" fue eliminada.`, 'warning');
+  return res.json({ success: true });
 });
 
 app.put('/api/areas/:id', async (req, res) => {

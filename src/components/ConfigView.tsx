@@ -30,7 +30,12 @@ import {
   AlertTriangle,
   Info,
   FolderOpen,
-  Network
+  Network,
+  ChevronRight,
+  ChevronDown,
+  Folder,
+  Building,
+  Layers
 } from 'lucide-react';
 import { AIProvider, User as UserType, SystemLog } from '../types';
 import { safeStorage } from '../utils/storage';
@@ -183,6 +188,9 @@ export default function ConfigView({ providers, currentUser, onUpdateProviders, 
   const [areaMembreteBase64, setAreaMembreteBase64] = useState('');
   const [areaLinkedUserIds, setAreaLinkedUserIds] = useState<string[]>([]);
   const [searchMemberQuery, setSearchMemberQuery] = useState('');
+  const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set(['dir']));
+  const [showCreateAreaForm, setShowCreateAreaForm] = useState(false);
+  const [newAreaData, setNewAreaData] = useState({ id: '', name: '', code: '', parentAreaId: '' });
 
   useEffect(() => {
     fetch('/api/areas')
@@ -1890,198 +1898,231 @@ export default function ConfigView({ providers, currentUser, onUpdateProviders, 
       {/* Tab: Gestión de Áreas (Admin-Only) */}
       {activeTab === 'areas' && currentUser.role === 'Administrador' && (
         <div className="grid lg:grid-cols-12 gap-6 items-start animate-fade-in font-sans">
-          {/* Areas List Panel */}
+          {/* Left: Tree Panel */}
           <div className="lg:col-span-5 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-5 shadow-sm space-y-4">
             <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-white border-b border-slate-100 dark:border-slate-800 pb-2.5 flex items-center gap-1.5">
               <Network size={14} className="text-indigo-500" />
-              <span>Listado de Áreas y Oficinas</span>
+              <span>Organigrama de Áreas</span>
             </h3>
-            
-            <div className="space-y-1.5 max-h-[450px] overflow-y-auto pr-1">
-              {areasList.map((a: any) => {
-                const isSelected = selectedAreaToEdit?.id === a.id;
-                return (
-                  <div
-                    key={a.id}
-                    onClick={() => {
-                      setSelectedAreaToEdit(a);
-                      setAreaSuffix(a.suffix || '');
-                      setAreaResponsableNombre(a.responsableNombre || '');
-                      setAreaResponsableCargo(a.responsableCargo || '');
-                      setAreaMembreteBase64(a.membreteBase64 || '');
-                      const linked = systemUsers
-                        .filter(u => {
-                          const uAreaIds = u.areaIds || (u.areaId ? [u.areaId] : []);
-                          return uAreaIds.includes(a.id);
-                        })
-                        .map(u => u.id);
-                      setAreaLinkedUserIds(linked);
-                    }}
-                    className={`p-3 rounded-xl border text-xs font-medium cursor-pointer transition-all flex items-center justify-between ${
-                      isSelected
-                        ? 'bg-indigo-500/10 border-indigo-500/30 text-indigo-700 dark:text-indigo-300'
-                        : 'bg-slate-50/50 hover:bg-slate-50 dark:bg-slate-950/20 dark:hover:bg-slate-950/45 border-slate-200/60 dark:border-slate-800/80 text-slate-700 dark:text-slate-300'
-                    }`}
-                  >
-                    <span className={a.parentAreaId ? "ml-4 text-[11px]" : "font-bold"}>
-                      {a.parentAreaId ? `↳ ${a.name}` : a.name}
-                    </span>
-                    <span className="text-[10px] px-2 py-0.5 rounded bg-slate-200/50 dark:bg-slate-800/80 font-mono">
-                      {a.code}
-                    </span>
-                  </div>
-                );
-              })}
+
+            <div className="space-y-0.5 max-h-[500px] overflow-y-auto pr-1 text-xs">
+              {((rootNodes: any[]) => {
+                const renderNode = (node: any, depth: number): React.ReactNode[] => {
+                  const hasChildren = node.children.length > 0;
+                  const isExpanded = expandedNodes.has(node.area.id);
+                  const isSelected = selectedAreaToEdit?.id === node.area.id;
+                  const memberCount = systemUsers.filter(u => {
+                    const uAreaIds = u.areaIds || (u.areaId ? [u.areaId] : []);
+                    return uAreaIds.includes(node.area.id);
+                  }).length;
+                  const getIcon = () => {
+                    if (depth === 0) return <Building size={14} className="text-amber-500 shrink-0" />;
+                    if (node.area.name.includes('Oficina de Administración') || node.area.code === 'ADM') return <Layers size={14} className="text-sky-500 shrink-0" />;
+                    if (node.area.name.includes('Asesoría Jurídica') || node.area.code === 'OAJ') return <ShieldAlert size={14} className="text-purple-500 shrink-0" />;
+                    if (node.area.name.includes('Área') || depth === 1) return <FolderOpen size={14} className="text-indigo-500 shrink-0" />;
+                    return <Folder size={14} className="text-slate-400 shrink-0" />;
+                  };
+                  const items: React.ReactNode[] = [];
+                  items.push(
+                    <div key={node.area.id} style={{ paddingLeft: `${depth * 18}px` }}
+                      onClick={() => {
+                        setSelectedAreaToEdit(node.area);
+                        setAreaSuffix(node.area.suffix || '');
+                        setAreaResponsableNombre(node.area.responsableNombre || '');
+                        setAreaResponsableCargo(node.area.responsableCargo || '');
+                        setAreaMembreteBase64(node.area.membreteBase64 || '');
+                        const linked = systemUsers.filter(u => (u.areaIds || (u.areaId ? [u.areaId] : [])).includes(node.area.id)).map(u => u.id);
+                        setAreaLinkedUserIds(linked);
+                      }}
+                      className={`flex items-center gap-1 py-1.5 px-2 rounded-lg cursor-pointer transition-all group ${
+                        isSelected ? 'bg-indigo-500/10 text-indigo-700 dark:text-indigo-300' : 'hover:bg-slate-100 dark:hover:bg-slate-800/60 text-slate-700 dark:text-slate-300'
+                      }`}
+                    >
+                      {hasChildren ? (
+                        <span onClick={(e) => { e.stopPropagation(); setExpandedNodes(prev => { const next = new Set(prev); next.has(node.area.id) ? next.delete(node.area.id) : next.add(node.area.id); return next; }); }} className="shrink-0 text-slate-400 hover:text-slate-600 w-3.5 flex items-center justify-center">
+                          {isExpanded ? <ChevronDown size={11} /> : <ChevronRight size={11} />}
+                        </span>
+                      ) : (
+                        <span className="w-3.5 shrink-0" />
+                      )}
+                      {getIcon()}
+                      <span className={`truncate ${depth === 0 ? 'font-bold' : depth === 1 ? 'font-semibold' : ''}`}>
+                        {node.area.name}
+                      </span>
+                      <span className="text-[9px] font-mono text-slate-400 dark:text-slate-500 ml-auto shrink-0">
+                        {memberCount}
+                      </span>
+                    </div>
+                  );
+                  if (hasChildren && isExpanded) {
+                    items.push(...node.children.flatMap((child: any) => renderNode(child, depth + 1)));
+                  }
+                  return items;
+                };
+                return rootNodes.flatMap((node: any) => renderNode(node, 0));
+              })(
+                (() => {
+                  const build = (parentId?: string): any[] => {
+                    return areasList.filter(a => parentId ? a.parentAreaId === parentId : !a.parentAreaId).map(a => ({ area: a, children: build(a.id) }));
+                  };
+                  return build();
+                })()
+              )}
             </div>
+
+            <div className="flex gap-2 pt-2 border-t border-slate-100 dark:border-slate-800/60">
+              <button type="button" onClick={() => { setShowCreateAreaForm(true); setNewAreaData({ id: '', name: '', code: '', parentAreaId: '' }); }}
+                className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/40 dark:hover:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400 text-[10px] font-bold transition-all">
+                <Plus size={12} /> <span>Nueva Área</span>
+              </button>
+            </div>
+
+            {showCreateAreaForm && (
+              <div className="p-3 rounded-xl border border-indigo-200 dark:border-indigo-800/60 bg-indigo-50/50 dark:bg-indigo-950/20 space-y-2 animate-fade-in">
+                <div className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 uppercase">Crear nueva área / oficina</div>
+                <input type="text" placeholder="ID única (ej: oaj)" value={newAreaData.id} onChange={(e) => setNewAreaData(p => ({ ...p, id: e.target.value }))}
+                  className="w-full px-2.5 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-[11px] focus:outline-none focus:border-indigo-500" />
+                <input type="text" placeholder="Nombre (ej: Oficina de Asesoría Jurídica)" value={newAreaData.name} onChange={(e) => setNewAreaData(p => ({ ...p, name: e.target.value }))}
+                  className="w-full px-2.5 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-[11px] focus:outline-none focus:border-indigo-500" />
+                <input type="text" placeholder="Código (ej: OAJ)" value={newAreaData.code} onChange={(e) => setNewAreaData(p => ({ ...p, code: e.target.value }))}
+                  className="w-full px-2.5 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-[11px] focus:outline-none focus:border-indigo-500" />
+                <select value={newAreaData.parentAreaId} onChange={(e) => setNewAreaData(p => ({ ...p, parentAreaId: e.target.value }))}
+                  className="w-full px-2.5 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-[11px] focus:outline-none focus:border-indigo-500">
+                  <option value="">Depende de: Dirección UGEL (raíz)</option>
+                  {areasList.filter(a => !a.parentAreaId || a.parentAreaId === 'dir').map((a: any) => (
+                    <option key={a.id} value={a.id}>{a.name}</option>
+                  ))}
+                </select>
+                <div className="flex gap-2 pt-1">
+                  <button type="button" onClick={async () => {
+                    if (!newAreaData.id || !newAreaData.name || !newAreaData.code) { showAlert('Campos Incompletos', 'ID, nombre y código son obligatorios.', 'warning'); return; }
+                    try {
+                      const token = safeStorage.getItem('saved_session_token');
+                      const res = await fetch('/api/areas', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                        body: JSON.stringify(newAreaData)
+                      });
+                      if (res.ok) {
+                        const created = await res.json();
+                        setAreasList(prev => [...prev, created]);
+                        setExpandedNodes(prev => { const next = new Set(prev); if (newAreaData.parentAreaId) next.add(newAreaData.parentAreaId); next.add('dir'); return next; });
+                        setShowCreateAreaForm(false);
+                        showAlert('Área Creada', `"${created.name}" creada con éxito.`, 'success');
+                      } else {
+                        const err = await res.json();
+                        showAlert('Error', err.error || 'No se pudo crear.', 'danger');
+                      }
+                    } catch (err: any) { showAlert('Error de Red', err.message, 'danger'); }
+                  }} className="flex-1 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-bold transition-all">
+                    Crear
+                  </button>
+                  <button type="button" onClick={() => setShowCreateAreaForm(false)} className="px-3 py-1.5 rounded-lg bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-[10px] font-bold transition-all">
+                    Cancelar
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
-          {/* Area Edit Panel */}
+          {/* Right: Edit Panel */}
           <div className="lg:col-span-7 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-6 shadow-sm space-y-6">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-white border-b border-slate-100 dark:border-slate-800 pb-2.5">
-              {selectedAreaToEdit 
-                ? `Configurar: ${selectedAreaToEdit.name}` 
-                : 'Seleccione un área del listado para configurar'}
+            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-white border-b border-slate-100 dark:border-slate-800 pb-2.5 flex items-center gap-2">
+              {selectedAreaToEdit ? (
+                <><span>{selectedAreaToEdit.name}</span><span className="text-[9px] font-mono text-slate-400 font-normal">({selectedAreaToEdit.code})</span></>
+              ) : 'Seleccione un área del organigrama'}
             </h3>
 
             {selectedAreaToEdit ? (
               <div className="space-y-4">
+                <div className="flex gap-2 pb-2 border-b border-slate-100 dark:border-slate-800/60">
+                  {selectedAreaToEdit.id !== 'dir' && (
+                    <button type="button" onClick={() => {
+                      if (confirm(`¿Eliminar "${selectedAreaToEdit.name}"?\nTambién se eliminarán sus sub-áreas.`)) {
+                        fetch(`/api/areas/${selectedAreaToEdit.id}`, {
+                          method: 'DELETE',
+                          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${safeStorage.getItem('saved_session_token')}` }
+                        }).then(async (res) => {
+                          if (res.ok) {
+                            setAreasList(prev => prev.filter(a => a.id !== selectedAreaToEdit.id && a.parentAreaId !== selectedAreaToEdit.id));
+                            setSelectedAreaToEdit(null);
+                            fetchSystemUsers();
+                            showAlert('Área Eliminada', 'El área fue eliminada con éxito.', 'success');
+                          } else { const err = await res.json(); showAlert('Error', err.error || 'No se pudo eliminar.', 'danger'); }
+                        }).catch(() => {});
+                      }
+                    }} className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 dark:bg-red-950/20 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 text-[10px] font-bold transition-all">
+                      <Trash2 size={12} /> <span>Eliminar</span>
+                    </button>
+                  )}
+                  <button type="button" onClick={() => { setShowCreateAreaForm(true); setNewAreaData({ id: '', name: '', code: '', parentAreaId: selectedAreaToEdit.id }); }}
+                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/40 dark:hover:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400 text-[10px] font-bold transition-all">
+                    <Plus size={12} /> <span>Crear Sub-área</span>
+                  </button>
+                </div>
+
                 <div className="grid sm:grid-cols-2 gap-4">
                   <div className="space-y-1">
-                    <label className="text-[10px] font-bold uppercase text-slate-500">Código de Oficina</label>
-                    <input
-                      type="text"
-                      value={selectedAreaToEdit.code}
-                      disabled
-                      className="w-full px-3 py-2 rounded bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs font-mono text-slate-500 cursor-not-allowed"
-                    />
+                    <label className="text-[10px] font-bold uppercase text-slate-500">Código</label>
+                    <input type="text" value={selectedAreaToEdit.code} disabled className="w-full px-3 py-2 rounded bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs font-mono text-slate-500 cursor-not-allowed" />
                   </div>
-
                   <div className="space-y-1">
-                    <label className="text-[10px] font-bold uppercase text-slate-500">Sufijo de numeración por área</label>
-                    <input
-                      type="text"
-                      value={areaSuffix}
-                      onChange={(e) => setAreaSuffix(e.target.value)}
-                      placeholder="Ej. -2026-UGEL-ADM"
-                      className="w-full px-3 py-2 rounded bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none"
-                    />
+                    <label className="text-[10px] font-bold uppercase text-slate-500">Sufijo de numeración</label>
+                    <input type="text" value={areaSuffix} onChange={(e) => setAreaSuffix(e.target.value)} placeholder="-2026-UGEL-ADM"
+                      className="w-full px-3 py-2 rounded bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none" />
                   </div>
                 </div>
 
                 <div className="grid sm:grid-cols-2 gap-4">
                   <div className="space-y-1">
-                    <label className="text-[10px] font-bold uppercase text-slate-500">Nombre del Responsable (Firma)</label>
-                    <input
-                      type="text"
-                      value={areaResponsableNombre}
-                      onChange={(e) => setAreaResponsableNombre(e.target.value)}
-                      placeholder="Ej. TONY JHON FERNANDEZ DIAZ"
-                      className="w-full px-3 py-2 rounded bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none"
-                    />
+                    <label className="text-[10px] font-bold uppercase text-slate-500">Responsable (Nombre)</label>
+                    <input type="text" value={areaResponsableNombre} onChange={(e) => setAreaResponsableNombre(e.target.value)} placeholder="TONY JHON FERNANDEZ DIAZ"
+                      className="w-full px-3 py-2 rounded bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none" />
                   </div>
-
                   <div className="space-y-1">
-                    <label className="text-[10px] font-bold uppercase text-slate-500">Cargo del Responsable (Firma)</label>
-                    <input
-                      type="text"
-                      value={areaResponsableCargo}
-                      onChange={(e) => setAreaResponsableCargo(e.target.value)}
-                      placeholder="Ej. Jefe del Área de Gestión Institucional"
-                      className="w-full px-3 py-2 rounded bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none"
-                    />
+                    <label className="text-[10px] font-bold uppercase text-slate-500">Cargo del Responsable</label>
+                    <input type="text" value={areaResponsableCargo} onChange={(e) => setAreaResponsableCargo(e.target.value)} placeholder="Jefe del Área de Gestión Institucional"
+                      className="w-full px-3 py-2 rounded bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none" />
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-[10px] font-bold uppercase text-slate-500 block">Imagen de membrete / Encabezado de la Oficina</label>
-                  
+                  <label className="text-[10px] font-bold uppercase text-slate-500 block">Membrete / Encabezado</label>
                   {areaMembreteBase64 ? (
                     <div className="space-y-2">
                       <div className="p-3 border border-slate-200/60 dark:border-slate-800/80 rounded-xl bg-slate-50/50 dark:bg-slate-950/20">
-                        <img 
-                          src={areaMembreteBase64} 
-                          alt="Membrete de Oficina" 
-                          className="max-h-16 w-full object-contain mx-auto rounded"
-                        />
+                        <img src={areaMembreteBase64} alt="Membrete" className="max-h-16 w-full object-contain mx-auto rounded" />
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => setAreaMembreteBase64('')}
-                        className="px-2.5 py-1 rounded bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/20 text-rose-600 dark:text-rose-400 text-[10px] font-bold border border-rose-100 dark:border-rose-900/40 transition-colors"
-                      >
-                        Quitar membrete
-                      </button>
+                      <button type="button" onClick={() => setAreaMembreteBase64('')} className="px-2.5 py-1 rounded bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/20 text-rose-600 dark:text-rose-400 text-[10px] font-bold border border-rose-100 dark:border-rose-900/40 transition-colors">Quitar membrete</button>
                     </div>
                   ) : (
                     <div className="flex flex-col items-center justify-center border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-xl p-4 bg-slate-50 dark:bg-slate-950/40">
                       <Upload size={20} className="text-slate-400 mb-1" />
-                      <span className="text-[10px] text-slate-500 dark:text-slate-400 text-center mb-2">Subir membrete oficial (PNG/JPG recomendado)</span>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) {
-                            const reader = new FileReader();
-                            reader.onload = (evt) => {
-                              if (evt.target?.result) {
-                                setAreaMembreteBase64(evt.target.result as string);
-                              }
-                            };
-                            reader.readAsDataURL(file);
-                          }
-                        }}
-                        className="hidden"
-                        id="area-membrete-file-input"
-                      />
-                      <label
-                        htmlFor="area-membrete-file-input"
-                        className="px-3 py-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-[10px] font-bold text-indigo-600 hover:bg-indigo-50 cursor-pointer shadow-sm transition-colors"
-                      >
-                        Seleccionar Archivo
-                      </label>
+                      <span className="text-[10px] text-slate-500 dark:text-slate-400 text-center mb-2">Subir membrete (PNG/JPG)</span>
+                      <input type="file" accept="image/*" onChange={(e) => { const f = e.target.files?.[0]; if (f) { const r = new FileReader(); r.onload = (evt) => { if (evt.target?.result) setAreaMembreteBase64(evt.target.result as string); }; r.readAsDataURL(f); } }} className="hidden" id="area-membrete-input" />
+                      <label htmlFor="area-membrete-input" className="px-3 py-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-[10px] font-bold text-indigo-600 hover:bg-indigo-50 cursor-pointer shadow-sm transition-colors">Seleccionar Archivo</label>
                     </div>
                   )}
                 </div>
 
                 <div className="space-y-3">
-                  <label className="text-[10px] font-bold uppercase text-slate-500 block">Miembros de esta Oficina / Área</label>
-                  
-                  {/* Linked members table */}
+                  <label className="text-[10px] font-bold uppercase text-slate-500 block">Miembros de {selectedAreaToEdit.name}</label>
                   {systemUsers.filter(u => areaLinkedUserIds.includes(u.id)).length > 0 ? (
                     <div className="border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden">
                       <table className="w-full text-left border-collapse text-[11px]">
-                        <thead>
-                          <tr className="bg-slate-50 dark:bg-slate-950/50 border-b border-slate-100 dark:border-slate-800 font-bold text-slate-500">
-                            <th className="p-2">Nombre</th>
-                            <th className="p-2">Condición</th>
-                            <th className="p-2">Cargo</th>
-                            <th className="p-2 w-10"></th>
-                          </tr>
-                        </thead>
+                        <thead><tr className="bg-slate-50 dark:bg-slate-950/50 border-b border-slate-100 dark:border-slate-800 font-bold text-slate-500">
+                          <th className="p-2">Nombre</th><th className="p-2">Condición</th><th className="p-2">Cargo</th><th className="p-2 w-10"></th>
+                        </tr></thead>
                         <tbody className="divide-y divide-slate-100 dark:divide-slate-800/40">
                           {systemUsers.filter(u => areaLinkedUserIds.includes(u.id)).map((u) => (
                             <tr key={u.id} className="hover:bg-slate-50 dark:hover:bg-slate-950/20 text-slate-700 dark:text-slate-300">
                               <td className="p-2 font-bold text-slate-900 dark:text-white uppercase text-[10px]">{u.name}</td>
                               <td className="p-2">
-                                <select
-                                  value={u.condicion || ''}
-                                  onChange={async (e) => {
-                                    const newCondicion = e.target.value;
-                                    // Optimistic local update
-                                    setSystemUsers(prev => prev.map(su => su.id === u.id ? { ...su, condicion: newCondicion || undefined } : su));
-                                    try {
-                                      const token = safeStorage.getItem('saved_session_token');
-                                      await fetch(`/api/users/${u.id}`, {
-                                        method: 'PUT',
-                                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                                        body: JSON.stringify({ ...u, condicion: newCondicion || undefined })
-                                      });
-                                      fetchSystemUsers();
-                                    } catch (err) { console.error(err); }
-                                  }}
-                                  className="w-full px-2 py-1 rounded bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-[10px] focus:outline-none"
-                                >
+                                <select value={u.condicion || ''} onChange={async (e) => {
+                                  const v = e.target.value;
+                                  setSystemUsers((prev: any) => prev.map((su: any) => su.id === u.id ? { ...su, condicion: v || undefined } : su));
+                                  try { await fetch(`/api/users/${u.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${safeStorage.getItem('saved_session_token')}` }, body: JSON.stringify({ ...u, condicion: v || undefined }) }); fetchSystemUsers(); } catch (err) { console.error(err); }
+                                }} className="w-full px-2 py-1 rounded bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-[10px] focus:outline-none">
                                   <option value="">Seleccionar</option>
                                   <option value="Director">Director</option>
                                   <option value="Secretaria">Secretaria</option>
@@ -2101,20 +2142,10 @@ export default function ConfigView({ providers, currentUser, onUpdateProviders, 
                               </td>
                               <td className="p-2 text-[10px] text-slate-500 italic">{u.cargo || '—'}</td>
                               <td className="p-2">
-                                <button
-                                  onClick={() => {
-                                    setAreaLinkedUserIds(prev => prev.filter(id => id !== u.id));
-                                    fetch(`/api/users/${u.id}`, {
-                                      method: 'PUT',
-                                      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${safeStorage.getItem('saved_session_token')}` },
-                                      body: JSON.stringify({ ...u, areaIds: (u.areaIds || []).filter(id => id !== selectedAreaToEdit?.id) })
-                                    }).then(() => fetchSystemUsers()).catch(() => {});
-                                  }}
-                                  className="p-1 rounded bg-red-500/10 text-red-500 hover:bg-red-500/20 transition-colors"
-                                  title="Desvincular"
-                                >
-                                  <X size={11} />
-                                </button>
+                                <button onClick={() => {
+                                  setAreaLinkedUserIds(prev => prev.filter(id => id !== u.id));
+                                  fetch(`/api/users/${u.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${safeStorage.getItem('saved_session_token')}` }, body: JSON.stringify({ ...u, areaIds: (u.areaIds || []).filter((id: string) => id !== selectedAreaToEdit?.id) }) }).then(() => fetchSystemUsers()).catch(() => {});
+                                }} className="p-1 rounded bg-red-500/10 text-red-500 hover:bg-red-500/20 transition-colors" title="Desvincular"><X size={11} /></button>
                               </td>
                             </tr>
                           ))}
@@ -2122,115 +2153,65 @@ export default function ConfigView({ providers, currentUser, onUpdateProviders, 
                       </table>
                     </div>
                   ) : (
-                    <div className="text-[10px] text-slate-400 italic bg-slate-50 dark:bg-slate-950/30 p-3 rounded-xl border border-dashed border-slate-200 dark:border-slate-800 text-center">
-                      No hay miembros asignados a esta oficina.
-                    </div>
+                    <div className="text-[10px] text-slate-400 italic bg-slate-50 dark:bg-slate-950/30 p-3 rounded-xl border border-dashed border-slate-200 dark:border-slate-800 text-center">No hay miembros asignados.</div>
                   )}
 
-                  {/* Add members button and search */}
                   <details className="group">
-                    <summary className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 cursor-pointer hover:underline">
-                      + Agregar miembros
-                    </summary>
+                    <summary className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 cursor-pointer hover:underline">+ Agregar miembros</summary>
                     <div className="mt-2 border border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50/50 dark:bg-slate-950/30">
                       <div className="p-2 border-b border-slate-200 dark:border-slate-800">
-                        <input
-                          type="text"
-                          placeholder="Buscar usuario por nombre o DNI..."
-                          value={searchMemberQuery}
-                          onChange={(e) => setSearchMemberQuery(e.target.value)}
-                          className="w-full px-2.5 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-[11px] text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:border-indigo-500 transition-colors"
-                        />
+                        <input type="text" placeholder="Buscar por nombre o DNI..." value={searchMemberQuery} onChange={(e) => setSearchMemberQuery(e.target.value)}
+                          className="w-full px-2.5 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-[11px] text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:border-indigo-500 transition-colors" />
                       </div>
                       <div className="max-h-48 overflow-y-auto p-3 space-y-1.5">
-                        {systemUsers.filter(u => !areaLinkedUserIds.includes(u.id)).filter(u => {
-                          if (!searchMemberQuery) return true;
-                          const q = searchMemberQuery.toLowerCase();
-                          return u.name.toLowerCase().includes(q) || u.username.toLowerCase().includes(q);
-                        }).length > 0 ? (
-                          systemUsers.filter(u => !areaLinkedUserIds.includes(u.id)).filter(u => {
+                        {(() => {
+                          const filtered = systemUsers.filter(u => !areaLinkedUserIds.includes(u.id)).filter(u => {
                             if (!searchMemberQuery) return true;
                             const q = searchMemberQuery.toLowerCase();
                             return u.name.toLowerCase().includes(q) || u.username.toLowerCase().includes(q);
-                          }).map((u) => (
+                          });
+                          return filtered.length > 0 ? filtered.map((u: any) => (
                             <label key={u.id} className="flex items-center gap-2 text-xs font-medium cursor-pointer select-none hover:bg-white dark:hover:bg-slate-900 p-1.5 rounded transition-colors">
-                              <input
-                                type="checkbox"
-                                checked={false}
-                                onChange={(e) => {
-                                  const checked = e.target.checked;
-                                  if (checked) {
-                                    setAreaLinkedUserIds(prev => [...prev, u.id]);
-                                    // Also update user's areaIds
-                                    fetch(`/api/users/${u.id}`, {
-                                      method: 'PUT',
-                                      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${safeStorage.getItem('saved_session_token')}` },
-                                      body: JSON.stringify({
-                                        ...u,
-                                        areaIds: [...(u.areaIds || (u.areaId ? [u.areaId] : [])), selectedAreaToEdit!.id]
-                                      })
-                                    }).then(() => fetchSystemUsers()).catch(() => {});
-                                  }
-                                }}
-                                className="rounded border-slate-300 dark:border-slate-800 text-indigo-600 focus:ring-indigo-500/20"
-                              />
+                              <input type="checkbox" checked={false} onChange={(e) => {
+                                if (e.target.checked) {
+                                  setAreaLinkedUserIds(prev => [...prev, u.id]);
+                                  fetch(`/api/users/${u.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${safeStorage.getItem('saved_session_token')}` }, body: JSON.stringify({ ...u, areaIds: [...(u.areaIds || (u.areaId ? [u.areaId] : [])), selectedAreaToEdit!.id] }) }).then(() => fetchSystemUsers()).catch(() => {});
+                                }
+                              }} className="rounded border-slate-300 dark:border-slate-800 text-indigo-600 focus:ring-indigo-500/20" />
                               <span className="font-bold text-slate-700 dark:text-slate-200 uppercase">{u.name}</span>
                               <span className="text-[10px] text-slate-400 font-mono">({u.username} - {u.role})</span>
                             </label>
-                          ))
-                        ) : (
-                          <div className="text-[10px] text-slate-400 italic">Todos los usuarios ya están asignados.</div>
-                        )}
+                          )) : <div className="text-[10px] text-slate-400 italic">Todos los usuarios ya están asignados.</div>;
+                        })()}
                       </div>
                     </div>
                   </details>
                 </div>
 
                 <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-slate-100 dark:border-slate-800/80">
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      try {
-                        const token = safeStorage.getItem('saved_session_token');
-                        const response = await fetch(`/api/areas/${selectedAreaToEdit.id}`, {
-                          method: 'PUT',
-                          headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${token}`
-                          },
-                          body: JSON.stringify({
-                            suffix: areaSuffix.trim(),
-                            responsableNombre: areaResponsableNombre.trim(),
-                            responsableCargo: areaResponsableCargo.trim(),
-                            membreteBase64: areaMembreteBase64,
-                            userIds: areaLinkedUserIds
-                          })
-                        });
-                        if (response.ok) {
-                          const updated = await response.json();
-                          setAreasList(prev => prev.map(a => a.id === updated.id ? updated : a));
-                          setSelectedAreaToEdit(updated);
-                          fetchSystemUsers();
-                          showAlert('Configuración Guardada', `Se actualizó la oficina "${updated.name}" con éxito.`, 'success');
-                        } else {
-                          const err = await response.json();
-                          showAlert('Error al Guardar', err.error || 'No se pudo guardar la configuración.', 'danger');
-                        }
-                      } catch (err: any) {
-                        showAlert('Error de Red', err.message, 'danger');
-                      }
-                    }}
-                    className="flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-sm transition-all"
-                  >
-                    <Check size={12} />
-                    <span>Guardar Cambios</span>
+                  <button type="button" onClick={async () => {
+                    try {
+                      const token = safeStorage.getItem('saved_session_token');
+                      const response = await fetch(`/api/areas/${selectedAreaToEdit.id}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                        body: JSON.stringify({ suffix: areaSuffix.trim(), responsableNombre: areaResponsableNombre.trim(), responsableCargo: areaResponsableCargo.trim(), membreteBase64: areaMembreteBase64, userIds: areaLinkedUserIds })
+                      });
+                      if (response.ok) {
+                        const updated = await response.json();
+                        setAreasList((prev: any) => prev.map((a: any) => a.id === updated.id ? updated : a));
+                        setSelectedAreaToEdit(updated);
+                        fetchSystemUsers();
+                        showAlert('Guardado', `"${updated.name}" actualizada.`, 'success');
+                      } else { const err = await response.json(); showAlert('Error', err.error || 'No se pudo guardar.', 'danger'); }
+                    } catch (err: any) { showAlert('Error de Red', err.message, 'danger'); }
+                  }} className="flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-sm transition-all">
+                    <Check size={12} /> <span>Guardar Cambios</span>
                   </button>
                 </div>
               </div>
             ) : (
-              <div className="py-12 text-center text-slate-400 text-xs">
-                Seleccione una de las oficinas del listado de la izquierda para configurar sus firmas oficiales y membrete.
-              </div>
+              <div className="py-12 text-center text-slate-400 text-xs">Seleccione un área del organigrama para configurar sus firmas, membrete y miembros.</div>
             )}
           </div>
         </div>

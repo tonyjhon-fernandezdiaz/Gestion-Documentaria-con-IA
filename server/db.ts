@@ -584,6 +584,20 @@ export class NeonDatabase {
     return this.data.areas[index];
   }
 
+  async addArea(area: AreaItem): Promise<AreaItem> {
+    this.data.areas.push(area);
+    await this.upsert('areas', area.id, area);
+    return area;
+  }
+
+  async deleteArea(id: string): Promise<boolean> {
+    const before = this.data.areas.length;
+    this.data.areas = this.data.areas.filter(a => a.id !== id);
+    if (this.data.areas.length === before) return false;
+    await this.remove('areas', id);
+    return true;
+  }
+
   getAreaTemplates(): AreaTemplate[] {
     return this.data.areaTemplates || [];
   }
