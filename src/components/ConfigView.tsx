@@ -182,6 +182,7 @@ export default function ConfigView({ providers, currentUser, onUpdateProviders, 
 
   // Areas Management States
   const [selectedAreaToEdit, setSelectedAreaToEdit] = useState<any | null>(null);
+  const [areaName, setAreaName] = useState('');
   const [areaSuffix, setAreaSuffix] = useState('');
   const [areaResponsableNombre, setAreaResponsableNombre] = useState('');
   const [areaResponsableCargo, setAreaResponsableCargo] = useState('');
@@ -1927,6 +1928,7 @@ export default function ConfigView({ providers, currentUser, onUpdateProviders, 
                     <div key={node.area.id} style={{ paddingLeft: `${depth * 18}px` }}
                       onClick={() => {
                         setSelectedAreaToEdit(node.area);
+                        setAreaName(node.area.name || '');
                         setAreaSuffix(node.area.suffix || '');
                         setAreaResponsableNombre(node.area.responsableNombre || '');
                         setAreaResponsableCargo(node.area.responsableCargo || '');
@@ -1989,7 +1991,7 @@ export default function ConfigView({ providers, currentUser, onUpdateProviders, 
                 <select value={newAreaData.parentAreaId} onChange={(e) => setNewAreaData(p => ({ ...p, parentAreaId: e.target.value }))}
                   className="w-full px-2.5 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-[11px] focus:outline-none focus:border-indigo-500">
                   <option value="">Depende de: Dirección UGEL (raíz)</option>
-                  {areasList.filter(a => !a.parentAreaId || a.parentAreaId === 'dir').map((a: any) => (
+                  {areasList.map((a: any) => (
                     <option key={a.id} value={a.id}>{a.name}</option>
                   ))}
                 </select>
@@ -2063,14 +2065,19 @@ export default function ConfigView({ providers, currentUser, onUpdateProviders, 
 
                 <div className="grid sm:grid-cols-2 gap-4">
                   <div className="space-y-1">
+                    <label className="text-[10px] font-bold uppercase text-slate-500">Nombre del Área / Oficina</label>
+                    <input type="text" value={areaName} onChange={(e) => setAreaName(e.target.value)} placeholder="Oficina de Administración"
+                      className="w-full px-3 py-2 rounded bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none" />
+                  </div>
+                  <div className="space-y-1">
                     <label className="text-[10px] font-bold uppercase text-slate-500">Código</label>
                     <input type="text" value={selectedAreaToEdit.code} disabled className="w-full px-3 py-2 rounded bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs font-mono text-slate-500 cursor-not-allowed" />
                   </div>
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold uppercase text-slate-500">Sufijo de numeración</label>
-                    <input type="text" value={areaSuffix} onChange={(e) => setAreaSuffix(e.target.value)} placeholder="-2026-UGEL-ADM"
-                      className="w-full px-3 py-2 rounded bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none" />
-                  </div>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold uppercase text-slate-500">Sufijo de numeración</label>
+                  <input type="text" value={areaSuffix} onChange={(e) => setAreaSuffix(e.target.value)} placeholder="-2026-UGEL-ADM"
+                    className="w-full px-3 py-2 rounded bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none" />
                 </div>
 
                 <div className="grid sm:grid-cols-2 gap-4">
@@ -2195,7 +2202,7 @@ export default function ConfigView({ providers, currentUser, onUpdateProviders, 
                       const response = await fetch(`/api/areas/${selectedAreaToEdit.id}`, {
                         method: 'PUT',
                         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                        body: JSON.stringify({ suffix: areaSuffix.trim(), responsableNombre: areaResponsableNombre.trim(), responsableCargo: areaResponsableCargo.trim(), membreteBase64: areaMembreteBase64, userIds: areaLinkedUserIds })
+                        body: JSON.stringify({ name: areaName.trim(), suffix: areaSuffix.trim(), responsableNombre: areaResponsableNombre.trim(), responsableCargo: areaResponsableCargo.trim(), membreteBase64: areaMembreteBase64, userIds: areaLinkedUserIds })
                       });
                       if (response.ok) {
                         const updated = await response.json();

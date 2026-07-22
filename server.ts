@@ -462,9 +462,9 @@ app.put('/api/areas/:id', async (req, res) => {
     return res.status(403).json({ error: 'Acceso denegado. Solo el administrador puede configurar áreas.' });
   }
   const { id } = req.params;
-  const { userIds, suffix, responsableNombre, responsableCargo, membreteBase64, usuario } = req.body;
+  const { userIds, name, suffix, responsableNombre, responsableCargo, membreteBase64, usuario } = req.body;
   
-  const updatedArea = await db.updateArea(id, { suffix, responsableNombre, responsableCargo, membreteBase64 });
+  const updatedArea = await db.updateArea(id, { name, suffix, responsableNombre, responsableCargo, membreteBase64 });
   if (updatedArea) {
     if (Array.isArray(userIds)) {
       const users = db.getUsers();
