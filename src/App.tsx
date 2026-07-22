@@ -12,7 +12,6 @@ import UploadView from './components/UploadView';
 import PromptConfigView from './components/PromptConfigView';
 import ConfigView from './components/ConfigView';
 import LogsView from './components/LogsView';
-import AgendaView from './components/AgendaView';
 import OrganigramaView from './components/OrganigramaView';
 
 // Domain types
@@ -34,7 +33,6 @@ export default function App() {
   const [darkMode, setDarkMode] = useState<boolean>(false);
   const [currentTheme, setCurrentTheme] = useState<string>('predeterminado');
   const [showMascotBubble, setShowMascotBubble] = useState<boolean>(true);
-  const [agendaEvents, setAgendaEvents] = useState<any[]>([]);
 
   // Fetch active visual theme
   useEffect(() => {
@@ -47,30 +45,6 @@ export default function App() {
       })
       .catch(err => console.error('Error loading active visual theme:', err));
   }, []);
-
-  const fetchAgendaEvents = async () => {
-    if (!token) return;
-    try {
-      const response = await fetch('/api/agenda', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setAgendaEvents(data);
-      }
-    } catch (e) {
-      console.error('Error loading global agenda:', e);
-    }
-  };
-
-  // Sync agenda events globally on token or tab change
-  useEffect(() => {
-    if (token) {
-      fetchAgendaEvents();
-    }
-  }, [token, currentTab]);
 
   // Initialize Dark Theme
   useEffect(() => {
@@ -305,12 +279,6 @@ export default function App() {
             onThemeChanged={(theme) => setCurrentTheme(theme)}
           />
         );
-      case 'agenda':
-        return (
-          <AgendaView 
-            currentUser={currentUser}
-          />
-        );
       case 'organigrama':
         return (
           <OrganigramaView />
@@ -486,56 +454,19 @@ export default function App() {
               <div className="font-extrabold text-indigo-600 dark:text-indigo-400 uppercase text-[9px] tracking-wider pb-1.5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
                 <span className="flex items-center gap-1">
                   <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-ping"></span>
-                  {currentTheme === 'nubes' && 'Remitente: Nubis ☁️'}
+                  {currentTheme === 'nubes' && 'Asistente: Nubis ☁️'}
                   {currentTheme === 'neon' && 'Soporte: Cyber-V2 🤖'}
                   {currentTheme === 'bosque' && 'Saber: Paco la Llama 🦙'}
                   {currentTheme === 'galaxy' && 'Misión: AstroBoy 🚀'}
                 </span>
-                <span className="text-[8px] text-slate-400">Agenda</span>
+                <span className="text-[8px] text-slate-400">UGEL Bellavista</span>
               </div>
 
-              {/* Content / Reminders List */}
-              <div className="space-y-2">
-                {agendaEvents && agendaEvents.filter(e => new Date(e.fecha).getTime() >= new Date().getTime()).length > 0 ? (
-                  <>
-                    <p className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase">
-                      Próximos Eventos en Agenda:
-                    </p>
-                    <div className="space-y-1.5 max-h-[140px] overflow-y-auto pr-1">
-                      {agendaEvents
-                        .filter(e => new Date(e.fecha).getTime() >= new Date().getTime())
-                        .slice(0, 3)
-                        .map((event, idx) => {
-                          const eventDate = new Date(event.fecha);
-                          const formattedTime = eventDate.toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' });
-                          const formattedDay = eventDate.toLocaleDateString('es-PE', { day: 'numeric', month: 'short' });
-                          return (
-                            <div key={idx} className="p-2 rounded-lg bg-slate-50 dark:bg-slate-950/40 border border-slate-100 dark:border-slate-800/60 flex flex-col gap-0.5">
-                              <div className="flex justify-between items-center text-[9px] font-bold text-slate-400">
-                                <span className="uppercase">{event.tipo} 🕒 {formattedTime}</span>
-                                <span className="bg-rose-500/10 text-rose-500 px-1 rounded">{formattedDay}</span>
-                              </div>
-                              <span className="font-bold text-slate-800 dark:text-slate-200 truncate uppercase">{event.title}</span>
-                            </div>
-                          );
-                        })}
-                    </div>
-                  </>
-                ) : (
-                  <div className="py-2 text-center text-slate-400 space-y-1">
-                    <p className="font-bold">No hay eventos pendientes hoy.</p>
-                    <p className="text-[10px] leading-relaxed">¡Excelente día para avanzar con los trámites o informes de despacho!</p>
-                  </div>
-                )}
+              {/* Content */}
+              <div className="py-1 text-center text-slate-600 dark:text-slate-300 space-y-1">
+                <p className="font-bold">¡Hola, {currentUser?.name}!</p>
+                <p className="text-[10px] leading-relaxed">¿Listo para redactar documentos oficiales hoy? Haz clic en "Nuevo Documento" para comenzar.</p>
               </div>
-
-              {/* Action Button */}
-              <button
-                onClick={() => setCurrentTab('agenda')}
-                className="w-full py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-[9px] font-bold uppercase tracking-wider transition-colors active:scale-95"
-              >
-                Organizar Agenda 📅
-              </button>
 
               {/* Bubble tail */}
               <div className="absolute bottom-[-6px] right-6 w-3 h-3 bg-white dark:bg-slate-900 border-r border-b border-slate-200/80 dark:border-slate-800 transform rotate-45"></div>

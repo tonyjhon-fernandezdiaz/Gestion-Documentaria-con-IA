@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 import { User as UserType } from '../types';
 
-export type SidebarTab = 'inicio' | 'documentos' | 'subir' | 'prompts' | 'config' | 'logs' | 'agenda' | 'organigrama';
+export type SidebarTab = 'inicio' | 'documentos' | 'subir' | 'prompts' | 'config' | 'logs' | 'organigrama';
 
 interface SidebarProps {
   currentTab: SidebarTab;
@@ -59,14 +59,7 @@ export default function Sidebar({
       activeColor: 'ring-2 ring-slate-600 bg-slate-200 dark:bg-slate-700 text-slate-900 dark:text-white',
       roles: ['Administrador', 'Secretaria', 'Jefe', 'Consulta']
     },
-    { 
-      id: 'agenda' as const, 
-      label: 'Agenda de Pendientes', 
-      icon: Calendar,
-      bgColor: 'bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400',
-      activeColor: 'ring-2 ring-rose-500 bg-rose-100 dark:bg-rose-900/60 text-rose-700 dark:text-rose-300',
-      roles: ['Administrador', 'Secretaria', 'Jefe', 'Consulta']
-    },
+
     { 
       id: 'organigrama' as const, 
       label: 'Organigrama y Secretarías', 
