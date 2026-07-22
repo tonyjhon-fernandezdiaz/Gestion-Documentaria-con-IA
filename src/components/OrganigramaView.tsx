@@ -66,10 +66,11 @@ export default function OrganigramaView() {
 
   const tree = buildTree();
   const getNodeById = (id: string, nodes: OrgNode[] = tree): OrgNode | null => {
+    if (!nodes || nodes.length === 0) return null;
     for (const n of nodes) { if (n.id === id) return n; const r = getNodeById(id, n.children); if (r) return r; }
     return null;
   };
-  const activeNode = getNodeById(selectedNode || '');
+  const activeNode = tree.length > 0 ? getNodeById(selectedNode || '') : null;
 
   const getSubUnitNames = (id: string): string[] => {
     const node = getNodeById(id);
@@ -82,11 +83,11 @@ export default function OrganigramaView() {
     return subs;
   };
 
-  const totalSecretarias = users.filter(u => u.condicion === 'Secretaria').length;
+  const totalSecretarias = users.filter((u: any) => u.condicion === 'Secretaria').length;
   const areasWithSec = areas.filter((a: any) => getSecretariaCount(a.id) > 0).length;
 
   const allNodes: OrgNode[] = [];
-  const flatten = (nodes: OrgNode[]) => { for (const n of nodes) { allNodes.push(n); flatten(n.children); } };
+  const flatten = (nodes: OrgNode[]) => { if (!nodes) return; for (const n of nodes) { allNodes.push(n); flatten(n.children); } };
   flatten(tree);
 
   const filteredNodes = allNodes.filter(n => {
@@ -95,9 +96,9 @@ export default function OrganigramaView() {
     return matchesSearch && matchesSec;
   });
 
-  const dirNode = tree[0];
-  const officeNodes = dirNode?.children.filter(c => c.category === 'Apoyo') || [];
-  const lineNodes = dirNode?.children.filter(c => c.category === 'Linea') || [];
+  const dirNode = tree[0] || null;
+  const officeNodes = (dirNode?.children || []).filter(c => c.category === 'Apoyo');
+  const lineNodes = (dirNode?.children || []).filter(c => c.category === 'Linea');
 
   return (
     <div className="w-full max-w-7xl mx-auto p-4 md:p-6 space-y-6 z-10 relative" id="organigrama_view_container">
