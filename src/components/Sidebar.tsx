@@ -49,7 +49,7 @@ export default function Sidebar({
       icon: FilePlus2,
       bgColor: 'bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400',
       activeColor: 'ring-2 ring-amber-500 bg-amber-100 dark:bg-amber-900/60 text-amber-700 dark:text-amber-300',
-      roles: ['Administrador', 'Secretaria']
+      roles: ['Administrador', 'Secretaria', 'Jefe', 'Consulta']
     },
     { 
       id: 'documentos' as const, 

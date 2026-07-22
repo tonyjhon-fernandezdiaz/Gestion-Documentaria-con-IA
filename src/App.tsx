@@ -244,10 +244,6 @@ export default function App() {
           />
         );
       case 'subir':
-        // Filter: only allow admin or secretary
-        if (!['Administrador', 'Secretaria'].includes(currentUser.role)) {
-          return <RoleUnauthorizedBlock />;
-        }
         return (
           <UploadView 
             currentUser={currentUser} 
