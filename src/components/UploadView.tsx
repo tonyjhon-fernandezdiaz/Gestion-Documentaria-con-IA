@@ -23,7 +23,8 @@ import {
   Check,
   Info,
   Plus,
-  Trash2
+  Trash2,
+  ShieldCheck
 } from 'lucide-react';
 import { DocumentType, User as UserType } from '../types';
 import { safeStorage } from '../utils/storage';
@@ -177,11 +178,9 @@ export default function UploadView({ currentUser, onDocumentAdded }: UploadViewP
   const [savedUserRole, setSavedUserRole] = useState<string>('');
   const [savedRecipients, setSavedRecipients] = useState<{ id: string; nombre: string; cargo: string; sexo?: 'F' | 'M' }[]>([]);
 
-  // Saludo del documento según el sexo del destinatario: F -> "A LA", si no -> "AL".
+  // Siempre "A" (cubre ambos géneros, reemplazando "A LA"/"AL")
   const getSalutation = (name?: string): string => {
-    if (!name) return 'AL';
-    const match = savedRecipients.find(r => r.nombre.trim().toUpperCase() === name.trim().toUpperCase());
-    return match?.sexo === 'F' ? 'A LA' : 'AL';
+    return 'A';
   };
   const [showDestinatarioDropdown, setShowDestinatarioDropdown] = useState(false);
 
@@ -253,6 +252,10 @@ export default function UploadView({ currentUser, onDocumentAdded }: UploadViewP
   const [remitenteNombre, setRemitenteNombre] = useState<string>('');
   const [remitenteCargo, setRemitenteCargo] = useState<string>('');
 
+  // Encargado (firma como encargado de otra área)
+  const [isEncargado, setIsEncargado] = useState(false);
+  const [encargadoAreaId, setEncargadoAreaId] = useState<string>('');
+
   // Computed values for backward compatibility
   const activeDocTypeLabel = docType === 'Otros' ? (customDocType.trim() || 'Otros') : docType;
   const selectedAreaObj = areasList.find(a => a.id === selectedAreaId);
@@ -278,7 +281,16 @@ export default function UploadView({ currentUser, onDocumentAdded }: UploadViewP
 
   useEffect(() => {
     if (!currentUser) return;
-    
+
+    if (isEncargado && encargadoAreaId) {
+      // Firma como encargado: se usa el nombre del usuario actual pero con cargo de "Encargado(a)"
+      const encArea = areasList.find(a => a.id === encargadoAreaId);
+      const areaName = encArea ? encArea.name : '—';
+      setRemitenteNombre(currentUser.name);
+      setRemitenteCargo(`Encargado(a) del ${areaName}`);
+      return;
+    }
+
     // El DE (remitente) se vincula automáticamente al área del usuario.
     // Si el área tiene un responsable configurado, se usa ese (jefe/jefa).
     // Las secretarías nunca firman con su propio nombre, siempre como el jefe del área.
@@ -299,7 +311,7 @@ export default function UploadView({ currentUser, onDocumentAdded }: UploadViewP
       setRemitenteNombre(currentUser.name);
       setRemitenteCargo(currentUser.cargo || currentUser.role);
     }
-  }, [selectedAreaId, currentUser, areasList]);
+  }, [selectedAreaId, currentUser, areasList, isEncargado, encargadoAreaId]);
 
   // Fetch correlative number when area or docType changes
   useEffect(() => {
@@ -1236,59 +1248,62 @@ export default function UploadView({ currentUser, onDocumentAdded }: UploadViewP
 
           <div className="space-y-3">
             
-            {/* Field 1: Tipo de documento */}
-            <div className="flex items-center justify-between">
-              <label className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
-                Tipo de documento
-              </label>
-              {templateMatch && (templateMatch.matchLevel === 'exact' || templateMatch.matchLevel === 'parent') && (
-                <span className={`text-[9px] font-bold font-mono px-2 py-0.5 rounded border transition-all ${
-                  templateMatch.matchLevel === 'exact' 
-                    ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
-                    : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30'
-                }`}>
-                  {templateMatch.matchLevel === 'exact' && '🟢 Plantilla Oficial'}
-                  {templateMatch.matchLevel === 'parent' && `🟡 Heredada`}
-                </span>
-              )}
-            </div>
-            <select 
-              value={docType}
-              onChange={(e) => setDocType(e.target.value as any)}
-              className="w-full px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:border-blue-500 transition-colors font-medium"
-            >
-              {ALL_DOC_TYPES.map(t => (
-                <option key={t} value={t}>{t}</option>
-              ))}
-            </select>
-            {docType === 'Otros' && (
-              <input 
-                type="text"
-                required
-                placeholder="Especifique tipo de documento..."
-                value={customDocType}
-                onChange={(e) => setCustomDocType(e.target.value)}
-                className="w-full mt-1.5 px-3 py-1.5 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:border-blue-500 transition-all font-semibold uppercase"
-              />
-            )}
-
-            {/* Field 2: N° de documento (Manual / Correlativo) */}
-            <div className="space-y-1">
-              <div className="flex items-center justify-between">
-                <label className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
-                  N° de documento (Manual / Correlativo)
-                </label>
-                <span className="text-[9px] text-emerald-600 dark:text-emerald-400 font-mono font-bold">
-                  Autoincremento
-                </span>
+            {/* Field 1+2: Tipo de documento + N° de documento en la misma fila */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <div className="flex items-center justify-between">
+                  <label className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
+                    Tipo de documento
+                  </label>
+                  {templateMatch && (templateMatch.matchLevel === 'exact' || templateMatch.matchLevel === 'parent') && (
+                    <span className={`text-[9px] font-bold font-mono px-2 py-0.5 rounded border transition-all ${
+                      templateMatch.matchLevel === 'exact' 
+                        ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
+                        : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30'
+                    }`}>
+                      {templateMatch.matchLevel === 'exact' && '🟢 Plantilla Oficial'}
+                      {templateMatch.matchLevel === 'parent' && `🟡 Heredada`}
+                    </span>
+                  )}
+                </div>
+                <select 
+                  value={docType}
+                  onChange={(e) => setDocType(e.target.value as any)}
+                  className="w-full px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:border-blue-500 transition-colors font-medium"
+                >
+                  {ALL_DOC_TYPES.map(t => (
+                    <option key={t} value={t}>{t}</option>
+                  ))}
+                </select>
+                {docType === 'Otros' && (
+                  <input 
+                    type="text"
+                    required
+                    placeholder="Especifique tipo de documento..."
+                    value={customDocType}
+                    onChange={(e) => setCustomDocType(e.target.value)}
+                    className="w-full mt-1.5 px-3 py-1.5 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:border-blue-500 transition-all font-semibold uppercase"
+                  />
+                )}
               </div>
-              <input 
-                type="text" 
-                placeholder="0001"
-                value={docNumber}
-                onChange={(e) => setDocNumber(e.target.value)}
-                className="w-full px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 text-xs text-slate-800 dark:text-slate-100 font-mono font-bold focus:outline-none focus:border-blue-500 transition-colors"
-              />
+
+              <div className="space-y-1">
+                <div className="flex items-center justify-between">
+                  <label className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
+                    N° de documento (Manual / Correlativo)
+                  </label>
+                  <span className="text-[9px] text-emerald-600 dark:text-emerald-400 font-mono font-bold">
+                    Autoincremento
+                  </span>
+                </div>
+                <input 
+                  type="text" 
+                  placeholder="0001"
+                  value={docNumber}
+                  onChange={(e) => setDocNumber(e.target.value)}
+                  className="w-full px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 text-xs text-slate-800 dark:text-slate-100 font-mono font-bold focus:outline-none focus:border-blue-500 transition-colors"
+                />
+              </div>
             </div>
 
 
@@ -1448,6 +1463,58 @@ export default function UploadView({ currentUser, onDocumentAdded }: UploadViewP
                   </div>
                 ))}
               </div>
+            </div>
+
+            {/* Encargado: Firmar como encargado de otra área */}
+            <div className="border-t border-slate-100 dark:border-slate-800/60 pt-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (isEncargado) {
+                        setIsEncargado(false);
+                        setEncargadoAreaId('');
+                      } else {
+                        setIsEncargado(true);
+                      }
+                    }}
+                    className={`px-2.5 py-1 rounded-lg text-[10px] font-extrabold transition-all flex items-center gap-1.5 active:scale-95 ${
+                      isEncargado
+                        ? 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400 border border-amber-300/50 dark:border-amber-700/50'
+                        : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700'
+                    }`}
+                    title="Firmar como encargado"
+                  >
+                    <ShieldCheck size={13} />
+                    <span>{isEncargado ? '(e) Activo' : '(e)'}</span>
+                  </button>
+                  {isEncargado && (
+                    <span className="text-[10px] text-amber-600 dark:text-amber-400 font-semibold">
+                      Firmando como encargado
+                    </span>
+                  )}
+                </div>
+              </div>
+              {isEncargado && (
+                <div className="mt-2">
+                  <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 block mb-1">
+                    Seleccione el área de la cual es encargado
+                  </label>
+                  <select
+                    value={encargadoAreaId}
+                    onChange={(e) => setEncargadoAreaId(e.target.value)}
+                    className="w-full px-3 py-1.5 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:border-blue-500 transition-colors font-medium"
+                  >
+                    <option value="">-- Seleccionar área --</option>
+                    {areasList.map((area: any) => (
+                      <option key={area.id} value={area.id}>
+                        {area.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
             </div>
 
             {/* Field 6: Asunto */}
@@ -1798,6 +1865,12 @@ export default function UploadView({ currentUser, onDocumentAdded }: UploadViewP
                             {remitenteNombre || currentUser.name}
                             <span className="block text-[9px] sm:text-[10px] text-slate-600 dark:text-slate-400 font-extrabold mt-0.5 uppercase">
                               {remitenteCargo || currentUser.role}
+                              {isEncargado && (
+                                <span className="inline-flex items-center gap-0.5 ml-1.5 text-[9px] font-bold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 px-1.5 py-0.5 rounded-sm border border-amber-200/50 dark:border-amber-700/50">
+                                  <ShieldCheck size={9} />
+                                  (e)
+                                </span>
+                              )}
                             </span>
                           </div>
                         </div>
