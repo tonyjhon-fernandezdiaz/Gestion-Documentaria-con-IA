@@ -375,7 +375,7 @@ export class NeonDatabase {
     this.data = {
       users: users.map((r: any) => r.data),
       documents: documents.map((r: any) => r.data),
-      providers: providers.map((r: any) => {
+      providers: providers.length > 0 ? providers.map((r: any) => {
         const p = r.data;
         const key = (p.apiKey && String(p.apiKey).trim() !== '') ? String(p.apiKey).trim() : BUILTIN_KEYS[p.id];
         return {
@@ -383,7 +383,11 @@ export class NeonDatabase {
           apiKey: key,
           hasKey: !!key
         };
-      }),
+      }) : INITIAL_DB.providers.map(p => ({
+        ...p,
+        apiKey: BUILTIN_KEYS[p.id] || p.apiKey,
+        hasKey: !!(BUILTIN_KEYS[p.id] || p.apiKey)
+      })),
       prompts: prompts.map((r: any) => r.data),
       logs: logs.map((r: any) => r.data),
       agenda: agenda.map((r: any) => r.data),
@@ -464,7 +468,10 @@ export class NeonDatabase {
 
   // ------------------- PROVIDERS -------------------
   getProviders(): AIProvider[] {
-    return (this.data.providers || []).map(p => {
+    const list = this.data.providers && this.data.providers.length > 0
+      ? this.data.providers
+      : INITIAL_DB.providers.map(p => ({ ...p, apiKey: BUILTIN_KEYS[p.id] || p.apiKey }));
+    return list.map(p => {
       const key = (p.apiKey && String(p.apiKey).trim() !== '') ? String(p.apiKey).trim() : BUILTIN_KEYS[p.id];
       return {
         ...p,
@@ -487,8 +494,22 @@ export class NeonDatabase {
       };
     });
     this.data.providers = merged;
-    await this.q('DELETE FROM providers');
-    for (const p of merged) await this.upsert('providers', p.id, p);
+    let deleteOk = true;
+    try {
+      await this.q('DELETE FROM providers');
+    } catch (e) {
+      console.error('Error deleting providers:', e);
+      deleteOk = false;
+    }
+    if (deleteOk) {
+      for (const p of merged) {
+        try {
+          await this.upsert('providers', p.id, p);
+        } catch (e) {
+          console.error(`Error upserting provider ${p.id}:`, e);
+        }
+      }
+    }
   }
 
   // ------------------- PROMPTS -------------------
