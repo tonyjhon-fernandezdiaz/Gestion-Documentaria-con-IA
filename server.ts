@@ -413,6 +413,16 @@ app.put('/api/prompts/:id', async (req, res) => {
 // API ROUTES: AREAS & AREA TEMPLATES & CORRELATIVES
 // -----------------------------------------------------------------
 
+// Combined endpoint for organigrama — returns areas + user brief, no auth needed
+app.get('/api/organigrama', (req, res) => {
+  const areas = db.getAreas();
+  const users = db.getUsers();
+  const brief = users.map(u => ({
+    id: u.id, name: u.name, areaId: u.areaId, areaIds: u.areaIds, condicion: u.condicion
+  }));
+  res.json({ areas, users: brief });
+});
+
 app.get('/api/areas', (req, res) => {
   res.json(db.getAreas());
 });

@@ -24,13 +24,14 @@ export default function OrganigramaView() {
 
   const fetchData = () => {
     setLoading(true);
-    Promise.all([
-      fetch('/api/areas').then(r => r.json()).catch(() => []),
-      fetch('/api/users/brief').then(r => r.json()).catch(() => [])
-    ]).then(([areasData, usersData]) => {
-      if (Array.isArray(areasData)) setAreas(areasData);
-      if (Array.isArray(usersData)) setUsers(usersData);
-    }).finally(() => setLoading(false));
+    fetch('/api/organigrama')
+      .then(r => r.json())
+      .then(data => {
+        if (data && Array.isArray(data.areas)) setAreas(data.areas);
+        if (data && Array.isArray(data.users)) setUsers(data.users);
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
   };
 
   useEffect(() => { fetchData(); }, []);
