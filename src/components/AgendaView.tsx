@@ -129,6 +129,34 @@ export default function AgendaView({ currentUser }: AgendaViewProps) {
     }
   };
 
+  const handleClearAllEvents = async () => {
+    if (!window.confirm('¿Está seguro de que desea eliminar permanentemente todos los eventos de la agenda de todos los usuarios? Esta acción no se puede deshacer.')) {
+      return;
+    }
+
+    try {
+      const token = safeStorage.getItem('saved_session_token');
+      const response = await fetch('/api/agenda', {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      if (response.ok) {
+        setSuccessMsg('Se eliminaron todos los eventos de la agenda de todos los usuarios.');
+        setTimeout(() => setSuccessMsg(null), 3000);
+        setEvents([]);
+      } else {
+        const err = await response.json();
+        setErrorMsg(err.error || 'Error al eliminar eventos.');
+        setTimeout(() => setErrorMsg(null), 3000);
+      }
+    } catch (e: any) {
+      setErrorMsg(`Error de conexión: ${e.message}`);
+      setTimeout(() => setErrorMsg(null), 3000);
+    }
+  };
+
   const getCountdown = (dateStr: string) => {
     const diff = new Date(dateStr).getTime() - new Date().getTime();
     if (diff < 0) {
@@ -159,13 +187,24 @@ export default function AgendaView({ currentUser }: AgendaViewProps) {
             Organiza tus reuniones, links de Zoom/Teams, plazos de expedientes y recordatorios de trabajo
           </p>
         </div>
-        <button
-          onClick={fetchEvents}
-          className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 px-4 py-2 rounded-2xl shadow-sm text-xs text-slate-500 font-medium flex items-center gap-1.5 hover:bg-slate-50 transition-all"
-        >
-          <RefreshCw size={12} className={loading ? 'animate-spin' : ''} />
-          <span>Sincronizar</span>
-        </button>
+        <div className="flex items-center gap-2">
+          {currentUser.role === 'Administrador' && (
+            <button
+              onClick={handleClearAllEvents}
+              className="bg-rose-500 hover:bg-rose-600 text-white px-4 py-2 rounded-2xl shadow-sm text-xs font-bold flex items-center gap-1.5 transition-all"
+            >
+              <Trash2 size={12} />
+              <span>Limpiar Todo</span>
+            </button>
+          )}
+          <button
+            onClick={fetchEvents}
+            className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 px-4 py-2 rounded-2xl shadow-sm text-xs text-slate-500 font-medium flex items-center gap-1.5 hover:bg-slate-50 transition-all"
+          >
+            <RefreshCw size={12} className={loading ? 'animate-spin' : ''} />
+            <span>Sincronizar</span>
+          </button>
+        </div>
       </div>
 
       <div className="grid lg:grid-cols-12 gap-8 items-start">

@@ -1541,6 +1541,30 @@ app.put('/api/agenda/:id', async (req, res) => {
   return res.status(404).json({ error: 'Evento de agenda no encontrado.' });
 });
 
+app.delete('/api/agenda', async (req, res) => {
+  const { id } = req.query;
+
+  if (id) {
+    const eventId = String(id);
+    const event = db.getAgenda().find(e => e.id === eventId);
+    const success = await db.deleteAgendaEvent(eventId);
+
+    if (success && event) {
+      logSystemAction('Usuario', 'Agenda Eliminada', `Evento "${event.title}" fue removido de la agenda.`, 'warning');
+      return res.json({ success: true });
+    }
+    return res.status(404).json({ error: 'Evento no encontrado.' });
+  } else {
+    try {
+      await db.clearAllAgenda();
+      logSystemAction('Administrador', 'Agenda Limpiada', 'Se eliminaron todos los eventos de la agenda de todos los usuarios.', 'warning');
+      return res.json({ success: true, message: 'Todos los eventos de la agenda han sido eliminados.' });
+    } catch (err: any) {
+      return res.status(500).json({ error: `Error al limpiar la agenda: ${err.message}` });
+    }
+  }
+});
+
 app.delete('/api/agenda/:id', async (req, res) => {
   const { id } = req.params;
   const event = db.getAgenda().find(e => e.id === id);

@@ -400,6 +400,11 @@ export class NeonDatabase {
     return true;
   }
 
+  async clearAllAgenda(): Promise<void> {
+    this.data.agenda = [];
+    await this.q('DELETE FROM agenda');
+  }
+
   // ------------------- THEME -------------------
   getTheme(): string { return this.data.activeTheme || 'predeterminado'; }
 
