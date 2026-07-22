@@ -79,7 +79,72 @@ const BUILTIN_KEYS: Record<string, string> = {
 const INITIAL_DB: DatabaseSchema = {
   users: [
     { id: 'admin', username: 'admin', name: 'Administrador', role: 'Administrador', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150', password: '1012', areaId: 'dir', cargo: 'Administrador del Sistema' },
-    { id: '74223117', username: '74223117', name: 'Tony Jhon Fernandez Díaz', role: 'Jefe', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150', password: '74223117', areaId: 'agi', cargo: 'Jefe del Área de Gestión Institucional' }
+    { id: '00874080', username: '00874080', name: 'Margot Fonseca de Vera', role: 'Secretaria', avatar: 'https://ui-avatars.com/api/?name=Margot+Fonseca&background=0D8ABC&color=fff', password: '00874080', areaId: 'dir', cargo: 'Secretaria de Dirección', sexo: 'F' },
+    { id: '71506096', username: '71506096', name: 'Mary Saavedra Taricuarima', role: 'Secretaria', avatar: 'https://ui-avatars.com/api/?name=Mary+Saavedra&background=0D8ABC&color=fff', password: '71506096', areaId: 'dir', cargo: 'Almacen', sexo: 'F' },
+    { id: '71776200', username: '71776200', name: 'Keyla Livany Vasquez Chuquilin', role: 'Secretaria', avatar: 'https://ui-avatars.com/api/?name=Keyla+Livany&background=0D8ABC&color=fff', password: '71776200', areaId: 'adm', cargo: 'Analista de la CPPADD', sexo: 'F' },
+    { id: '42268073', username: '42268073', name: 'Leydi Marín Quezada', role: 'Jefe', avatar: 'https://ui-avatars.com/api/?name=Leydi+Marín&background=0D8ABC&color=fff', password: '42268073', areaId: 'adm', cargo: 'Jefe de la Oficina de Administración', sexo: 'F' },
+    { id: '42773099', username: '42773099', name: 'Leidy Luz Cárdenas Vásquez', role: 'Secretaria', avatar: 'https://ui-avatars.com/api/?name=Leidy+Luz&background=0D8ABC&color=fff', password: '42773099', areaId: 'adm', cargo: 'Servicio Profesional Especializado en la Oficina de Planilla y AIRHSP de la UGEL Bellavista', sexo: 'F' },
+    { id: '40666029', username: '40666029', name: 'Beroccio Ramirez Ríos', role: 'Secretaria', avatar: 'https://ui-avatars.com/api/?name=Beroccio+Ramirez&background=0D8ABC&color=fff', password: '40666029', areaId: 'adm', cargo: 'Especialista en Tesorería', sexo: 'M' },
+    { id: '41656645', username: '41656645', name: 'Ketty Paola Alvarado Cárdenas', role: 'Secretaria', avatar: 'https://ui-avatars.com/api/?name=Ketty+Paola&background=0D8ABC&color=fff', password: '41656645', areaId: 'adm', cargo: 'Servicio Profesional Especializado en la Oficina de Procedimientos Administrativos Disciplinarios (PAD) de la UGEL Bellavista', sexo: 'F' },
+    { id: '71848797', username: '71848797', name: 'Yeny Judith Martínez Rafael', role: 'Secretaria', avatar: 'https://ui-avatars.com/api/?name=Yeny+Judith&background=0D8ABC&color=fff', password: '71848797', areaId: 'agi', cargo: 'Especialista en Planificacion y Presupuesto', sexo: 'F' },
+    { id: '71602492', username: '71602492', name: 'Karen Janeth Flores Lanares', role: 'Secretaria', avatar: 'https://ui-avatars.com/api/?name=Karen+Janeth&background=0D8ABC&color=fff', password: '71602492', areaId: 'adm', cargo: 'Especialista en Contabilidad', sexo: 'F' },
+    { id: '48024213', username: '48024213', name: 'Veronica Salazar Castro', role: 'Secretaria', avatar: 'https://ui-avatars.com/api/?name=Veronica+Salazar&background=0D8ABC&color=fff', password: '48024213', areaId: 'adm', cargo: 'Especialista en Abastecimiento', sexo: 'F' },
+    { id: '71480435', username: '71480435', name: 'Violeta Salazar García', role: 'Secretaria', avatar: 'https://ui-avatars.com/api/?name=Violeta+Salazar&background=0D8ABC&color=fff', password: '71480435', areaId: 'adm', cargo: 'Especialista en Bienestar', sexo: 'F' },
+    { id: '73449707', username: '73449707', name: 'Fiorella Vela Vásquez', role: 'Secretaria', avatar: 'https://ui-avatars.com/api/?name=Fiorella+Vela&background=0D8ABC&color=fff', password: '73449707', areaId: 'adm', cargo: 'Proyectista', sexo: 'F' },
+    { id: '74644880', username: '74644880', name: 'Sutkey Milagritos Ramirez Cabanillas', role: 'Secretaria', avatar: 'https://ui-avatars.com/api/?name=Sutkey+Milagritos&background=0D8ABC&color=fff', password: '74644880', areaId: 'adm', cargo: 'Especialista en Archivo', sexo: 'F' },
+    { id: '77297263', username: '77297263', name: 'Jhoy Lider Gonzales Pinedo', role: 'Secretaria', avatar: 'https://ui-avatars.com/api/?name=Jhoy+Lider&background=0D8ABC&color=fff', password: '77297263', areaId: 'agi', cargo: 'Servicio Profesional Especializado en el Área de Planificación y Presupuesto de la UGEL Bellavista', sexo: 'M' },
+    { id: '05373518', username: '05373518', name: 'Segundo Hipólito Saldaña Pérez', role: 'Secretaria', avatar: 'https://ui-avatars.com/api/?name=Segundo+Hipólito&background=0D8ABC&color=fff', password: '05373518', areaId: 'adm', cargo: 'Responsable de la Oficina de Gestión de Recursos Humanos', sexo: 'M' },
+    { id: '47109452', username: '47109452', name: 'Yesenia Marisol Escobedo Vilchez', role: 'Secretaria', avatar: 'https://ui-avatars.com/api/?name=Yesenia+Marisol&background=0D8ABC&color=fff', password: '47109452', areaId: 'adm', cargo: 'Secretaria de la Oficina de RR.HH.', sexo: 'F' },
+    { id: '72199076', username: '72199076', name: 'Carlos Bendezú Ushiñahua Fasabi', role: 'Secretaria', avatar: 'https://ui-avatars.com/api/?name=Carlos+Bendezú&background=0D8ABC&color=fff', password: '72199076', areaId: 'adm', cargo: 'Servicio Profesional Especializado en la Oficina de Archivo de la UGEL Bellavista', sexo: 'M' },
+    { id: '71928865', username: '71928865', name: 'Lleny Sangama Guerra', role: 'Secretaria', avatar: 'https://ui-avatars.com/api/?name=Lleny+Sangama&background=0D8ABC&color=fff', password: '71928865', areaId: 'adm', cargo: 'Secretaria de la Oficina de Administracion', sexo: 'F' },
+    { id: '70076501', username: '70076501', name: 'Gianny Pezo Cumapa', role: 'Secretaria', avatar: 'https://ui-avatars.com/api/?name=Gianny+Pezo&background=0D8ABC&color=fff', password: '70076501', areaId: 'dir', cargo: 'Asesora Legal', sexo: 'F' },
+    { id: '72087286', username: '72087286', name: 'Diego Torres Rengifo', role: 'Secretaria', avatar: 'https://ui-avatars.com/api/?name=Diego+Torres&background=0D8ABC&color=fff', password: '72087286', areaId: 'adm', cargo: 'Analista en Nexus', sexo: 'M' },
+    { id: '74765595', username: '74765595', name: 'Breidis Santiago Upiachihua Cárdenas', role: 'Secretaria', avatar: 'https://ui-avatars.com/api/?name=Breidis+Santiago&background=0D8ABC&color=fff', password: '74765595', areaId: 'adm', cargo: 'Servicio Profesional Especializado en la Oficina de Tesorería de la UGEL Bellavista', sexo: 'M' },
+    { id: '41048864', username: '41048864', name: 'Juan Carlos Campos Viera', role: 'Secretaria', avatar: 'https://ui-avatars.com/api/?name=Juan+Carlos&background=0D8ABC&color=fff', password: '41048864', areaId: 'adm', cargo: 'Especialista en Planillas', sexo: 'M' },
+    { id: '46864420', username: '46864420', name: 'Gianmarco Panduro Mego', role: 'Secretaria', avatar: 'https://ui-avatars.com/api/?name=Gianmarco+Panduro&background=0D8ABC&color=fff', password: '46864420', areaId: 'adm', cargo: 'Especialista en Informática I', sexo: 'M' },
+    { id: '47059094', username: '47059094', name: 'Dayxs Bravo Bustamante', role: 'Secretaria', avatar: 'https://ui-avatars.com/api/?name=Dayxs+Bravo&background=0D8ABC&color=fff', password: '47059094', areaId: 'adm', cargo: 'Especialista en Escalafón', sexo: 'F' },
+    { id: '74657614', username: '74657614', name: 'Karen Tatiana Hidalgo Vásquez', role: 'Secretaria', avatar: 'https://ui-avatars.com/api/?name=Karen+Tatiana&background=0D8ABC&color=fff', password: '74657614', areaId: 'adm', cargo: 'Servicio Profesional Especializado en la Oficina de Recursos Humanos de la UGEL Bellavista', sexo: 'F' },
+    { id: '27431208', username: '27431208', name: 'Herberth Rivera Cabrera', role: 'Secretaria', avatar: 'https://ui-avatars.com/api/?name=Herberth+Rivera&background=0D8ABC&color=fff', password: '27431208', areaId: 'adm', cargo: 'Vigilante', sexo: 'M' },
+    { id: '74657864', username: '74657864', name: 'Maryori Stephany Muñoz Gonzales', role: 'Secretaria', avatar: 'https://ui-avatars.com/api/?name=Maryori+Stephany&background=0D8ABC&color=fff', password: '74657864', areaId: 'adm', cargo: 'Tecnico Administrativo de Mesa de Partes', sexo: 'F' },
+    { id: '00873189', username: '00873189', name: 'Ricardo Saldaña Guevara', role: 'Secretaria', avatar: 'https://ui-avatars.com/api/?name=Ricardo+Saldaña&background=0D8ABC&color=fff', password: '00873189', areaId: 'adm', cargo: 'Servicio Profesional Especializado en la Seguridad y Vigilancia de la UGEL Bellavista', sexo: 'M' },
+    { id: '43463743', username: '43463743', name: 'Rober Cachique Cachique', role: 'Secretaria', avatar: 'https://ui-avatars.com/api/?name=Rober+Cachique&background=0D8ABC&color=fff', password: '43463743', areaId: 'adm', cargo: 'Servicio Profesional Especializado en la Seguridad y Vigilancia de la UGEL Bellavista', sexo: 'M' },
+    { id: '43296425', username: '43296425', name: 'Ruber Cárdenas Ramirez', role: 'Secretaria', avatar: 'https://ui-avatars.com/api/?name=Ruber+Cárdenas&background=0D8ABC&color=fff', password: '43296425', areaId: 'adm', cargo: 'Servicio Profesional Especializado en la Seguridad y Vigilancia de la UGEL Bellavista', sexo: 'M' },
+    { id: '44072546', username: '44072546', name: 'Ynes Paola Pérez Avila', role: 'Secretaria', avatar: 'https://ui-avatars.com/api/?name=Ynes+Paola&background=0D8ABC&color=fff', password: '44072546', areaId: 'agi', cargo: 'Especialista en Racionalizacion y Estadistica', sexo: 'F' },
+    { id: '74223117', username: '74223117', name: 'Tony Jhon Fernandez Díaz', role: 'Jefe', avatar: 'https://ui-avatars.com/api/?name=Tony+Jhon&background=0D8ABC&color=fff', password: '74223117', areaId: 'agi', cargo: 'Jefe del Area de Gestion Institucional', sexo: 'M' },
+    { id: '60294586', username: '60294586', name: 'Gisela Yudith Vásquez Gonzales', role: 'Secretaria', avatar: 'https://ui-avatars.com/api/?name=Gisela+Yudith&background=0D8ABC&color=fff', password: '60294586', areaId: 'agi', cargo: 'Servicio Profesional Especializado en el Área de Gestión Institucional de la UGEL Bellavista', sexo: 'F' },
+    { id: '76642285', username: '76642285', name: 'Roxanita Carrasco Holguín', role: 'Secretaria', avatar: 'https://ui-avatars.com/api/?name=Roxanita+Carrasco&background=0D8ABC&color=fff', password: '76642285', areaId: 'agi', cargo: 'Especialista de SIAGIE', sexo: 'F' },
+    { id: '45849880', username: '45849880', name: 'Daniel Leonidas La Torre Rengifo', role: 'Secretaria', avatar: 'https://ui-avatars.com/api/?name=Daniel+Leonidas&background=0D8ABC&color=fff', password: '45849880', areaId: 'agi', cargo: 'Especialista en Infraestructura', sexo: 'M' },
+    { id: '00869906', username: '00869906', name: 'Hugo Ushiñahua Trigoso', role: 'Secretaria', avatar: 'https://ui-avatars.com/api/?name=Hugo+Ushiñahua&background=0D8ABC&color=fff', password: '00869906', areaId: 'adm', cargo: 'Chofer', sexo: 'M' },
+    { id: '74770324', username: '74770324', name: 'Gianfranco Nieto Cárdenas', role: 'Secretaria', avatar: 'https://ui-avatars.com/api/?name=Gianfranco+Nieto&background=0D8ABC&color=fff', password: '74770324', areaId: 'adm', cargo: 'Servicio Profesional Especializado en la Oficina de Almacén de la UGEL Bellavista', sexo: 'M' },
+    { id: '72120699', username: '72120699', name: 'Yolby Tapullima Tapullima', role: 'Secretaria', avatar: 'https://ui-avatars.com/api/?name=Yolby+Tapullima&background=0D8ABC&color=fff', password: '72120699', areaId: 'agp', cargo: 'Servicio profesional Especializado en el Área de Gestión Pedagógica de la UGEL Bellavista', sexo: 'F' },
+    { id: '74761394', username: '74761394', name: 'Karen Esther Vela Arirama', role: 'Secretaria', avatar: 'https://ui-avatars.com/api/?name=Karen+Esther&background=0D8ABC&color=fff', password: '74761394', areaId: 'agp', cargo: 'Servicio Profesional Especializado En El Área De Gestión Pedagógica De La UGEL Bellavista', sexo: 'F' },
+    { id: '46864559', username: '46864559', name: 'Sheily Say Huansi Vásquez', role: 'Secretaria', avatar: 'https://ui-avatars.com/api/?name=Sheily+Say&background=0D8ABC&color=fff', password: '46864559', areaId: 'agp', cargo: 'Especialista en Convivencia Escolar', sexo: 'F' },
+    { id: '00885852', username: '00885852', name: 'Franklin Cárdenas Ruíz', role: 'Secretaria', avatar: 'https://ui-avatars.com/api/?name=Franklin+Cárdenas&background=0D8ABC&color=fff', password: '00885852', areaId: 'agp', cargo: 'Especialista en Educacion Nivel Primaria', sexo: 'M' },
+    { id: '18229933', username: '18229933', name: 'Antonio Wilmer Rojas Miranda', role: 'Secretaria', avatar: 'https://ui-avatars.com/api/?name=Antonio+Wilmer&background=0D8ABC&color=fff', password: '18229933', areaId: 'agp', cargo: 'Especialista en Educacion Nivel Secundaria', sexo: 'M' },
+    { id: '00874983', username: '00874983', name: 'Antonio Angulo Ramírez', role: 'Secretaria', avatar: 'https://ui-avatars.com/api/?name=Antonio+Angulo&background=0D8ABC&color=fff', password: '00874983', areaId: 'agp', cargo: 'Coordinador de PRONOEI', sexo: 'M' },
+    { id: '00840196', username: '00840196', name: 'Sonia Angulo Cabrera', role: 'Secretaria', avatar: 'https://ui-avatars.com/api/?name=Sonia+Angulo&background=0D8ABC&color=fff', password: '00840196', areaId: 'agp', cargo: 'Coordinador de PRONOEI', sexo: 'F' },
+    { id: '00874857', username: '00874857', name: 'Pedro Antonio Rengifo Ramírez', role: 'Secretaria', avatar: 'https://ui-avatars.com/api/?name=Pedro+Antonio&background=0D8ABC&color=fff', password: '00874857', areaId: 'agp', cargo: 'Coordinador de PRONOEI', sexo: 'M' },
+    { id: '00878980', username: '00878980', name: 'Ayrunedi Lopez Putpaña', role: 'Secretaria', avatar: 'https://ui-avatars.com/api/?name=Ayrunedi+Lopez&background=0D8ABC&color=fff', password: '00878980', areaId: 'agp', cargo: 'Coordinador de PRONOEI', sexo: 'F' },
+    { id: '19336148', username: '19336148', name: 'Oscar Enrique Ayay Sánchez', role: 'Jefe', avatar: 'https://ui-avatars.com/api/?name=Oscar+Enrique&background=0D8ABC&color=fff', password: '19336148', areaId: 'agp', cargo: 'Jefe del Area de Gestión Pedagógica', sexo: 'M' },
+    { id: '27434297', username: '27434297', name: 'Ernesto Jimenez Chapoñan', role: 'Secretaria', avatar: 'https://ui-avatars.com/api/?name=Ernesto+Jimenez&background=0D8ABC&color=fff', password: '27434297', areaId: 'agp', cargo: 'Especialista en Educacion Nivel Secundaria CC.SS.', sexo: 'M' },
+    { id: '46429187', username: '46429187', name: 'Zarita Isabel Mijahuanga Chumbe', role: 'Secretaria', avatar: 'https://ui-avatars.com/api/?name=Zarita+Isabel&background=0D8ABC&color=fff', password: '46429187', areaId: 'agp', cargo: 'Especialista en Educacion Nivel Inicial', sexo: 'F' },
+    { id: '43113056', username: '43113056', name: 'Silvia Janet Heredia Romero', role: 'Secretaria', avatar: 'https://ui-avatars.com/api/?name=Silvia+Janet&background=0D8ABC&color=fff', password: '43113056', areaId: 'agp', cargo: 'Especialista en Educacion Nivel Inicial', sexo: 'F' },
+    { id: '19669881', username: '19669881', name: 'Salustiano Valdemar Salas Namay', role: 'Secretaria', avatar: 'https://ui-avatars.com/api/?name=Salustiano+Valdemar&background=0D8ABC&color=fff', password: '19669881', areaId: 'agp', cargo: 'Especialista en Educacion Nivel Secundaria Matemática', sexo: 'M' },
+    { id: '41980001', username: '41980001', name: 'Manuel Ramírez Ruíz', role: 'Secretaria', avatar: 'https://ui-avatars.com/api/?name=Manuel+Ramírez&background=0D8ABC&color=fff', password: '41980001', areaId: 'agp', cargo: 'Especialista en Educacion Nivel Secundaria Comunicación', sexo: 'M' },
+    { id: '00868298', username: '00868298', name: 'Victor Vela Ramirez', role: 'Secretaria', avatar: 'https://ui-avatars.com/api/?name=Victor+Vela&background=0D8ABC&color=fff', password: '00868298', areaId: 'agp', cargo: 'Especialista en Educacion Nivel Primaria', sexo: 'M' },
+    { id: '00868004', username: '00868004', name: 'Maria Leonor Revilla Guevara', role: 'Secretaria', avatar: 'https://ui-avatars.com/api/?name=Maria+Leonor&background=0D8ABC&color=fff', password: '00868004', areaId: 'adm', cargo: 'Servicio Profesional Especializado en la Limpieza de la UGEL Bellavista', sexo: 'F' },
+    { id: '47843680', username: '47843680', name: 'Maria Margarita Cubas Sanchéz', role: 'Secretaria', avatar: 'https://ui-avatars.com/api/?name=Maria+Margarita&background=0D8ABC&color=fff', password: '47843680', areaId: 'adm', cargo: 'Especialista en el area de Patrimonio y Almacen', sexo: 'F' },
+    { id: '72024344', username: '72024344', name: 'Joel Gonza Peña', role: 'Secretaria', avatar: 'https://ui-avatars.com/api/?name=Joel+Gonza&background=0D8ABC&color=fff', password: '72024344', areaId: 'adm', cargo: 'Servicio Profesional Especializado en la Oficina de Recursos Humanos de la UGEL Bellavista', sexo: 'M' },
+    { id: '70780194', username: '70780194', name: 'Zack Kevin Alvarado Maldonado', role: 'Secretaria', avatar: 'https://ui-avatars.com/api/?name=Zack+Kevin&background=0D8ABC&color=fff', password: '70780194', areaId: 'agi', cargo: 'Servicio Profesional Especializado en la Oficina de Infraestructura de la UGEL Bellavista', sexo: 'M' },
+    { id: '74148294', username: '74148294', name: 'Kevin Hafid Rojas Cubas', role: 'Secretaria', avatar: 'https://ui-avatars.com/api/?name=Kevin+Hafid&background=0D8ABC&color=fff', password: '74148294', areaId: 'dir', cargo: 'Servicio Profesional Especializado en la Oficina de Asesoria Legal de la UGEL Bellavista', sexo: 'M' },
+    { id: '72160115', username: '72160115', name: 'Maria de los Angeles Noel Vargas de Merino', role: 'Secretaria', avatar: 'https://ui-avatars.com/api/?name=Maria+de&background=0D8ABC&color=fff', password: '72160115', areaId: 'agp', cargo: 'PREVAED', sexo: 'F' },
+    { id: '44324084', username: '44324084', name: 'Rolita Sangama Del Aguila', role: 'Secretaria', avatar: 'https://ui-avatars.com/api/?name=Rolita+Sangama&background=0D8ABC&color=fff', password: '44324084', areaId: 'agp', cargo: 'Coordinador de PRONOEI', sexo: 'F' },
+    { id: '47953187', username: '47953187', name: 'Hiber Miller Yalta Cubas', role: 'Secretaria', avatar: 'https://ui-avatars.com/api/?name=Hiber+Miller&background=0D8ABC&color=fff', password: '47953187', areaId: 'agp', cargo: 'Profesional III para Equipo Itinerante de Convivencia Escolar', sexo: 'M' },
+    { id: '72927716', username: '72927716', name: 'Jhoel Villacorta Salazar', role: 'Secretaria', avatar: 'https://ui-avatars.com/api/?name=Jhoel+Villacorta&background=0D8ABC&color=fff', password: '72927716', areaId: 'agp', cargo: 'Profesional III para Equipo Itinerante de Convivencia Escolar', sexo: 'M' },
+    { id: '45566260', username: '45566260', name: 'Jheimmy Carmin Guevara Tafur', role: 'Secretaria', avatar: 'https://ui-avatars.com/api/?name=Jheimmy+Carmin&background=0D8ABC&color=fff', password: '45566260', areaId: 'agi', cargo: 'Especialista en Finanzas', sexo: 'F' },
+    { id: '77801835', username: '77801835', name: 'Joel Holfer Paredes', role: 'Secretaria', avatar: 'https://ui-avatars.com/api/?name=Joel+Holfer&background=0D8ABC&color=fff', password: '77801835', areaId: 'adm', cargo: 'Servicio Profesional Especializado en la Oficina de Abastecimiento de la UGEL Bellavista', sexo: 'M' },
+    { id: '60811811', username: '60811811', name: 'Luz Barbara Castillo Sangama', role: 'Secretaria', avatar: 'https://ui-avatars.com/api/?name=Luz+Barbara&background=0D8ABC&color=fff', password: '60811811', areaId: 'adm', cargo: 'Especialista en Informática I', sexo: 'F' },
+    { id: '70250027', username: '70250027', name: 'Lorena Soledad Diaz Diaz', role: 'Secretaria', avatar: 'https://ui-avatars.com/api/?name=Lorena+Soledad&background=0D8ABC&color=fff', password: '70250027', areaId: 'agp', cargo: 'Estadística y racionalización ( PRACTICANTE)', sexo: 'F' }
   ],
   providers: [
     { id: 'gemini', name: 'Google Gemini', priority: 1, enabled: true, hasKey: true, apiKey: BUILTIN_KEYS.gemini, modelName: 'gemini-2.5-flash', tokensConsumed: 0, balance: 99.82 },
@@ -173,13 +238,13 @@ export class NeonDatabase {
         }
       }
 
-      // Limpieza única: dejar solo los usuarios oficiales (admin + 74223117),
-      // eliminando los secretarios sembrados anteriormente (agp, agi, rrhh, adm, dir).
+      // Limpieza única: dejar solo los usuarios oficiales del Excel (admin + colaboradores),
+      // eliminando cualquier usuario sembrado anteriormente que ya no esté en la lista.
       const usersCleanup = await this.q("SELECT value FROM kv WHERE key = 'users_cleanup'");
-      if (usersCleanup[0]?.value !== 'v-ugel-2') {
+      if (usersCleanup[0]?.value !== 'v-ugel-3') {
         const keepIds = INITIAL_DB.users.map(u => u.id);
         await this.q('DELETE FROM users WHERE id <> ALL($1::text[])', [keepIds]);
-        await this.q("INSERT INTO kv (key, value) VALUES ('users_cleanup', 'v-ugel-2') ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value");
+        await this.q("INSERT INTO kv (key, value) VALUES ('users_cleanup', 'v-ugel-3') ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value");
       }
 
       // Auto-heal and sync active default providers with working keys
@@ -189,13 +254,13 @@ export class NeonDatabase {
           await this.upsert('providers', p.id, p);
         } else {
           // ALWAYS sync active working key, priority, and modelName into PostgreSQL database row!
-          const merged = { 
-            ...check[0].data, 
+          const merged = {
+            ...check[0].data,
             priority: p.priority,
             apiKey: p.apiKey || check[0].data.apiKey,
             hasKey: !!(p.apiKey || check[0].data.apiKey),
             modelName: p.modelName || check[0].data.modelName,
-            apiUrl: p.apiUrl || check[0].data.apiUrl 
+            apiUrl: p.apiUrl || check[0].data.apiUrl
           };
           await this.upsert('providers', p.id, merged);
         }
@@ -320,7 +385,7 @@ export class NeonDatabase {
   }
 
   // ------------------- PROVIDERS -------------------
-  getProviders(): AIProvider[] { 
+  getProviders(): AIProvider[] {
     return (this.data.providers || []).map(p => {
       const key = (p.apiKey && String(p.apiKey).trim() !== '') ? String(p.apiKey).trim() : BUILTIN_KEYS[p.id];
       return {
@@ -328,14 +393,14 @@ export class NeonDatabase {
         apiKey: key,
         hasKey: !!key
       };
-    }); 
+    });
   }
 
   async updateProviders(providers: AIProvider[]): Promise<void> {
     const merged = providers.map(p => {
       const existing = (this.data.providers || []).find(c => c.id === p.id);
-      const keyToSave = (p.apiKey && String(p.apiKey).trim() !== '') 
-        ? String(p.apiKey).trim() 
+      const keyToSave = (p.apiKey && String(p.apiKey).trim() !== '')
+        ? String(p.apiKey).trim()
         : (existing?.apiKey || BUILTIN_KEYS[p.id]);
       return {
         ...p,
@@ -459,10 +524,10 @@ export class NeonDatabase {
 
     // Level 1: Match areaId (or subareaId) AND docType AND subtipo
     if (subtipo && subtipo.trim()) {
-      const level1 = templates.find(t => 
-        (t.areaId === areaId || t.subareaId === areaId) && 
-        t.documentType === docType && 
-        (t.subtipoProposito.toLowerCase() === subtipo.toLowerCase() || 
+      const level1 = templates.find(t =>
+        (t.areaId === areaId || t.subareaId === areaId) &&
+        t.documentType === docType &&
+        (t.subtipoProposito.toLowerCase() === subtipo.toLowerCase() ||
          subtipo.toLowerCase().includes(t.subtipoProposito.toLowerCase()))
       );
       if (level1) return { template: level1, matchLevel: 'exact', matchedAreaName: area.name };
@@ -470,10 +535,10 @@ export class NeonDatabase {
       // Level 2: Parent area fallback
       if (area.parentAreaId) {
         const parentArea = this.getAreaById(area.parentAreaId);
-        const level2 = templates.find(t => 
-          t.areaId === area.parentAreaId && 
-          t.documentType === docType && 
-          (t.subtipoProposito.toLowerCase() === subtipo.toLowerCase() || 
+        const level2 = templates.find(t =>
+          t.areaId === area.parentAreaId &&
+          t.documentType === docType &&
+          (t.subtipoProposito.toLowerCase() === subtipo.toLowerCase() ||
            subtipo.toLowerCase().includes(t.subtipoProposito.toLowerCase()))
         );
         if (level2) return { template: level2, matchLevel: 'parent', matchedAreaName: parentArea?.name || area.parentAreaId };
@@ -555,3 +620,4 @@ export class NeonDatabase {
 }
 
 export const db = new NeonDatabase();
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      
