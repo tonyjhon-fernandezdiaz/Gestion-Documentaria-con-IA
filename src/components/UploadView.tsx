@@ -286,6 +286,10 @@ export default function UploadView({ currentUser, onDocumentAdded }: UploadViewP
     if (selectedAreaObj && selectedAreaObj.responsableNombre) {
       setRemitenteNombre(selectedAreaObj.responsableNombre);
       setRemitenteCargo(selectedAreaObj.responsableCargo || '');
+    } else if (selectedAreaObj) {
+      // Even without an explicit responsable, show the area name so the user sees the change
+      setRemitenteNombre(currentUser.name);
+      setRemitenteCargo(currentUser.cargo ? `${currentUser.cargo} — ${selectedAreaObj.name}` : `${currentUser.role} — ${selectedAreaObj.name}`);
     } else {
       setRemitenteNombre(currentUser.name);
       setRemitenteCargo(currentUser.cargo || currentUser.role);
@@ -477,6 +481,18 @@ export default function UploadView({ currentUser, onDocumentAdded }: UploadViewP
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
+      
+      // Reject image files — the AI models selected here do not support image vision input
+      if (/\.(png|jpg|jpeg|gif|webp|bmp|svg)$/i.test(file.name) || /^image\//.test(file.type)) {
+        triggerAlert(
+          'Formato no compatible',
+          'Los archivos de imagen (PNG, JPG, etc.) no son compatibles con el modelo de IA seleccionado. Use archivos PDF, Word (.docx) o texto (.txt).',
+          'warning'
+        );
+        e.target.value = '';
+        return;
+      }
+
       setUploadedFileName(file.name);
       setUploadedFileMimeType(file.type || 'application/octet-stream');
 

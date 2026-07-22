@@ -27,19 +27,34 @@ interface DatabaseSchema {
 }
 
 export const DEFAULT_AREAS: AreaItem[] = [
-  { id: 'dir', name: 'Dirección UGEL', code: 'DIR', suffix: '-2026-UGEL-DIR' },
-  { id: 'agi', name: 'Área de Gestión Institucional', code: 'AGI', suffix: '-2026-UGEL-AGI' },
+  {
+    id: 'dir', name: 'Dirección UGEL', code: 'DIR', suffix: '-2026-UGEL-DIR',
+    responsableNombre: '', responsableCargo: 'Director(a) de la UGEL Bellavista'
+  },
+  {
+    id: 'agi', name: 'Área de Gestión Institucional', code: 'AGI', suffix: '-2026-UGEL-AGI',
+    responsableNombre: 'Tony Jhon Fernandez Díaz', responsableCargo: 'Jefe del Área de Gestión Institucional'
+  },
   { id: 'planificacion', name: 'Planificación y Presupuesto', code: 'AGI-PP', parentAreaId: 'agi', suffix: '-2026-UGEL-AGI-PP' },
   { id: 'racionalizacion', name: 'Racionalización y Estadística', code: 'AGI-RE', parentAreaId: 'agi', suffix: '-2026-UGEL-AGI-RE' },
   { id: 'infraestructura', name: 'Infraestructura Educativa', code: 'AGI-IE', parentAreaId: 'agi', suffix: '-2026-UGEL-AGI-IE' },
-  { id: 'agp', name: 'Área de Gestión Pedagógica', code: 'AGP', suffix: '-2026-UGEL-AGP' },
+  {
+    id: 'agp', name: 'Área de Gestión Pedagógica', code: 'AGP', suffix: '-2026-UGEL-AGP',
+    responsableNombre: 'Oscar Enrique Ayay Sánchez', responsableCargo: 'Jefe del Área de Gestión Pedagógica'
+  },
   { id: 'inicial-primaria', name: 'Educación Inicial y Primaria', code: 'AGP-EIP', parentAreaId: 'agp', suffix: '-2026-UGEL-AGP-EIP' },
   { id: 'secundaria', name: 'Educación Secundaria y Superior', code: 'AGP-ESS', parentAreaId: 'agp', suffix: '-2026-UGEL-AGP-ESS' },
   { id: 'acompanamiento', name: 'Acompañamiento Pedagógico', code: 'AGP-AP', parentAreaId: 'agp', suffix: '-2026-UGEL-AGP-AP' },
-  { id: 'adm', name: 'Área de Administración', code: 'ADM', suffix: '-2026-UGEL-ADM' },
+  {
+    id: 'adm', name: 'Área de Administración', code: 'ADM', suffix: '-2026-UGEL-ADM',
+    responsableNombre: 'Leydi Marín Quezada', responsableCargo: 'Jefe de la Oficina de Administración'
+  },
   { id: 'finanzas', name: 'Finanzas y Tesorería', code: 'ADM-FT', parentAreaId: 'adm', suffix: '-2026-UGEL-ADM-FT' },
   { id: 'contabilidad', name: 'Contabilidad y Abastecimiento', code: 'ADM-CA', parentAreaId: 'adm', suffix: '-2026-UGEL-ADM-CA' },
-  { id: 'rrhh', name: 'Área de Recursos Humanos', code: 'RRHH', suffix: '-2026-UGEL-RRHH' },
+  {
+    id: 'rrhh', name: 'Área de Recursos Humanos', code: 'RRHH', suffix: '-2026-UGEL-RRHH',
+    responsableNombre: 'Segundo Hipólito Saldaña Pérez', responsableCargo: 'Responsable de la Oficina de Gestión de Recursos Humanos'
+  },
   { id: 'planillas', name: 'Planillas y Escalafón', code: 'RRHH-PE', parentAreaId: 'rrhh', suffix: '-2026-UGEL-RRHH-PE' },
   { id: 'bienestar', name: 'Bienestar Social', code: 'RRHH-BS', parentAreaId: 'rrhh', suffix: '-2026-UGEL-RRHH-BS' },
 ];
