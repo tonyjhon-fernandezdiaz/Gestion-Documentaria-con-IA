@@ -74,7 +74,7 @@ export default function Sidebar({
       icon: Sliders,
       bgColor: 'bg-purple-50 dark:bg-purple-950/40 text-purple-600 dark:text-purple-400',
       activeColor: 'ring-2 ring-purple-500 bg-purple-100 dark:bg-purple-900/60 text-purple-700 dark:text-purple-300',
-      roles: ['Administrador', 'Jefe']
+      roles: ['Administrador']
     }
   ];
 
