@@ -267,6 +267,15 @@ export default function UploadView({ currentUser, onDocumentAdded }: UploadViewP
     }
   }, [currentUser]);
 
+  // Sync docSuffix immediately from area config (no need to wait for async correlativo API)
+  useEffect(() => {
+    if (!selectedAreaId || areasList.length === 0) return;
+    const area = areasList.find((a: any) => a.id === selectedAreaId);
+    if (area?.suffix) {
+      setDocSuffix(area.suffix);
+    }
+  }, [selectedAreaId, areasList]);
+
   useEffect(() => {
     if (!currentUser) return;
     
