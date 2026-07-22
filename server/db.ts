@@ -78,12 +78,8 @@ const BUILTIN_KEYS: Record<string, string> = {
 
 const INITIAL_DB: DatabaseSchema = {
   users: [
-    { id: '1', username: '74223117', name: 'Administrador Principal', role: 'Administrador', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150', password: '101296', areaId: 'dir', cargo: 'Administrador del Sistema' },
-    { id: 'sec-agp', username: 'agp', name: 'Secretaría AGP (Pedagógica)', role: 'Secretaria', avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150', password: '159159', areaId: 'agp', cargo: 'Secretaria de Gestión Pedagógica' },
-    { id: 'sec-agi', username: 'agi', name: 'Secretaría AGI (Institucional)', role: 'Secretaria', avatar: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=150', password: '455645', areaId: 'agi', cargo: 'Secretaria de Gestión Institucional' },
-    { id: 'sec-rrhh', username: 'rrhh', name: 'Secretaría RRHH (Recursos Humanos)', role: 'Secretaria', avatar: 'https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?w=150', password: '123456', areaId: 'rrhh', cargo: 'Secretaria de Recursos Humanos' },
-    { id: 'sec-adm', username: 'adm', name: 'Secretaría ADM (Administración)', role: 'Secretaria', avatar: 'https://images.unsplash.com/photo-1567532939604-b6b5b0db2604?w=150', password: '455645', areaId: 'adm', cargo: 'Secretaria de Administración' },
-    { id: 'sec-dir', username: 'dir', name: 'Secretaría DIR (Dirección)', role: 'Secretaria', avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150', password: '741852', areaId: 'dir', cargo: 'Secretaria de Dirección' }
+    { id: 'admin', username: 'admin', name: 'Administrador', role: 'Administrador', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150', password: '1012', areaId: 'dir', cargo: 'Administrador del Sistema' },
+    { id: '74223117', username: '74223117', name: 'Tony Jhon Fernandez Díaz', role: 'Jefe', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150', password: '74223117', areaId: 'agi', cargo: 'Jefe del Área de Gestión Institucional' }
   ],
   providers: [
     { id: 'gemini', name: 'Google Gemini', priority: 1, enabled: true, hasKey: true, apiKey: BUILTIN_KEYS.gemini, modelName: 'gemini-2.5-flash', tokensConsumed: 0, balance: 99.82 },
@@ -175,6 +171,15 @@ export class NeonDatabase {
           const merged = { ...check[0].data, username: u.username, password: u.password, role: u.role, name: u.name, areaId: check[0].data.areaId || u.areaId, cargo: check[0].data.cargo || u.cargo };
           await this.upsert('users', check[0].data.id || u.id, merged);
         }
+      }
+
+      // Limpieza única: dejar solo los usuarios oficiales (admin + 74223117),
+      // eliminando los secretarios sembrados anteriormente (agp, agi, rrhh, adm, dir).
+      const usersCleanup = await this.q("SELECT value FROM kv WHERE key = 'users_cleanup'");
+      if (usersCleanup[0]?.value !== 'v-ugel-2') {
+        const keepIds = INITIAL_DB.users.map(u => u.id);
+        await this.q('DELETE FROM users WHERE id <> ALL($1::text[])', [keepIds]);
+        await this.q("INSERT INTO kv (key, value) VALUES ('users_cleanup', 'v-ugel-2') ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value");
       }
 
       // Auto-heal and sync active default providers with working keys
