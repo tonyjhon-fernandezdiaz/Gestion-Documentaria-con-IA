@@ -426,6 +426,23 @@ export class NeonDatabase {
     return this.getAreas().find(a => a.id === id);
   }
 
+  async updateArea(id: string, updates: Partial<AreaItem>): Promise<AreaItem | null> {
+    const index = this.data.areas.findIndex(a => a.id === id);
+    if (index === -1) {
+      const defArea = DEFAULT_AREAS.find(a => a.id === id);
+      if (defArea) {
+        const newArea = { ...defArea, ...updates };
+        this.data.areas.push(newArea);
+        await this.upsert('areas', id, newArea);
+        return newArea;
+      }
+      return null;
+    }
+    this.data.areas[index] = { ...this.data.areas[index], ...updates };
+    await this.upsert('areas', id, this.data.areas[index]);
+    return this.data.areas[index];
+  }
+
   getAreaTemplates(): AreaTemplate[] {
     return this.data.areaTemplates || [];
   }
@@ -436,11 +453,12 @@ export class NeonDatabase {
     if (!area) return { template: null, matchLevel: 'none' };
 
     // Level 1: Match areaId (or subareaId) AND docType AND subtipo
-    if (subtipo) {
+    if (subtipo && subtipo.trim()) {
       const level1 = templates.find(t => 
         (t.areaId === areaId || t.subareaId === areaId) && 
         t.documentType === docType && 
-        t.subtipoProposito.toLowerCase() === subtipo.toLowerCase()
+        (t.subtipoProposito.toLowerCase() === subtipo.toLowerCase() || 
+         subtipo.toLowerCase().includes(t.subtipoProposito.toLowerCase()))
       );
       if (level1) return { template: level1, matchLevel: 'exact', matchedAreaName: area.name };
 
@@ -450,7 +468,8 @@ export class NeonDatabase {
         const level2 = templates.find(t => 
           t.areaId === area.parentAreaId && 
           t.documentType === docType && 
-          t.subtipoProposito.toLowerCase() === subtipo.toLowerCase()
+          (t.subtipoProposito.toLowerCase() === subtipo.toLowerCase() || 
+           subtipo.toLowerCase().includes(t.subtipoProposito.toLowerCase()))
         );
         if (level2) return { template: level2, matchLevel: 'parent', matchedAreaName: parentArea?.name || area.parentAreaId };
       }

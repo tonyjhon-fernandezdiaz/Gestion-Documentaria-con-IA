@@ -29,7 +29,8 @@ import {
   Activity,
   AlertTriangle,
   Info,
-  FolderOpen
+  FolderOpen,
+  Network
 } from 'lucide-react';
 import { AIProvider, User as UserType, SystemLog } from '../types';
 import { safeStorage } from '../utils/storage';
@@ -170,7 +171,16 @@ export default function ConfigView({ providers, currentUser, onUpdateProviders, 
   const [userSuccessMessage, setUserSuccessMessage] = useState('');
   const [areasList, setAreasList] = useState<any[]>([]);
   const [newUserAreaId, setNewUserAreaId] = useState('adm');
+  const [newUserAreaIds, setNewUserAreaIds] = useState<string[]>([]);
   const [newUserCargo, setNewUserCargo] = useState('');
+
+  // Areas Management States
+  const [selectedAreaToEdit, setSelectedAreaToEdit] = useState<any | null>(null);
+  const [areaSuffix, setAreaSuffix] = useState('');
+  const [areaResponsableNombre, setAreaResponsableNombre] = useState('');
+  const [areaResponsableCargo, setAreaResponsableCargo] = useState('');
+  const [areaMembreteBase64, setAreaMembreteBase64] = useState('');
+  const [areaLinkedUserIds, setAreaLinkedUserIds] = useState<string[]>([]);
 
   useEffect(() => {
     fetch('/api/areas')
@@ -275,9 +285,8 @@ export default function ConfigView({ providers, currentUser, onUpdateProviders, 
       .catch(err => console.error(err));
   }, [providers, currentUser]);
 
-  // Trigger users fetch on tab switch
   useEffect(() => {
-    if (activeTab === 'usuarios' && currentUser.role === 'Administrador') {
+    if ((activeTab === 'usuarios' || activeTab === 'areas') && currentUser.role === 'Administrador') {
       fetchSystemUsers();
     }
   }, [activeTab, currentUser]);
@@ -630,6 +639,7 @@ export default function ConfigView({ providers, currentUser, onUpdateProviders, 
           role: newUserRole,
           password: newUserPassword.trim(),
           areaId: newUserAreaId,
+          areaIds: newUserAreaIds.length > 0 ? newUserAreaIds : (newUserAreaId ? [newUserAreaId] : []),
           cargo: newUserCargo.trim()
         })
       });
@@ -670,6 +680,7 @@ export default function ConfigView({ providers, currentUser, onUpdateProviders, 
           role: editingUser.role,
           password: editingUser.password || undefined,
           areaId: editingUser.areaId,
+          areaIds: editingUser.areaIds || (editingUser.areaId ? [editingUser.areaId] : []),
           cargo: editingUser.cargo?.trim()
         })
       });
@@ -862,6 +873,18 @@ export default function ConfigView({ providers, currentUser, onUpdateProviders, 
             >
               <UserCheck size={14} />
               <span>Gestión de Usuarios</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('areas')}
+              className={`flex items-center gap-2 px-4 py-2.5 text-xs font-semibold border-b-2 transition-all ${
+                activeTab === 'areas'
+                  ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400 bg-indigo-50/20 dark:bg-slate-900/40 rounded-t-lg'
+                  : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+              }`}
+            >
+              <Network size={14} />
+              <span>Gestión de Áreas</span>
             </button>
 
             <button
@@ -1793,27 +1816,48 @@ export default function ConfigView({ providers, currentUser, onUpdateProviders, 
                   </select>
                 </div>
 
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold uppercase text-slate-500">Área / Oficina UGEL</label>
-                  <select
-                    value={editingUser ? (editingUser.areaId || '') : newUserAreaId}
-                    onChange={(e) => {
-                      const area = e.target.value;
-                      if (editingUser) {
-                        setEditingUser({ ...editingUser, areaId: area });
-                      } else {
-                        setNewUserAreaId(area);
-                      }
-                    }}
-                    className="w-full px-3 py-2 rounded bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs text-slate-800 dark:text-slate-200 focus:outline-none font-medium"
-                  >
-                    <option value="">Ninguna - Externo</option>
-                    {areasList.map((a: any) => (
-                      <option key={a.id} value={a.id}>
-                        {a.parentAreaId ? `↳ ${a.name}` : a.name}
-                      </option>
-                    ))}
-                  </select>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold uppercase text-slate-500 block">Área(s) / Oficina(s) UGEL (Selección Múltiple)</label>
+                  <div className="max-h-36 overflow-y-auto border border-slate-200 dark:border-slate-800 rounded-lg p-2.5 space-y-1.5 bg-slate-50/50 dark:bg-slate-950/30">
+                    {areasList.map((a: any) => {
+                      const currentSelectedIds = editingUser 
+                        ? (editingUser.areaIds || (editingUser.areaId ? [editingUser.areaId] : []))
+                        : newUserAreaIds;
+                      const isChecked = currentSelectedIds.includes(a.id);
+                      
+                      return (
+                        <label key={a.id} className="flex items-center gap-2 text-xs font-medium cursor-pointer select-none">
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={(e) => {
+                              const checked = e.target.checked;
+                              let nextIds = [...currentSelectedIds];
+                              if (checked) {
+                                if (!nextIds.includes(a.id)) nextIds.push(a.id);
+                              } else {
+                                nextIds = nextIds.filter(id => id !== a.id);
+                              }
+                              if (editingUser) {
+                                setEditingUser({ 
+                                  ...editingUser, 
+                                  areaIds: nextIds,
+                                  areaId: nextIds[0] || '' // Sync fallback areaId
+                                });
+                              } else {
+                                setNewUserAreaIds(nextIds);
+                                setNewUserAreaId(nextIds[0] || ''); // Sync fallback
+                              }
+                            }}
+                            className="rounded border-slate-300 dark:border-slate-800 text-indigo-600 focus:ring-indigo-500/20"
+                          />
+                          <span className={a.parentAreaId ? "text-slate-500 ml-3" : "font-bold text-slate-700 dark:text-slate-200"}>
+                            {a.parentAreaId ? `↳ ${a.name}` : a.name}
+                          </span>
+                        </label>
+                      );
+                    })}
+                  </div>
                 </div>
 
                 <div className="space-y-1">
@@ -1915,7 +1959,9 @@ export default function ConfigView({ providers, currentUser, onUpdateProviders, 
                           <td className="p-3 font-mono font-bold text-slate-900 dark:text-white">{user.username}</td>
                           <td className="p-3 font-semibold uppercase">{user.name}</td>
                           <td className="p-3 font-medium text-slate-500 dark:text-slate-400">
-                            {areasList.find(a => a.id === user.areaId)?.name || 'Externo / Ninguna'}
+                            {user.areaIds && user.areaIds.length > 0
+                              ? user.areaIds.map(id => areasList.find(a => a.id === id)?.name).filter(Boolean).join(', ')
+                              : (areasList.find(a => a.id === user.areaId)?.name || 'Externo / Ninguna')}
                           </td>
                           <td className="p-3 font-medium text-slate-500 dark:text-slate-400 italic">
                             {user.cargo || 'No especificado'}
@@ -1960,6 +2006,245 @@ export default function ConfigView({ providers, currentUser, onUpdateProviders, 
                     }
                   </tbody>
                 </table>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Tab: Gestión de Áreas (Admin-Only) */}
+      {activeTab === 'areas' && currentUser.role === 'Administrador' && (
+        <div className="grid lg:grid-cols-12 gap-6 items-start animate-fade-in font-sans">
+          {/* Areas List Panel */}
+          <div className="lg:col-span-5 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-5 shadow-sm space-y-4">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-white border-b border-slate-100 dark:border-slate-800 pb-2.5 flex items-center gap-1.5">
+              <Network size={14} className="text-indigo-500" />
+              <span>Listado de Áreas y Oficinas</span>
+            </h3>
+            
+            <div className="space-y-1.5 max-h-[450px] overflow-y-auto pr-1">
+              {areasList.map((a: any) => {
+                const isSelected = selectedAreaToEdit?.id === a.id;
+                return (
+                  <div
+                    key={a.id}
+                    onClick={() => {
+                      setSelectedAreaToEdit(a);
+                      setAreaSuffix(a.suffix || '');
+                      setAreaResponsableNombre(a.responsableNombre || '');
+                      setAreaResponsableCargo(a.responsableCargo || '');
+                      setAreaMembreteBase64(a.membreteBase64 || '');
+                      const linked = systemUsers
+                        .filter(u => {
+                          const uAreaIds = u.areaIds || (u.areaId ? [u.areaId] : []);
+                          return uAreaIds.includes(a.id);
+                        })
+                        .map(u => u.id);
+                      setAreaLinkedUserIds(linked);
+                    }}
+                    className={`p-3 rounded-xl border text-xs font-medium cursor-pointer transition-all flex items-center justify-between ${
+                      isSelected
+                        ? 'bg-indigo-500/10 border-indigo-500/30 text-indigo-700 dark:text-indigo-300'
+                        : 'bg-slate-50/50 hover:bg-slate-50 dark:bg-slate-950/20 dark:hover:bg-slate-950/45 border-slate-200/60 dark:border-slate-800/80 text-slate-700 dark:text-slate-300'
+                    }`}
+                  >
+                    <span className={a.parentAreaId ? "ml-4 text-[11px]" : "font-bold"}>
+                      {a.parentAreaId ? `↳ ${a.name}` : a.name}
+                    </span>
+                    <span className="text-[10px] px-2 py-0.5 rounded bg-slate-200/50 dark:bg-slate-800/80 font-mono">
+                      {a.code}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Area Edit Panel */}
+          <div className="lg:col-span-7 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-6 shadow-sm space-y-6">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-white border-b border-slate-100 dark:border-slate-800 pb-2.5">
+              {selectedAreaToEdit 
+                ? `Configurar: ${selectedAreaToEdit.name}` 
+                : 'Seleccione un área del listado para configurar'}
+            </h3>
+
+            {selectedAreaToEdit ? (
+              <div className="space-y-4">
+                <div className="grid sm:grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold uppercase text-slate-500">Código de Oficina</label>
+                    <input
+                      type="text"
+                      value={selectedAreaToEdit.code}
+                      disabled
+                      className="w-full px-3 py-2 rounded bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs font-mono text-slate-500 cursor-not-allowed"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold uppercase text-slate-500">Sufijo de numeración por área</label>
+                    <input
+                      type="text"
+                      value={areaSuffix}
+                      onChange={(e) => setAreaSuffix(e.target.value)}
+                      placeholder="Ej. -2026-UGEL-ADM"
+                      className="w-full px-3 py-2 rounded bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid sm:grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold uppercase text-slate-500">Nombre del Responsable (Firma)</label>
+                    <input
+                      type="text"
+                      value={areaResponsableNombre}
+                      onChange={(e) => setAreaResponsableNombre(e.target.value)}
+                      placeholder="Ej. TONY JHON FERNANDEZ DIAZ"
+                      className="w-full px-3 py-2 rounded bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold uppercase text-slate-500">Cargo del Responsable (Firma)</label>
+                    <input
+                      type="text"
+                      value={areaResponsableCargo}
+                      onChange={(e) => setAreaResponsableCargo(e.target.value)}
+                      placeholder="Ej. Jefe del Área de Gestión Institucional"
+                      className="w-full px-3 py-2 rounded bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold uppercase text-slate-500 block">Imagen de membrete / Encabezado de la Oficina</label>
+                  
+                  {areaMembreteBase64 ? (
+                    <div className="space-y-2">
+                      <div className="p-3 border border-slate-200/60 dark:border-slate-800/80 rounded-xl bg-slate-50/50 dark:bg-slate-950/20">
+                        <img 
+                          src={areaMembreteBase64} 
+                          alt="Membrete de Oficina" 
+                          className="max-h-16 w-full object-contain mx-auto rounded"
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setAreaMembreteBase64('')}
+                        className="px-2.5 py-1 rounded bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/20 text-rose-600 dark:text-rose-400 text-[10px] font-bold border border-rose-100 dark:border-rose-900/40 transition-colors"
+                      >
+                        Quitar membrete
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-xl p-4 bg-slate-50 dark:bg-slate-950/40">
+                      <Upload size={20} className="text-slate-400 mb-1" />
+                      <span className="text-[10px] text-slate-500 dark:text-slate-400 text-center mb-2">Subir membrete oficial (PNG/JPG recomendado)</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            const reader = new FileReader();
+                            reader.onload = (evt) => {
+                              if (evt.target?.result) {
+                                setAreaMembreteBase64(evt.target.result as string);
+                              }
+                            };
+                            reader.readAsDataURL(file);
+                          }
+                        }}
+                        className="hidden"
+                        id="area-membrete-file-input"
+                      />
+                      <label
+                        htmlFor="area-membrete-file-input"
+                        className="px-3 py-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-[10px] font-bold text-indigo-600 hover:bg-indigo-50 cursor-pointer shadow-sm transition-colors"
+                      >
+                        Seleccionar Archivo
+                      </label>
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold uppercase text-slate-500 block">Vincular Usuarios a esta Oficina / Área</label>
+                  <div className="max-h-36 overflow-y-auto border border-slate-200 dark:border-slate-800 rounded-xl p-3 space-y-1.5 bg-slate-50/50 dark:bg-slate-950/30">
+                    {systemUsers.length > 0 ? (
+                      systemUsers.map((u) => {
+                        const isChecked = areaLinkedUserIds.includes(u.id);
+                        return (
+                          <label key={u.id} className="flex items-center gap-2 text-xs font-medium cursor-pointer select-none">
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={(e) => {
+                                const checked = e.target.checked;
+                                if (checked) {
+                                  setAreaLinkedUserIds(prev => [...prev, u.id]);
+                                } else {
+                                  setAreaLinkedUserIds(prev => prev.filter(id => id !== u.id));
+                                }
+                              }}
+                              className="rounded border-slate-300 dark:border-slate-800 text-indigo-600 focus:ring-indigo-500/20"
+                            />
+                            <span className="font-bold text-slate-700 dark:text-slate-200 uppercase">{u.name}</span>
+                            <span className="text-[10px] text-slate-400 font-mono">({u.username} - {u.role})</span>
+                          </label>
+                        );
+                      })
+                    ) : (
+                      <div className="text-[10px] text-slate-400 italic">No hay usuarios registrados en el sistema.</div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-slate-100 dark:border-slate-800/80">
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      try {
+                        const token = safeStorage.getItem('saved_session_token');
+                        const response = await fetch(`/api/areas/${selectedAreaToEdit.id}`, {
+                          method: 'PUT',
+                          headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                          },
+                          body: JSON.stringify({
+                            suffix: areaSuffix.trim(),
+                            responsableNombre: areaResponsableNombre.trim(),
+                            responsableCargo: areaResponsableCargo.trim(),
+                            membreteBase64: areaMembreteBase64,
+                            userIds: areaLinkedUserIds
+                          })
+                        });
+                        if (response.ok) {
+                          const updated = await response.json();
+                          setAreasList(prev => prev.map(a => a.id === updated.id ? updated : a));
+                          setSelectedAreaToEdit(updated);
+                          fetchSystemUsers();
+                          showAlert('Configuración Guardada', `Se actualizó la oficina "${updated.name}" con éxito.`, 'success');
+                        } else {
+                          const err = await response.json();
+                          showAlert('Error al Guardar', err.error || 'No se pudo guardar la configuración.', 'danger');
+                        }
+                      } catch (err: any) {
+                        showAlert('Error de Red', err.message, 'danger');
+                      }
+                    }}
+                    className="flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-sm transition-all"
+                  >
+                    <Check size={12} />
+                    <span>Guardar Cambios</span>
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="py-12 text-center text-slate-400 text-xs">
+                Seleccione una de las oficinas del listado de la izquierda para configurar sus firmas oficiales y membrete.
               </div>
             )}
           </div>

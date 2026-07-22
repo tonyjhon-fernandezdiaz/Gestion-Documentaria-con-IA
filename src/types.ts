@@ -8,6 +8,7 @@ export interface User {
   avatar: string;
   password?: string;
   areaId?: string; // linked office or sub-office
+  areaIds?: string[]; // linked offices or sub-offices (multiple support)
   cargo?: string; // custom institutional job title
 }
 
@@ -37,6 +38,9 @@ export interface AreaItem {
   code: string;
   parentAreaId?: string; // If sub-office, links to parent area (e.g. 'adm', 'agi')
   suffix: string; // e.g. '-2026-UGEL-ADM'
+  responsableNombre?: string;
+  responsableCargo?: string;
+  membreteBase64?: string; // base64 representation of office logo/header
 }
 
 export interface AreaTemplate {

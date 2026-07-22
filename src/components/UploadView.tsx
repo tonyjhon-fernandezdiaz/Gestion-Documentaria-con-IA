@@ -112,6 +112,8 @@ export default function UploadView({ currentUser, onDocumentAdded }: UploadViewP
 
   // Computed values for backward compatibility
   const activeDocTypeLabel = docType === 'Otros' ? (customDocType.trim() || 'Otros') : docType;
+  const selectedAreaObj = areasList.find(a => a.id === selectedAreaId);
+  const currentHeaderImage = selectedAreaObj?.membreteBase64 || safeStorage.getItem('saved_area_header_image') || savedHeaderImage;
   const destinatario = recipients[0]?.nombre || '';
   const cargoDestinatario = recipients[0]?.cargo || '';
 
@@ -259,25 +261,30 @@ export default function UploadView({ currentUser, onDocumentAdded }: UploadViewP
     }
   }, [currentUser]);
 
-  // Auto-set Remitente (Firmante) based on user role, area, and subarea logic
   useEffect(() => {
     if (!currentUser) return;
     
-    // Main areas jefaturas mapping
-    const JEFATURAS: Record<string, { nombre: string; cargo: string }> = {
-      agi: { nombre: 'TONY JHON FERNANDEZ DIAZ', cargo: 'JEFE DEL ÁREA DE GESTIÓN INSTITUCIONAL' },
-      adm: { nombre: 'CPC. LEYDI MARIN QUEZADA', cargo: 'JEFA DE LA OFICINA DE ADMINISTRACIÓN' },
-      agp: { nombre: 'MG. VICTOR VELA RAMIREZ', cargo: 'JEFE DEL ÁREA DE GESTIÓN PEDAGÓGICA' },
-      rrhh: { nombre: 'LIC. ADM. SEGUNDO HIPOLITO SALDAÑA PEREZ', cargo: 'RESPONSABLE DE LA OFICINA DE GESTIÓN DE RECURSOS HUMANOS' },
-      dir: { nombre: 'MG. VICTOR VELA RAMIREZ', cargo: 'DIRECTOR DE LA UGEL BELLAVISTA' }
-    };
-
-    if (currentUser.role === 'Secretaria' && selectedAreaId && JEFATURAS[selectedAreaId]) {
-      setRemitenteNombre(JEFATURAS[selectedAreaId].nombre);
-      setRemitenteCargo(JEFATURAS[selectedAreaId].cargo);
+    const selectedAreaObj = areasList.find(a => a.id === selectedAreaId);
+    if (selectedAreaObj && selectedAreaObj.responsableNombre) {
+      setRemitenteNombre(selectedAreaObj.responsableNombre);
+      setRemitenteCargo(selectedAreaObj.responsableCargo || '');
     } else {
-      setRemitenteNombre(currentUser.name);
-      setRemitenteCargo(currentUser.cargo || currentUser.role);
+      // Main areas jefaturas mapping
+      const JEFATURAS: Record<string, { nombre: string; cargo: string }> = {
+        agi: { nombre: 'TONY JHON FERNANDEZ DIAZ', cargo: 'JEFE DEL ÁREA DE GESTIÓN INSTITUCIONAL' },
+        adm: { nombre: 'CPC. LEYDI MARIN QUEZADA', cargo: 'JEFA DE LA OFICINA DE ADMINISTRACIÓN' },
+        agp: { nombre: 'MG. VICTOR VELA RAMIREZ', cargo: 'JEFE DEL ÁREA DE GESTIÓN PEDAGÓGICA' },
+        rrhh: { nombre: 'LIC. ADM. SEGUNDO HIPOLITO SALDAÑA PEREZ', cargo: 'RESPONSABLE DE LA OFICINA DE GESTIÓN DE RECURSOS HUMANOS' },
+        dir: { nombre: 'MG. VICTOR VELA RAMIREZ', cargo: 'DIRECTOR DE LA UGEL BELLAVISTA' }
+      };
+
+      if (currentUser.role === 'Secretaria' && selectedAreaId && JEFATURAS[selectedAreaId]) {
+        setRemitenteNombre(JEFATURAS[selectedAreaId].nombre);
+        setRemitenteCargo(JEFATURAS[selectedAreaId].cargo);
+      } else {
+        setRemitenteNombre(currentUser.name);
+        setRemitenteCargo(currentUser.cargo || currentUser.role);
+      }
     }
   }, [selectedAreaId, currentUser, areasList]);
 
@@ -839,7 +846,7 @@ export default function UploadView({ currentUser, onDocumentAdded }: UploadViewP
   // Export engines for active document draft preview
   const exportToWord = () => {
     const cleanText = cleanDocumentText(generatedDraft);
-    const latestHeaderImage = safeStorage.getItem('saved_area_header_image') || savedHeaderImage;
+    const latestHeaderImage = currentHeaderImage;
     const latestUserName = safeStorage.getItem('saved_user_name') || currentUser.name;
     const latestUserRole = safeStorage.getItem('saved_user_role') || currentUser.role;
 
@@ -951,7 +958,7 @@ export default function UploadView({ currentUser, onDocumentAdded }: UploadViewP
           </div>
 
           <div style="text-align: left; font-weight: bold; font-size: 11pt; margin-bottom: 15px; font-family: Arial, sans-serif;">
-            CARTA N° &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ${docSuffix.trim() ? docSuffix.trim() : '-2026-GRSM- DRE-UGEL-B.'}
+            ${activeDocTypeLabel.toUpperCase()} N° ${docNumber}${docSuffix.trim()}
           </div>
 
           <div style="text-align: left; font-size: 11pt; margin-bottom: 15px; font-family: Arial, sans-serif; line-height: 1.3;">
@@ -1066,7 +1073,7 @@ export default function UploadView({ currentUser, onDocumentAdded }: UploadViewP
 
   const handlePrint = () => {
     const cleanText = cleanDocumentText(generatedDraft);
-    const latestHeaderImage = safeStorage.getItem('saved_area_header_image') || savedHeaderImage;
+    const latestHeaderImage = currentHeaderImage;
     const printWindow = window.open('', '_blank');
     if (printWindow) {
       printWindow.document.write(`
@@ -1199,23 +1206,28 @@ export default function UploadView({ currentUser, onDocumentAdded }: UploadViewP
         {/* LEFT COLUMN: Input Form Parameters matching mockup perfectly */}
         <div className="lg:col-span-6 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl p-5 shadow-sm space-y-3.5" id="form_panel">
           
-          <div className="flex items-center justify-between border-b border-slate-50 dark:border-slate-800 pb-2.5">
-            <h2 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">
-              Nuevo documento
-            </h2>
-            <span className="text-xs font-semibold text-blue-600 dark:text-blue-400 font-mono">
-              {getFullDocCode()}
-            </span>
-          </div>
+
 
           <div className="space-y-3">
             
             {/* Field 1: Tipo de documento & Área / Oficina */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1">
-                <label className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
-                  Tipo de documento
-                </label>
+                <div className="flex items-center justify-between">
+                  <label className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
+                    Tipo de documento
+                  </label>
+                  {templateMatch && (templateMatch.matchLevel === 'exact' || templateMatch.matchLevel === 'parent') && (
+                    <span className={`text-[9px] font-bold font-mono px-2 py-0.5 rounded border transition-all ${
+                      templateMatch.matchLevel === 'exact' 
+                        ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
+                        : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30'
+                    }`}>
+                      {templateMatch.matchLevel === 'exact' && '🟢 Plantilla Oficial'}
+                      {templateMatch.matchLevel === 'parent' && `🟡 Heredada`}
+                    </span>
+                  )}
+                </div>
                 <select 
                   value={docType}
                   onChange={(e) => setDocType(e.target.value as any)}
@@ -1261,97 +1273,28 @@ export default function UploadView({ currentUser, onDocumentAdded }: UploadViewP
               </div>
             </div>
 
-            {/* Field: Propósito / Subtipo & Template Status Badge */}
+
+
+            {/* Field 2: N° de documento (Manual / Correlativo) */}
             <div className="space-y-1">
               <div className="flex items-center justify-between">
                 <label className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
-                  Propósito o Subtipo del Documento
+                  N° de documento (Manual / Correlativo)
                 </label>
-                {templateMatch && (
-                  <span className={`text-[9px] font-bold font-mono px-2 py-0.5 rounded border transition-all ${
-                    templateMatch.matchLevel === 'exact' 
-                      ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
-                      : templateMatch.matchLevel === 'parent'
-                      ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30'
-                      : 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/30'
-                  }`}>
-                    {templateMatch.matchLevel === 'exact' && '🟢 Plantilla Específica Encontrada'}
-                    {templateMatch.matchLevel === 'parent' && `🟡 Heredado de Área Superior: ${templateMatch.matchedAreaName}`}
-                    {(templateMatch.matchLevel === 'general_area' || templateMatch.matchLevel === 'none') && '🔵 Generación Estándar por IA'}
-                  </span>
-                )}
+                <span className="text-[9px] text-emerald-600 dark:text-emerald-400 font-mono font-bold">
+                  Autoincremento
+                </span>
               </div>
               <input 
                 type="text" 
-                placeholder="ej. Certificación Presupuestal, Solicitud de Información, Cumplimiento de Directiva..."
-                value={subtipoProposito}
-                onChange={(e) => setSubtipoProposito(e.target.value)}
-                className="w-full px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 text-xs text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:border-blue-500 transition-colors"
+                placeholder="0001"
+                value={docNumber}
+                onChange={(e) => setDocNumber(e.target.value)}
+                className="w-full px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 text-xs text-slate-800 dark:text-slate-100 font-mono font-bold focus:outline-none focus:border-blue-500 transition-colors"
               />
             </div>
 
-            {/* Field 2 & 3 row: N° de documento & Sufijo de numeración */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <div className="flex items-center justify-between">
-                  <label className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
-                    N° de documento (Manual / Correlativo)
-                  </label>
-                  <span className="text-[9px] text-emerald-600 dark:text-emerald-400 font-mono font-bold">
-                    Autoincremento
-                  </span>
-                </div>
-                <input 
-                  type="text" 
-                  placeholder="0001"
-                  value={docNumber}
-                  onChange={(e) => setDocNumber(e.target.value)}
-                  className="w-full px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 text-xs text-slate-800 dark:text-slate-100 font-mono font-bold focus:outline-none focus:border-blue-500 transition-colors"
-                />
-              </div>
 
-              <div className="space-y-1">
-                <label className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
-                  Sufijo de numeración por área
-                </label>
-                <input 
-                  type="text" 
-                  placeholder="Ej. -2026-UGEL-ADM"
-                  value={docSuffix}
-                  onChange={(e) => setDocSuffix(e.target.value)}
-                  className="w-full px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 text-xs text-slate-800 dark:text-slate-100 font-mono focus:outline-none focus:border-blue-500 transition-colors"
-                />
-              </div>
-            </div>
-
-            {/* Field: Remitente / Firmante */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 border-t border-slate-100 dark:border-slate-800/60 pt-3">
-              <div className="space-y-1">
-                <label className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
-                  Nombre de Remitente (Firma)
-                </label>
-                <input 
-                  type="text" 
-                  value={remitenteNombre}
-                  onChange={(e) => setRemitenteNombre(e.target.value)}
-                  placeholder="Ej. TONY JHON FERNANDEZ DIAZ"
-                  className="w-full px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 text-xs text-slate-800 dark:text-slate-100 font-semibold focus:outline-none focus:border-blue-500 transition-colors uppercase"
-                />
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
-                  Cargo de Remitente (Firma)
-                </label>
-                <input 
-                  type="text" 
-                  value={remitenteCargo}
-                  onChange={(e) => setRemitenteCargo(e.target.value)}
-                  placeholder="Ej. JEFE DEL ÁREA DE GESTIÓN INSTITUCIONAL"
-                  className="w-full px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:border-blue-500 transition-colors uppercase"
-                />
-              </div>
-            </div>
 
             {/* Recipients Section */}
             <div className="space-y-3 border-t border-slate-100 dark:border-slate-800/60 pt-3" id="recipients_section">
@@ -1756,9 +1699,9 @@ export default function UploadView({ currentUser, onDocumentAdded }: UploadViewP
               {/* Document Sheet Head */}
               <div className="space-y-3">
                 
-                {savedHeaderImage ? (
+                {currentHeaderImage ? (
                   <div className="w-full pb-2 select-none flex justify-center">
-                    <img src={savedHeaderImage} alt="Membrete institucional" className="max-h-14 w-full object-contain" />
+                    <img src={currentHeaderImage} alt="Membrete institucional" className="max-h-14 w-full object-contain" />
                   </div>
                 ) : (
                   <div className="w-full pb-2 border-b border-dashed border-slate-300 dark:border-slate-800 flex flex-col items-center justify-center p-2 bg-slate-50/50 dark:bg-slate-900/30 rounded-lg select-none font-sans">
@@ -1775,7 +1718,7 @@ export default function UploadView({ currentUser, onDocumentAdded }: UploadViewP
                     </div>
                     
                     <div className="text-left font-bold text-slate-950 dark:text-white uppercase">
-                      CARTA N° &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {docSuffix.trim() ? docSuffix.trim() : '-2026-GRSM- DRE-UGEL-B.'}
+                      {activeDocTypeLabel.toUpperCase()} N° {docNumber}{docSuffix}
                     </div>
 
                     <div className="text-left leading-normal">

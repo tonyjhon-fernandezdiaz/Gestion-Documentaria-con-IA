@@ -78,7 +78,6 @@ async function generateContentWithFallback(ai: any, params: any): Promise<any> {
   }
   throw lastError || new Error('Error al conectar con los modelos de Google Gemini.');
 }
-}
 const geminiApiKey = process.env.GEMINI_API_KEY;
 
 // Global state for simulating network failures/rate limits for testing fallback
@@ -212,7 +211,7 @@ app.post('/api/users', async (req, res) => {
   if (!checkIsAdmin(req)) {
     return res.status(403).json({ error: 'Acceso denegado. Se requiere rol de Administrador.' });
   }
-  const { username, name, role, password, avatar, areaId, cargo } = req.body;
+  const { username, name, role, password, avatar, areaId, areaIds, cargo } = req.body;
   if (!username || !name || !role || !password) {
     return res.status(400).json({ error: 'Faltan campos obligatorios.' });
   }
@@ -230,6 +229,7 @@ app.post('/api/users', async (req, res) => {
     password,
     avatar: avatar || `https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150`,
     areaId: areaId || undefined,
+    areaIds: areaIds || (areaId ? [areaId] : []),
     cargo: cargo || undefined
   };
 
@@ -380,6 +380,43 @@ app.put('/api/prompts/:id', async (req, res) => {
 
 app.get('/api/areas', (req, res) => {
   res.json(db.getAreas());
+});
+
+app.put('/api/areas/:id', async (req, res) => {
+  if (!checkIsAdmin(req)) {
+    return res.status(403).json({ error: 'Acceso denegado. Solo el administrador puede configurar áreas.' });
+  }
+  const { id } = req.params;
+  const { userIds, suffix, responsableNombre, responsableCargo, membreteBase64, usuario } = req.body;
+  
+  const updatedArea = await db.updateArea(id, { suffix, responsableNombre, responsableCargo, membreteBase64 });
+  if (updatedArea) {
+    if (Array.isArray(userIds)) {
+      const users = db.getUsers();
+      for (const user of users) {
+        let areaIds = user.areaIds || (user.areaId ? [user.areaId] : []);
+        const shouldBeLinked = userIds.includes(user.id);
+        const isCurrentlyLinked = areaIds.includes(id);
+
+        if (shouldBeLinked && !isCurrentlyLinked) {
+          areaIds.push(id);
+          await db.updateUser(user.id, { 
+            areaIds,
+            areaId: user.areaId || id
+          });
+        } else if (!shouldBeLinked && isCurrentlyLinked) {
+          areaIds = areaIds.filter(aid => aid !== id);
+          await db.updateUser(user.id, { 
+            areaIds,
+            areaId: user.areaId === id ? (areaIds[0] || undefined) : user.areaId
+          });
+        }
+      }
+    }
+    logSystemAction(usuario || 'Administrador', 'Configuración de Área', `Área "${updatedArea.name}" fue actualizada.`, 'info');
+    return res.json(updatedArea);
+  }
+  return res.status(404).json({ error: 'Área no encontrada.' });
 });
 
 app.get('/api/correlativo', (req, res) => {
