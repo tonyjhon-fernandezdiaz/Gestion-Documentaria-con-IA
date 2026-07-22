@@ -412,16 +412,25 @@ app.post('/api/areas', async (req, res) => {
   if (!id || !name || !code) {
     return res.status(400).json({ error: 'id, name y code son requeridos.' });
   }
+  let newArea;
   if (db.getAreaById(id)) {
-    return res.status(409).json({ error: 'Ya existe un área con ese ID.' });
+    newArea = await db.updateArea(id, {
+      name, code, parentAreaId: parentAreaId || undefined,
+      suffix: suffix || `-2026-UGEL-${code}`,
+      responsableNombre: responsableNombre || '',
+      responsableCargo: responsableCargo || ''
+    });
+    if (!newArea) return res.status(500).json({ error: 'No se pudo actualizar el área.' });
+    logSystemAction(req.body.usuario || 'Administrador', 'Actualización de Área', `Área "${newArea.name}" fue sobrescrita.`, 'info');
+  } else {
+    newArea = await db.addArea({
+      id, name, code, parentAreaId: parentAreaId || undefined,
+      suffix: suffix || `-2026-UGEL-${code}`,
+      responsableNombre: responsableNombre || '',
+      responsableCargo: responsableCargo || ''
+    });
+    logSystemAction(req.body.usuario || 'Administrador', 'Creación de Área', `Área "${newArea.name}" fue creada.`, 'info');
   }
-  const newArea = await db.addArea({
-    id, name, code, parentAreaId: parentAreaId || undefined,
-    suffix: suffix || `-2026-UGEL-${code}`,
-    responsableNombre: responsableNombre || '',
-    responsableCargo: responsableCargo || ''
-  });
-  logSystemAction(req.body.usuario || 'Administrador', 'Creación de Área', `Área "${newArea.name}" fue creada.`, 'info');
   return res.status(201).json(newArea);
 });
 

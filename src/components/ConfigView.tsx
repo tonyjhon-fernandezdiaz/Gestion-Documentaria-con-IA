@@ -2059,10 +2059,14 @@ export default function ConfigView({ providers, currentUser, onUpdateProviders, 
                       });
                       if (res.ok) {
                         const created = await res.json();
-                        setAreasList(prev => [...prev, created]);
+                        setAreasList((prev: any) => {
+                          const exists = prev.find((a: any) => a.id === created.id);
+                          return exists ? prev.map((a: any) => a.id === created.id ? created : a) : [...prev, created];
+                        });
                         setExpandedNodes(prev => { const next = new Set(prev); if (newAreaData.parentAreaId) next.add(newAreaData.parentAreaId); next.add('dir'); return next; });
                         setShowCreateAreaForm(false);
-                        showAlert('Área Creada', `"${created.name}" creada con éxito.`, 'success');
+                        const isUpdate = areasList.some((a: any) => a.id === created.id);
+                        showAlert(isUpdate ? 'Área Actualizada' : 'Área Creada', `"${created.name}" ${isUpdate ? 'actualizada' : 'creada'} con éxito.`, 'success');
                       } else {
                         const err = await res.json();
                         showAlert('Error', err.error || 'No se pudo crear.', 'danger');
