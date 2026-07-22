@@ -182,6 +182,7 @@ export default function ConfigView({ providers, currentUser, onUpdateProviders, 
   const [areaResponsableCargo, setAreaResponsableCargo] = useState('');
   const [areaMembreteBase64, setAreaMembreteBase64] = useState('');
   const [areaLinkedUserIds, setAreaLinkedUserIds] = useState<string[]>([]);
+  const [searchMemberQuery, setSearchMemberQuery] = useState('');
 
   useEffect(() => {
     fetch('/api/areas')
@@ -687,7 +688,8 @@ export default function ConfigView({ providers, currentUser, onUpdateProviders, 
           password: editingUser.password || undefined,
           areaId: editingUser.areaId,
           areaIds: editingUser.areaIds || (editingUser.areaId ? [editingUser.areaId] : []),
-          cargo: editingUser.cargo?.trim()
+          cargo: editingUser.cargo?.trim(),
+          condicion: editingUser.condicion?.trim() || undefined
         })
       });
 
@@ -1706,6 +1708,7 @@ export default function ConfigView({ providers, currentUser, onUpdateProviders, 
                     className="w-full px-3 py-2 rounded bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs text-slate-800 dark:text-slate-200 focus:outline-none"
                   >
                     <option value="">Seleccionar condición</option>
+                    <option value="Director">Director</option>
                     <option value="Secretaria">Secretaria</option>
                     <option value="Especialista">Especialista</option>
                     <option value="Apoyo Administrativo">Apoyo Administrativo</option>
@@ -2065,6 +2068,8 @@ export default function ConfigView({ providers, currentUser, onUpdateProviders, 
                                   value={u.condicion || ''}
                                   onChange={async (e) => {
                                     const newCondicion = e.target.value;
+                                    // Optimistic local update
+                                    setSystemUsers(prev => prev.map(su => su.id === u.id ? { ...su, condicion: newCondicion || undefined } : su));
                                     try {
                                       const token = safeStorage.getItem('saved_session_token');
                                       await fetch(`/api/users/${u.id}`, {
@@ -2078,6 +2083,7 @@ export default function ConfigView({ providers, currentUser, onUpdateProviders, 
                                   className="w-full px-2 py-1 rounded bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-[10px] focus:outline-none"
                                 >
                                   <option value="">Seleccionar</option>
+                                  <option value="Director">Director</option>
                                   <option value="Secretaria">Secretaria</option>
                                   <option value="Especialista">Especialista</option>
                                   <option value="Apoyo Administrativo">Apoyo Administrativo</option>
@@ -2126,37 +2132,56 @@ export default function ConfigView({ providers, currentUser, onUpdateProviders, 
                     <summary className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 cursor-pointer hover:underline">
                       + Agregar miembros
                     </summary>
-                    <div className="mt-2 max-h-48 overflow-y-auto border border-slate-200 dark:border-slate-800 rounded-xl p-3 space-y-1.5 bg-slate-50/50 dark:bg-slate-950/30">
-                      {systemUsers.filter(u => !areaLinkedUserIds.includes(u.id)).length > 0 ? (
-                        systemUsers.filter(u => !areaLinkedUserIds.includes(u.id)).map((u) => (
-                          <label key={u.id} className="flex items-center gap-2 text-xs font-medium cursor-pointer select-none hover:bg-white dark:hover:bg-slate-900 p-1.5 rounded transition-colors">
-                            <input
-                              type="checkbox"
-                              checked={false}
-                              onChange={(e) => {
-                                const checked = e.target.checked;
-                                if (checked) {
-                                  setAreaLinkedUserIds(prev => [...prev, u.id]);
-                                  // Also update user's areaIds
-                                  fetch(`/api/users/${u.id}`, {
-                                    method: 'PUT',
-                                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${safeStorage.getItem('saved_session_token')}` },
-                                    body: JSON.stringify({
-                                      ...u,
-                                      areaIds: [...(u.areaIds || (u.areaId ? [u.areaId] : [])), selectedAreaToEdit!.id]
-                                    })
-                                  }).then(() => fetchSystemUsers()).catch(() => {});
-                                }
-                              }}
-                              className="rounded border-slate-300 dark:border-slate-800 text-indigo-600 focus:ring-indigo-500/20"
-                            />
-                            <span className="font-bold text-slate-700 dark:text-slate-200 uppercase">{u.name}</span>
-                            <span className="text-[10px] text-slate-400 font-mono">({u.username} - {u.role})</span>
-                          </label>
-                        ))
-                      ) : (
-                        <div className="text-[10px] text-slate-400 italic">Todos los usuarios ya están asignados.</div>
-                      )}
+                    <div className="mt-2 border border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50/50 dark:bg-slate-950/30">
+                      <div className="p-2 border-b border-slate-200 dark:border-slate-800">
+                        <input
+                          type="text"
+                          placeholder="Buscar usuario por nombre o DNI..."
+                          value={searchMemberQuery}
+                          onChange={(e) => setSearchMemberQuery(e.target.value)}
+                          className="w-full px-2.5 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-[11px] text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:border-indigo-500 transition-colors"
+                        />
+                      </div>
+                      <div className="max-h-48 overflow-y-auto p-3 space-y-1.5">
+                        {systemUsers.filter(u => !areaLinkedUserIds.includes(u.id)).filter(u => {
+                          if (!searchMemberQuery) return true;
+                          const q = searchMemberQuery.toLowerCase();
+                          return u.name.toLowerCase().includes(q) || u.username.toLowerCase().includes(q);
+                        }).length > 0 ? (
+                          systemUsers.filter(u => !areaLinkedUserIds.includes(u.id)).filter(u => {
+                            if (!searchMemberQuery) return true;
+                            const q = searchMemberQuery.toLowerCase();
+                            return u.name.toLowerCase().includes(q) || u.username.toLowerCase().includes(q);
+                          }).map((u) => (
+                            <label key={u.id} className="flex items-center gap-2 text-xs font-medium cursor-pointer select-none hover:bg-white dark:hover:bg-slate-900 p-1.5 rounded transition-colors">
+                              <input
+                                type="checkbox"
+                                checked={false}
+                                onChange={(e) => {
+                                  const checked = e.target.checked;
+                                  if (checked) {
+                                    setAreaLinkedUserIds(prev => [...prev, u.id]);
+                                    // Also update user's areaIds
+                                    fetch(`/api/users/${u.id}`, {
+                                      method: 'PUT',
+                                      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${safeStorage.getItem('saved_session_token')}` },
+                                      body: JSON.stringify({
+                                        ...u,
+                                        areaIds: [...(u.areaIds || (u.areaId ? [u.areaId] : [])), selectedAreaToEdit!.id]
+                                      })
+                                    }).then(() => fetchSystemUsers()).catch(() => {});
+                                  }
+                                }}
+                                className="rounded border-slate-300 dark:border-slate-800 text-indigo-600 focus:ring-indigo-500/20"
+                              />
+                              <span className="font-bold text-slate-700 dark:text-slate-200 uppercase">{u.name}</span>
+                              <span className="text-[10px] text-slate-400 font-mono">({u.username} - {u.role})</span>
+                            </label>
+                          ))
+                        ) : (
+                          <div className="text-[10px] text-slate-400 italic">Todos los usuarios ya están asignados.</div>
+                        )}
+                      </div>
                     </div>
                   </details>
                 </div>
