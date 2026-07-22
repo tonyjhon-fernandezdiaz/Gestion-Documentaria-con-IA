@@ -260,6 +260,28 @@ app.put('/api/users/:id', async (req, res) => {
     }
   }
 
+  // Handle username/DNI change (primary key change)
+  if (updates.username && updates.username !== existingUser.username) {
+    const duplicate = users.find(u => u.username === updates.username || u.id === updates.username);
+    if (duplicate) {
+      return res.status(400).json({ error: 'El nombre de usuario (DNI) ya está en uso.' });
+    }
+    
+    // Delete the old record
+    await db.deleteUser(id);
+    
+    // Create new record with the new ID and updated fields
+    const newUser = {
+      ...existingUser,
+      ...updates,
+      id: updates.username,
+      username: updates.username
+    };
+    await db.addUser(newUser);
+    logSystemAction('Administrador', 'Usuario Modificado', `Se actualizó el usuario y DNI a: ${newUser.name} (${newUser.username}).`, 'info');
+    return res.json(newUser);
+  }
+
   const updatedUser = await db.updateUser(id, updates);
   if (updatedUser) {
     logSystemAction('Administrador', 'Usuario Modificado', `Se actualizó el usuario: ${updatedUser.name}.`, 'info');

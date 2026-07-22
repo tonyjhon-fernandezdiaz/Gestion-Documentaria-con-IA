@@ -1769,11 +1769,17 @@ export default function ConfigView({ providers, currentUser, onUpdateProviders, 
                   <input 
                     type="text"
                     required
-                    disabled={!!editingUser}
+                    disabled={editingUser?.username === '74223117'}
                     value={editingUser ? editingUser.username : newUserUsername}
-                    onChange={(e) => setNewUserUsername(e.target.value)}
+                    onChange={(e) => {
+                      if (editingUser) {
+                        setEditingUser({ ...editingUser, username: e.target.value });
+                      } else {
+                        setNewUserUsername(e.target.value);
+                      }
+                    }}
                     placeholder="Ej. 74223117"
-                    className="w-full px-3 py-2 rounded bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs text-slate-800 dark:text-slate-200 focus:outline-none disabled:opacity-50"
+                    className="w-full px-3 py-2 rounded bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs text-slate-800 dark:text-slate-200 focus:outline-none disabled:opacity-50 font-bold"
                   />
                 </div>
 
