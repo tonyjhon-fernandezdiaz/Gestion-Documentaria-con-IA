@@ -2232,7 +2232,11 @@ export default function ConfigView({ providers, currentUser, onUpdateProviders, 
                       </div>
                       <div className="max-h-48 overflow-y-auto p-3 space-y-1.5">
                         {(() => {
-                          const filtered = systemUsers.filter(u => !areaLinkedUserIds.includes(u.id)).filter(u => {
+                          const filtered = systemUsers.filter(u => {
+                            if (u.id === 'admin') return false;
+                            if (areaLinkedUserIds.includes(u.id)) return false;
+                            const uAreas = u.areaIds || (u.areaId ? [u.areaId] : []);
+                            if (uAreas.some((aid: string) => aid !== selectedAreaToEdit?.id)) return false;
                             if (!searchMemberQuery) return true;
                             const q = searchMemberQuery.toLowerCase();
                             return u.name.toLowerCase().includes(q) || u.username.toLowerCase().includes(q);
