@@ -220,7 +220,7 @@ export default function ConfigView({ providers, currentUser, onUpdateProviders, 
       if (res.ok) {
         setAreasList((prev: any) => prev.map((a: any) => {
           if (a.id === area.id) return { ...a, order: swapOrder };
-          if (a.id === target.id) return { ...a, order: a.order ?? 999 };
+          if (a.id === target.id) return { ...a, order: area.order ?? 999 };
           return a;
         }));
       } else {

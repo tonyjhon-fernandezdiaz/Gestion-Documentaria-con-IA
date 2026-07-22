@@ -479,6 +479,23 @@ app.delete('/api/areas/:id', async (req, res) => {
   return res.json({ success: true, deletedIds: allIds });
 });
 
+// Reorder areas (batch) — MUST be before /:id to avoid Express matching 'reorder' as :id
+app.put('/api/areas/reorder', async (req, res) => {
+  if (!checkIsAdmin(req)) {
+    return res.status(403).json({ error: 'Acceso denegado.' });
+  }
+  const { orders } = req.body;
+  if (!Array.isArray(orders)) {
+    return res.status(400).json({ error: 'orders debe ser un array.' });
+  }
+  for (const { id, order } of orders) {
+    if (id && typeof order === 'number') {
+      await db.updateArea(id, { order });
+    }
+  }
+  return res.json({ success: true });
+});
+
 app.put('/api/areas/:id', async (req, res) => {
   if (!checkIsAdmin(req)) {
     return res.status(403).json({ error: 'Acceso denegado. Solo el administrador puede configurar áreas.' });
@@ -514,23 +531,6 @@ app.put('/api/areas/:id', async (req, res) => {
     return res.json(updatedArea);
   }
   return res.status(404).json({ error: 'Área no encontrada.' });
-});
-
-// Reorder areas (batch)
-app.put('/api/areas/reorder', async (req, res) => {
-  if (!checkIsAdmin(req)) {
-    return res.status(403).json({ error: 'Acceso denegado.' });
-  }
-  const { orders } = req.body;
-  if (!Array.isArray(orders)) {
-    return res.status(400).json({ error: 'orders debe ser un array.' });
-  }
-  for (const { id, order } of orders) {
-    if (id && typeof order === 'number') {
-      await db.updateArea(id, { order });
-    }
-  }
-  return res.json({ success: true });
 });
 
 app.get('/api/correlativo', (req, res) => {
