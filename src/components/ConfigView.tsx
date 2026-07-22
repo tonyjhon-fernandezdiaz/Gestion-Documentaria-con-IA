@@ -34,6 +34,7 @@ import {
 } from 'lucide-react';
 import { AIProvider, User as UserType, SystemLog } from '../types';
 import { safeStorage } from '../utils/storage';
+import { DEFAULT_RECIPIENTS } from '../defaultRecipients';
 import {
   isFolderSaveSupported,
   pickSaveFolder,
@@ -64,14 +65,8 @@ interface Recipient {
   id: string;
   nombre: string;
   cargo: string;
+  sexo?: 'F' | 'M';
 }
-
-const DEFAULT_RECIPIENTS: Recipient[] = [
-  { id: '1', nombre: 'TONY JHON FERNANDEZ DIAZ', cargo: 'JEFE DEL ÁREA DE GESTIÓN INSTITUCIONAL' },
-  { id: '2', nombre: 'SOFÍA CASTRO', cargo: 'ADMINISTRADOR' },
-  { id: '3', nombre: 'MARÍA GÓMEZ', cargo: 'SECRETARIA' },
-  { id: '4', nombre: 'ING. CARLOS MENDOZA', cargo: 'JEFE DE INFRAESTRUCTURA' }
-];
 
 export default function ConfigView({ providers, currentUser, onUpdateProviders, logs = [], onThemeChanged, currentTheme }: ConfigViewProps) {
   // Tabs management
@@ -266,11 +261,13 @@ export default function ConfigView({ providers, currentUser, onUpdateProviders, 
     setSavedAutoSavePath(safeStorage.getItem('saved_auto_save_path') || '/documentos_automaticos');
 
     // 2. Recipients
+    const RECIPIENTS_VERSION = 'ugel-2026-v1';
     const savedRecs = safeStorage.getItem('saved_destinatarios_list');
-    if (savedRecs) {
+    if (savedRecs && safeStorage.getItem('saved_destinatarios_version') === RECIPIENTS_VERSION) {
       setRecipients(JSON.parse(savedRecs));
     } else {
       safeStorage.setItem('saved_destinatarios_list', JSON.stringify(DEFAULT_RECIPIENTS));
+      safeStorage.setItem('saved_destinatarios_version', RECIPIENTS_VERSION);
       setRecipients(DEFAULT_RECIPIENTS);
     }
 
@@ -700,7 +697,7 @@ export default function ConfigView({ providers, currentUser, onUpdateProviders, 
   };
 
   const handleDeleteUser = async (userId: string, username: string) => {
-    if (username === '74223117') {
+    if (username === 'admin') {
       showAlert('Acción Restringida', 'No se puede eliminar al Administrador principal.', 'warning');
       return;
     }
@@ -1769,7 +1766,7 @@ export default function ConfigView({ providers, currentUser, onUpdateProviders, 
                   <input 
                     type="text"
                     required
-                    disabled={editingUser?.username === '74223117'}
+                    disabled={editingUser?.username === 'admin'}
                     value={editingUser ? editingUser.username : newUserUsername}
                     onChange={(e) => {
                       if (editingUser) {
@@ -1778,7 +1775,7 @@ export default function ConfigView({ providers, currentUser, onUpdateProviders, 
                         setNewUserUsername(e.target.value);
                       }
                     }}
-                    placeholder="Ej. 74223117"
+                    placeholder="Ej. admin o DNI"
                     className="w-full px-3 py-2 rounded bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs text-slate-800 dark:text-slate-200 focus:outline-none disabled:opacity-50 font-bold"
                   />
                 </div>
@@ -1999,7 +1996,7 @@ export default function ConfigView({ providers, currentUser, onUpdateProviders, 
                               </button>
                               <button
                                 onClick={() => handleDeleteUser(user.id, user.username)}
-                                disabled={user.username === '74223117' || user.username === currentUser.username}
+                                disabled={user.username === 'admin' || user.username === currentUser.username}
                                 className="p-1.5 rounded bg-red-500/10 text-red-500 hover:bg-red-500/20 disabled:opacity-30 disabled:hover:bg-red-500/10 transition-colors"
                                 title="Eliminar"
                               >

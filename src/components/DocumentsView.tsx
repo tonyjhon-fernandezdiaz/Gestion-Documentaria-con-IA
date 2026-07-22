@@ -21,6 +21,18 @@ import { Document, DocumentType, User as UserType } from '../types';
 import { safeStorage } from '../utils/storage';
 import { saveDocument } from '../utils/fileSaver';
 
+// Saludo del documento guardado según el sexo del destinatario (busca en el directorio local).
+function getDocSalutation(doc: any): string {
+  const dests = doc?.datosExtraidos?.destinatarios;
+  const name = ((Array.isArray(dests) && dests.length > 0) ? dests[0]?.nombre : doc?.solicitante) || '';
+  if (!name) return 'AL';
+  try {
+    const dir = JSON.parse(safeStorage.getItem('saved_destinatarios_list') || '[]');
+    const match = dir.find((r: any) => (r.nombre || '').trim().toUpperCase() === String(name).trim().toUpperCase());
+    return (match && match.sexo === 'F') ? 'A LA' : 'AL';
+  } catch { return 'AL'; }
+}
+
 interface DocumentsViewProps {
   documents: Document[];
   currentUser: UserType;
@@ -231,7 +243,7 @@ export default function DocumentsView({
         </h2>
         <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 11pt; font-family: Arial, sans-serif; line-height: 1.15;">
           <tr>
-            <td style="width: 140px; font-weight: bold; padding: 6px 0; vertical-align: top;">AL</td>
+            <td style="width: 140px; font-weight: bold; padding: 6px 0; vertical-align: top;">${getDocSalutation(doc)}</td>
             <td style="width: 15px; font-weight: bold; padding: 6px 0; vertical-align: top;">:</td>
             <td style="padding: 6px 0; vertical-align: top;">
               ${doc.datosExtraidos?.destinatarios && Array.isArray(doc.datosExtraidos.destinatarios) && doc.datosExtraidos.destinatarios.length > 0 ? (
@@ -384,7 +396,7 @@ export default function DocumentsView({
             
             <table class="meta-list">
               <tr>
-                <td class="meta-label">AL</td>
+                <td class="meta-label">${getDocSalutation(doc)}</td>
                 <td class="meta-colon">:</td>
                 <td class="meta-value">
                   ${doc.datosExtraidos?.destinatarios && Array.isArray(doc.datosExtraidos.destinatarios) && doc.datosExtraidos.destinatarios.length > 0 ? (

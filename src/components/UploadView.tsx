@@ -28,6 +28,7 @@ import {
 import { DocumentType, User as UserType } from '../types';
 import { safeStorage } from '../utils/storage';
 import { saveDocument } from '../utils/fileSaver';
+import { DEFAULT_RECIPIENTS } from '../defaultRecipients';
 
 interface UploadViewProps {
   currentUser: UserType;
@@ -174,7 +175,14 @@ export default function UploadView({ currentUser, onDocumentAdded }: UploadViewP
   const [savedHeaderImage, setSavedHeaderImage] = useState<string | null>(null);
   const [savedUserName, setSavedUserName] = useState<string>('');
   const [savedUserRole, setSavedUserRole] = useState<string>('');
-  const [savedRecipients, setSavedRecipients] = useState<{ id: string; nombre: string; cargo: string }[]>([]);
+  const [savedRecipients, setSavedRecipients] = useState<{ id: string; nombre: string; cargo: string; sexo?: 'F' | 'M' }[]>([]);
+
+  // Saludo del documento según el sexo del destinatario: F -> "A LA", si no -> "AL".
+  const getSalutation = (name?: string): string => {
+    if (!name) return 'AL';
+    const match = savedRecipients.find(r => r.nombre.trim().toUpperCase() === name.trim().toUpperCase());
+    return match?.sexo === 'F' ? 'A LA' : 'AL';
+  };
   const [showDestinatarioDropdown, setShowDestinatarioDropdown] = useState(false);
 
   // Load and reactively update configurations from localStorage
@@ -188,17 +196,13 @@ export default function UploadView({ currentUser, onDocumentAdded }: UploadViewP
       setDocSuffix(suffix);
     }
 
+    const RECIPIENTS_VERSION = 'ugel-2026-v1';
     const recs = safeStorage.getItem('saved_destinatarios_list');
-    if (recs) {
+    if (recs && safeStorage.getItem('saved_destinatarios_version') === RECIPIENTS_VERSION) {
       setSavedRecipients(JSON.parse(recs));
     } else {
-      const DEFAULT_RECIPIENTS = [
-        { id: '1', nombre: 'TONY JHON FERNANDEZ DIAZ', cargo: 'JEFE DEL ÁREA DE GESTIÓN INSTITUCIONAL' },
-        { id: '2', nombre: 'SOFÍA CASTRO', cargo: 'ADMINISTRADOR' },
-        { id: '3', nombre: 'MARÍA GÓMEZ', cargo: 'SECRETARIA' },
-        { id: '4', nombre: 'ING. CARLOS MENDOZA', cargo: 'JEFE DE INFRAESTRUCTURA' }
-      ];
       safeStorage.setItem('saved_destinatarios_list', JSON.stringify(DEFAULT_RECIPIENTS));
+      safeStorage.setItem('saved_destinatarios_version', RECIPIENTS_VERSION);
       setSavedRecipients(DEFAULT_RECIPIENTS);
     }
   }, [currentUser]);
@@ -1013,7 +1017,7 @@ export default function UploadView({ currentUser, onDocumentAdded }: UploadViewP
           </h2>
           <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 11pt; font-family: Arial, sans-serif; line-height: 1.15;">
             <tr>
-              <td style="width: 140px; font-weight: bold; padding: 6px 0; vertical-align: top;">AL</td>
+              <td style="width: 140px; font-weight: bold; padding: 6px 0; vertical-align: top;">${getSalutation(recipients[0]?.nombre)}</td>
               <td style="width: 15px; font-weight: bold; padding: 6px 0; vertical-align: top;">:</td>
               <td style="padding: 6px 0; vertical-align: top;">
                 ${recipients.map((dest, idx) => `
@@ -1135,7 +1139,7 @@ export default function UploadView({ currentUser, onDocumentAdded }: UploadViewP
             
             <table class="meta-list">
               <tr>
-                <td class="meta-label">AL</td>
+                <td class="meta-label">${getSalutation(recipients[0]?.nombre)}</td>
                 <td class="meta-colon">:</td>
                 <td class="meta-value" style="text-transform: uppercase;">
                   ${recipients.map((dest, idx) => `
@@ -1759,7 +1763,7 @@ export default function UploadView({ currentUser, onDocumentAdded }: UploadViewP
                     <div className="space-y-1.5 pt-2 text-[10px] sm:text-[11px] font-sans text-slate-900 dark:text-slate-100">
                       
                       <div className="flex items-start">
-                        <div className="w-20 sm:w-24 font-extrabold tracking-wide shrink-0 text-slate-950 dark:text-white">AL</div>
+                        <div className="w-20 sm:w-24 font-extrabold tracking-wide shrink-0 text-slate-950 dark:text-white">{getSalutation(recipients[0]?.nombre)}</div>
                         <div className="px-1.5 font-extrabold shrink-0 text-slate-950 dark:text-white">:</div>
                         <div className="flex-1 font-bold text-slate-950 dark:text-white">
                           {recipients.length > 0 && recipients[0].nombre ? (
