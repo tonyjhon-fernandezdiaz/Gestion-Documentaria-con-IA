@@ -46,6 +46,10 @@ export const DEFAULT_AREAS: AreaItem[] = [
   },
   { id: 'finanzas', name: 'Finanzas y Tesorería', code: 'ADM-FT', parentAreaId: 'adm', suffix: '-2026-UGEL-ADM-FT' },
   { id: 'contabilidad', name: 'Contabilidad y Abastecimiento', code: 'ADM-CA', parentAreaId: 'adm', suffix: '-2026-UGEL-ADM-CA' },
+  { id: 'logistica', name: 'Logística y Almacén', code: 'ADM-LOG', parentAreaId: 'adm', suffix: '-2026-UGEL-ADM-LOG' },
+  { id: 'patrimonio', name: 'Patrimonio', code: 'ADM-PAT', parentAreaId: 'adm', suffix: '-2026-UGEL-ADM-PAT' },
+  { id: 'informatica', name: 'Tecnologías de la Información', code: 'ADM-TI', parentAreaId: 'adm', suffix: '-2026-UGEL-ADM-TI' },
+  { id: 'tramite', name: 'Trámite Documentario y Atención al Usuario', code: 'ADM-TD', parentAreaId: 'adm', suffix: '-2026-UGEL-ADM-TD' },
 
   // Gestión de Recursos Humanos dentro de Administración
   {
@@ -136,7 +140,7 @@ const INITIAL_DB: DatabaseSchema = {
     { id: '70780194', username: '70780194', name: 'Zack Kevin Alvarado Maldonado', role: 'Secretaria', avatar: 'https://ui-avatars.com/api/?name=Zack+Kevin&background=0D8ABC&color=fff', password: '70780194', areaId: 'infraestructura', areaIds: ['infraestructura', 'agi'], cargo: 'Servicio Profesional Especializado en la Oficina de Infraestructura de la UGEL Bellavista', condicion: 'Servicio Profesional', sexo: 'M' },
 
     // --- OFICINA DE ADMINISTRACIÓN (adm, depende de Dirección) ---
-    { id: '42268073', username: '42268073', name: 'Leydi Marín Quezada', role: 'Jefe', avatar: 'https://ui-avatars.com/api/?name=Leydi+Marín&background=0D8ABC&color=fff', password: '42268073', areaId: 'adm', areaIds: ['adm'], cargo: 'Jefe de la Oficina de Administración', condicion: 'Jefe de Área', sexo: 'F' },
+    { id: '42268073', username: '42268073', name: 'Leydi Marín Quezada', role: 'Jefe', avatar: 'https://ui-avatars.com/api/?name=Leydi+Marín&background=0D8ABC&color=fff', password: '42268073', areaId: 'adm', areaIds: ['adm'], cargo: 'Jefe de la Oficina de Administración', condicion: 'Jefe de Oficina', sexo: 'F' },
     { id: '71928865', username: '71928865', name: 'Lleny Sangama Guerra', role: 'Secretaria', avatar: 'https://ui-avatars.com/api/?name=Lleny+Sangama&background=0D8ABC&color=fff', password: '71928865', areaId: 'adm', areaIds: ['adm'], cargo: 'Secretaria de la Oficina de Administracion', condicion: 'Secretaria', sexo: 'F' },
     { id: '73449707', username: '73449707', name: 'Fiorella Vela Vásquez', role: 'Secretaria', avatar: 'https://ui-avatars.com/api/?name=Fiorella+Vela&background=0D8ABC&color=fff', password: '73449707', areaId: 'adm', areaIds: ['adm'], cargo: 'Proyectista', condicion: 'Técnico', sexo: 'F' },
     { id: '74644880', username: '74644880', name: 'Sutkey Milagritos Ramirez Cabanillas', role: 'Secretaria', avatar: 'https://ui-avatars.com/api/?name=Sutkey+Milagritos&background=0D8ABC&color=fff', password: '74644880', areaId: 'adm', areaIds: ['adm'], cargo: 'Especialista en Archivo', condicion: 'Especialista', sexo: 'F' },
