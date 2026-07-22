@@ -110,12 +110,7 @@ export default function UploadView({ currentUser, onDocumentAdded }: UploadViewP
   const [referencia, setReferencia] = useState<string>('');
   const [contextoNotas, setContextoNotas] = useState<string>('');
 
-  // Computed values for backward compatibility
-  const activeDocTypeLabel = docType === 'Otros' ? (customDocType.trim() || 'Otros') : docType;
-  const selectedAreaObj = areasList.find(a => a.id === selectedAreaId);
-  const currentHeaderImage = selectedAreaObj?.membreteBase64 || safeStorage.getItem('saved_area_header_image') || savedHeaderImage;
-  const destinatario = recipients[0]?.nombre || '';
-  const cargoDestinatario = recipients[0]?.cargo || '';
+
 
   const setDestinatario = (value: string) => {
     setRecipients(prev => {
@@ -253,6 +248,13 @@ export default function UploadView({ currentUser, onDocumentAdded }: UploadViewP
 
   const [remitenteNombre, setRemitenteNombre] = useState<string>('');
   const [remitenteCargo, setRemitenteCargo] = useState<string>('');
+
+  // Computed values for backward compatibility
+  const activeDocTypeLabel = docType === 'Otros' ? (customDocType.trim() || 'Otros') : docType;
+  const selectedAreaObj = areasList.find(a => a.id === selectedAreaId);
+  const currentHeaderImage = selectedAreaObj?.membreteBase64 || safeStorage.getItem('saved_area_header_image') || savedHeaderImage;
+  const destinatario = recipients[0]?.nombre || '';
+  const cargoDestinatario = recipients[0]?.cargo || '';
 
   // Default selectedAreaId to user's area on load
   useEffect(() => {
