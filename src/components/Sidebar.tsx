@@ -62,7 +62,7 @@ export default function Sidebar({
 
     { 
       id: 'organigrama' as const, 
-      label: 'Organigrama y Secretarías', 
+      label: 'Organigrama', 
       icon: Network,
       bgColor: 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400',
       activeColor: 'ring-2 ring-emerald-500 bg-emerald-100 dark:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300',

@@ -3,6 +3,7 @@ import {
   Network, Search, Users, Building, UserCheck, HelpCircle, Plus, Layers, 
   ShieldAlert, FileSpreadsheet, GraduationCap, Scale, HeartHandshake, RefreshCw
 } from 'lucide-react';
+import { safeStorage } from '../utils/storage';
 
 interface OrgNode {
   id: string;
@@ -21,9 +22,12 @@ export default function OrganigramaView() {
   const [areas, setAreas] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
 
+  const getToken = () => safeStorage.getItem('saved_session_token');
+  const authHeaders = () => ({ 'Authorization': `Bearer ${getToken()}` });
+
   useEffect(() => {
     fetch('/api/areas').then(r => r.json()).then(setAreas).catch(() => {});
-    fetch('/api/users')
+    fetch('/api/users', { headers: authHeaders() })
       .then(r => r.json())
       .then(data => setUsers(Array.isArray(data) ? data : []))
       .catch(() => {});
@@ -107,7 +111,7 @@ export default function OrganigramaView() {
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <button onClick={() => { fetch('/api/areas').then(r => r.json()).then(setAreas).catch(() => {}); fetch('/api/users').then(r => r.json()).then(data => setUsers(Array.isArray(data) ? data : [])).catch(() => {}); }}
+            <button onClick={() => { fetch('/api/areas').then(r => r.json()).then(setAreas).catch(() => {}); fetch('/api/users', { headers: authHeaders() }).then(r => r.json()).then(data => setUsers(Array.isArray(data) ? data : [])).catch(() => {}); }}
               className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all active:scale-95">
               <RefreshCw size={13} /> <span>Actualizar</span>
             </button>
