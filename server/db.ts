@@ -247,6 +247,15 @@ export class NeonDatabase {
         await this.q("INSERT INTO kv (key, value) VALUES ('users_cleanup', 'v-ugel-3') ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value");
       }
 
+      // Auto-heal: asegurar que las áreas principales existan (Administración, RRHH, etc.)
+      // sin sobreescribir las personalizaciones ya guardadas por el usuario.
+      for (const a of DEFAULT_AREAS.filter(x => !x.parentAreaId)) {
+        const areaCheck = await this.q('SELECT 1 FROM areas WHERE id = $1', [a.id]);
+        if (areaCheck.length === 0) {
+          await this.upsert('areas', a.id, a);
+        }
+      }
+
       // Auto-heal and sync active default providers with working keys
       for (const p of INITIAL_DB.providers) {
         const check = await this.q('SELECT data FROM providers WHERE id = $1', [p.id]);
