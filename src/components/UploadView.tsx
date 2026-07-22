@@ -270,27 +270,16 @@ export default function UploadView({ currentUser, onDocumentAdded }: UploadViewP
   useEffect(() => {
     if (!currentUser) return;
     
+    // El DE (remitente) se vincula automáticamente al usuario que inició sesión
+    // (su nombre y su cargo), al seleccionar un área. Si el área tiene un
+    // responsable configurado explícitamente, se respeta esa configuración.
     const selectedAreaObj = areasList.find(a => a.id === selectedAreaId);
     if (selectedAreaObj && selectedAreaObj.responsableNombre) {
       setRemitenteNombre(selectedAreaObj.responsableNombre);
       setRemitenteCargo(selectedAreaObj.responsableCargo || '');
     } else {
-      // Main areas jefaturas mapping
-      const JEFATURAS: Record<string, { nombre: string; cargo: string }> = {
-        agi: { nombre: 'TONY JHON FERNANDEZ DIAZ', cargo: 'JEFE DEL ÁREA DE GESTIÓN INSTITUCIONAL' },
-        adm: { nombre: 'CPC. LEYDI MARIN QUEZADA', cargo: 'JEFA DE LA OFICINA DE ADMINISTRACIÓN' },
-        agp: { nombre: 'MG. VICTOR VELA RAMIREZ', cargo: 'JEFE DEL ÁREA DE GESTIÓN PEDAGÓGICA' },
-        rrhh: { nombre: 'LIC. ADM. SEGUNDO HIPOLITO SALDAÑA PEREZ', cargo: 'RESPONSABLE DE LA OFICINA DE GESTIÓN DE RECURSOS HUMANOS' },
-        dir: { nombre: 'MG. VICTOR VELA RAMIREZ', cargo: 'DIRECTOR DE LA UGEL BELLAVISTA' }
-      };
-
-      if (currentUser.role === 'Secretaria' && selectedAreaId && JEFATURAS[selectedAreaId]) {
-        setRemitenteNombre(JEFATURAS[selectedAreaId].nombre);
-        setRemitenteCargo(JEFATURAS[selectedAreaId].cargo);
-      } else {
-        setRemitenteNombre(currentUser.name);
-        setRemitenteCargo(currentUser.cargo || currentUser.role);
-      }
+      setRemitenteNombre(currentUser.name);
+      setRemitenteCargo(currentUser.cargo || currentUser.role);
     }
   }, [selectedAreaId, currentUser, areasList]);
 
@@ -853,8 +842,9 @@ export default function UploadView({ currentUser, onDocumentAdded }: UploadViewP
   const exportToWord = () => {
     const cleanText = cleanDocumentText(generatedDraft);
     const latestHeaderImage = null; // Avoid large Base64 images in Word HTML to prevent MS Word crashes
-    const latestUserName = safeStorage.getItem('saved_user_name') || currentUser.name;
-    const latestUserRole = safeStorage.getItem('saved_user_role') || currentUser.role;
+    // El DE del documento exportado se vincula al remitente (usuario logueado + su cargo)
+    const latestUserName = remitenteNombre || safeStorage.getItem('saved_user_name') || currentUser.name;
+    const latestUserRole = remitenteCargo || safeStorage.getItem('saved_user_role') || currentUser.cargo || currentUser.role;
 
     const header = `
       <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
