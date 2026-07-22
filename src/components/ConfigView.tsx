@@ -71,8 +71,8 @@ interface Recipient {
 
 export default function ConfigView({ providers, currentUser, onUpdateProviders, logs = [], onThemeChanged, currentTheme }: ConfigViewProps) {
   // Tabs management
-  const [activeTab, setActiveTab] = useState<'area' | 'destinatarios' | 'ia' | 'usuarios' | 'logs'>(
-    currentUser.role === 'Administrador' ? 'area' : 'destinatarios'
+  const [activeTab, setActiveTab] = useState<'destinatarios' | 'areas' | 'usuarios' | 'ia' | 'logs'>(
+    currentUser.role === 'Administrador' ? 'areas' : 'destinatarios'
   );
 
   // Custom Alert / Confirm Modal State
@@ -173,6 +173,7 @@ export default function ConfigView({ providers, currentUser, onUpdateProviders, 
   const [newUserAreaId, setNewUserAreaId] = useState('adm');
   const [newUserAreaIds, setNewUserAreaIds] = useState<string[]>([]);
   const [newUserCargo, setNewUserCargo] = useState('');
+  const [newUserCondicion, setNewUserCondicion] = useState('');
 
   // Areas Management States
   const [selectedAreaToEdit, setSelectedAreaToEdit] = useState<any | null>(null);
@@ -637,15 +638,16 @@ export default function ConfigView({ providers, currentUser, onUpdateProviders, 
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({
-          username: newUserUsername.trim(),
-          name: newUserName.trim(),
-          role: newUserRole,
-          password: newUserPassword.trim(),
-          areaId: newUserAreaId,
-          areaIds: newUserAreaIds.length > 0 ? newUserAreaIds : (newUserAreaId ? [newUserAreaId] : []),
-          cargo: newUserCargo.trim()
-        })
+          body: JSON.stringify({
+            username: newUserUsername.trim(),
+            name: newUserName.trim(),
+            role: newUserRole,
+            password: newUserPassword.trim(),
+            areaId: newUserAreaId,
+            areaIds: newUserAreaIds.length > 0 ? newUserAreaIds : (newUserAreaId ? [newUserAreaId] : []),
+            cargo: newUserCargo.trim(),
+            condicion: newUserCondicion.trim() || undefined
+          })
       });
 
       const result = await response.json();
@@ -822,10 +824,10 @@ export default function ConfigView({ providers, currentUser, onUpdateProviders, 
       {/* Upper header */}
       <div className="border-b border-slate-200 dark:border-slate-800/80 pb-5">
         <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
-          Configuraciones de Área
+          Configuraciones
         </h1>
         <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-          Personalice el membrete institucional, firmas de origen, directivas de numeración y el directorio de destinatarios autorizados de su área.
+          Administre el directorio de destinatarios, áreas, usuarios, proveedores de IA y configuración del sistema.
         </p>
       </div>
 
@@ -846,27 +848,15 @@ export default function ConfigView({ providers, currentUser, onUpdateProviders, 
         {currentUser.role === 'Administrador' && (
           <>
             <button
-              onClick={() => setActiveTab('area')}
+              onClick={() => setActiveTab('areas')}
               className={`flex items-center gap-2 px-4 py-2.5 text-xs font-semibold border-b-2 transition-all ${
-                activeTab === 'area'
+                activeTab === 'areas'
                   ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400 bg-indigo-50/20 dark:bg-slate-900/40 rounded-t-lg'
                   : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
               }`}
             >
-              <Building2 size={14} />
-              <span>Información de Área y Membrete</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab('ia')}
-              className={`flex items-center gap-2 px-4 py-2.5 text-xs font-semibold border-b-2 transition-all ${
-                activeTab === 'ia'
-                  ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400 bg-indigo-50/20 dark:bg-slate-900/40 rounded-t-lg'
-                  : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
-              }`}
-            >
-              <Cpu size={14} />
-              <span>Proveedores de IA</span>
+              <Network size={14} />
+              <span>Gestión de Áreas</span>
             </button>
 
             <button
@@ -882,15 +872,15 @@ export default function ConfigView({ providers, currentUser, onUpdateProviders, 
             </button>
 
             <button
-              onClick={() => setActiveTab('areas')}
+              onClick={() => setActiveTab('ia')}
               className={`flex items-center gap-2 px-4 py-2.5 text-xs font-semibold border-b-2 transition-all ${
-                activeTab === 'areas'
+                activeTab === 'ia'
                   ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400 bg-indigo-50/20 dark:bg-slate-900/40 rounded-t-lg'
                   : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
               }`}
             >
-              <Network size={14} />
-              <span>Gestión de Áreas</span>
+              <Cpu size={14} />
+              <span>Proveedores de IA</span>
             </button>
 
             <button
@@ -908,224 +898,7 @@ export default function ConfigView({ providers, currentUser, onUpdateProviders, 
         )}
       </div>
 
-      {/* Tab 1: Configuración de Área (Admin-Only) */}
-      {activeTab === 'area' && currentUser.role === 'Administrador' && (
-        <div className="grid lg:grid-cols-12 gap-6 items-start animate-fade-in">
-          <div className="lg:col-span-5 space-y-6">
-            {/* Header Image upload */}
-            <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 shadow-sm space-y-4">
-              <div className="flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-2.5">
-                <Upload size={16} className="text-indigo-500" />
-                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-white">
-                  Imagen de Encabezado / Membrete
-                </h3>
-              </div>
-              
-              <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
-                Suba el diseño oficial del encabezado de su área. Reemplazará el membrete por defecto y aparecerá en las visualizaciones de Word, PDFs e impresiones.
-              </p>
-
-              {/* Upload input wrapper */}
-              <div className="flex flex-col items-center justify-center border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-xl p-4 bg-slate-50 dark:bg-slate-950/40">
-                {savedHeaderImage ? (
-                  <div className="space-y-3 w-full text-center">
-                    <img 
-                      src={savedHeaderImage} 
-                      alt="Vista previa del encabezado" 
-                      className="max-h-20 mx-auto object-contain bg-white rounded p-1 border shadow-sm"
-                    />
-                    <div className="flex items-center justify-center gap-2">
-                      <button 
-                        onClick={handleRemoveHeaderImage}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-500 text-[10px] font-bold border border-red-500/20 transition-all"
-                      >
-                        <X size={11} />
-                        <span>Eliminar Membrete</span>
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <label className="cursor-pointer flex flex-col items-center space-y-2 p-4">
-                    <Upload size={24} className="text-slate-400" />
-                    <span className="text-[11px] font-bold text-indigo-500 hover:underline">
-                      Haga clic para seleccionar imagen
-                    </span>
-                    <span className="text-[9px] text-slate-400">PNG o JPG (máximo 3MB)</span>
-                    <input 
-                      type="file" 
-                      accept="image/*" 
-                      onChange={handleHeaderImageUpload}
-                      className="hidden" 
-                    />
-                  </label>
-                )}
-              </div>
-            </div>
-
-            {/* Local save folder (File System Access API) */}
-            <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 shadow-sm space-y-4">
-              <div className="flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-2.5">
-                <FolderOpen size={16} className="text-indigo-500" />
-                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-white">
-                  Carpeta de Guardado
-                </h3>
-              </div>
-
-              <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
-                Elija una carpeta de su computadora y los documentos que genere se guardarán ahí automáticamente. Si no elige ninguna, se descargarán a la carpeta de descargas del navegador.
-              </p>
-
-              {folderSupported ? (
-                <>
-                  <div className="flex flex-col items-center justify-center border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-xl p-4 bg-slate-50 dark:bg-slate-950/40 text-center">
-                    {saveFolderName ? (
-                      <div className="space-y-3 w-full">
-                        <div className="flex items-center justify-center gap-2 text-slate-700 dark:text-slate-200">
-                          <FolderOpen size={18} className="text-emerald-500" />
-                          <span className="text-xs font-bold break-all">{saveFolderName}</span>
-                        </div>
-                        <div className="flex items-center justify-center gap-2">
-                          <button
-                            type="button"
-                            onClick={handlePickFolder}
-                            disabled={folderBusy}
-                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-500 text-[10px] font-bold border border-indigo-500/20 transition-all disabled:opacity-50"
-                          >
-                            <RefreshCw size={11} />
-                            <span>Cambiar carpeta</span>
-                          </button>
-                          <button
-                            type="button"
-                            onClick={handleClearFolder}
-                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-500 text-[10px] font-bold border border-red-500/20 transition-all"
-                          >
-                            <X size={11} />
-                            <span>Quitar</span>
-                          </button>
-                        </div>
-                      </div>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={handlePickFolder}
-                        disabled={folderBusy}
-                        className="cursor-pointer flex flex-col items-center space-y-2 p-4 disabled:opacity-50"
-                      >
-                        <FolderOpen size={24} className="text-slate-400" />
-                        <span className="text-[11px] font-bold text-indigo-500 hover:underline">
-                          {folderBusy ? 'Abriendo selector…' : 'Elegir carpeta de guardado'}
-                        </span>
-                        <span className="text-[9px] text-slate-400">Se abre en "Documentos" por defecto</span>
-                      </button>
-                    )}
-                  </div>
-                  <div className="flex items-start gap-1.5 text-[9px] text-slate-400 leading-relaxed">
-                    <Info size={11} className="mt-0.5 flex-shrink-0" />
-                    <span>La primera vez el navegador pedirá permiso para escribir en la carpeta. Solo debe autorizarlo una vez.</span>
-                  </div>
-                </>
-              ) : (
-                <div className="flex items-start gap-2 text-[10px] text-amber-600 dark:text-amber-400 bg-amber-500/10 border border-amber-500/20 rounded-xl p-3">
-                  <AlertTriangle size={13} className="mt-0.5 flex-shrink-0" />
-                  <span>Su navegador no permite elegir carpeta, por lo que los documentos se descargarán normalmente. Para usar esta función, abra el sistema en Google Chrome o Microsoft Edge.</span>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Area variables inputs */}
-          <div className="lg:col-span-7">
-            <form onSubmit={handleSaveAreaConfig} className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 shadow-sm space-y-4">
-              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
-                <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Datos Técnicos de Firma y Sufijo</h3>
-                <span className="text-[10px] text-slate-400 font-mono">Modificable por área</span>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                    Nombre y Apellidos de Origen
-                  </label>
-                  <input 
-                    type="text"
-                    required
-                    value={savedUserName}
-                    onChange={(e) => setSavedUserName(e.target.value)}
-                    placeholder="Ej. Sofía Castro"
-                    className="w-full px-3.5 py-2.5 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:border-indigo-500"
-                  />
-                  <span className="text-[9px] text-slate-400 block">Nombre del firmante emisor (Sección DE:)</span>
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                    Cargo o Puesto
-                  </label>
-                  <input 
-                    type="text"
-                    required
-                    value={savedUserRole}
-                    onChange={(e) => setSavedUserRole(e.target.value)}
-                    placeholder="Ej. Administrador"
-                    className="w-full px-3.5 py-2.5 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:border-indigo-500"
-                  />
-                  <span className="text-[9px] text-slate-400 block">Cargo institucional en el pie de página</span>
-                </div>
-
-                <div className="col-span-1 md:col-span-2 space-y-1">
-                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                    Sufijo de Numeración de Documento
-                  </label>
-                  <input 
-                    type="text"
-                    required
-                    value={savedSuffix}
-                    onChange={(e) => setSavedSuffix(e.target.value)}
-                    placeholder="Ej. -2026-UGEL-AGI"
-                    className="w-full px-3.5 py-2.5 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:border-indigo-500"
-                  />
-                  <span className="text-[9px] text-slate-400 block">Sufijo concatenado automáticamente al número de informe/oficio.</span>
-                </div>
-
-                <div className="col-span-1 md:col-span-2 space-y-1">
-                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                    Directorio Base de Almacenamiento Virtual (Buscador Inteligente)
-                  </label>
-                  <input 
-                    type="text"
-                    required
-                    value={savedAutoSavePath}
-                    onChange={(e) => setSavedAutoSavePath(e.target.value)}
-                    placeholder="Ej. /documentos_automaticos o Google Drive/UGEL-Bellavista"
-                    className="w-full px-3.5 py-2.5 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:border-indigo-500 font-mono text-[11px]"
-                  />
-                  <span className="text-[9px] text-slate-400 block">Ruta base o repositorio virtual donde se archivarán de manera automática los documentos clasificados por carpetas de tipo.</span>
-                </div>
-              </div>
-
-              {/* Action buttons */}
-              <div className="flex items-center justify-between pt-4 border-t border-slate-100 dark:border-slate-800">
-                {areaSuccess ? (
-                  <div className="flex items-center gap-1.5 text-xs text-emerald-500 font-semibold bg-emerald-50 dark:bg-emerald-950/40 px-3 py-1 rounded-lg border border-emerald-500/10">
-                    <Check size={13} />
-                    <span>¡Configuración del área guardada!</span>
-                  </div>
-                ) : <div />}
-
-                <button
-                  type="submit"
-                  className="flex items-center gap-1.5 px-4.5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold shadow transition-all active:scale-95"
-                >
-                  <Check size={13} />
-                  <span>Guardar Parámetros</span>
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Tab 2: Directorio de Destinatarios */}
+      {/* Tab 1: Directorio de Destinatarios */}
       {activeTab === 'destinatarios' && (
         <div className="space-y-4 animate-fade-in">
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 bg-slate-50 dark:bg-slate-900/60 p-4 rounded-xl border border-slate-200/60 dark:border-slate-800/80 shadow-inner">
@@ -1920,6 +1693,36 @@ export default function ConfigView({ providers, currentUser, onUpdateProviders, 
                 </div>
 
                 <div className="space-y-1">
+                  <label className="text-[10px] font-bold uppercase text-slate-500">Condición</label>
+                  <select
+                    value={editingUser ? (editingUser.condicion || '') : newUserCondicion}
+                    onChange={(e) => {
+                      if (editingUser) {
+                        setEditingUser({ ...editingUser, condicion: e.target.value || undefined });
+                      } else {
+                        setNewUserCondicion(e.target.value);
+                      }
+                    }}
+                    className="w-full px-3 py-2 rounded bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs text-slate-800 dark:text-slate-200 focus:outline-none"
+                  >
+                    <option value="">Seleccionar condición</option>
+                    <option value="Secretaria">Secretaria</option>
+                    <option value="Especialista">Especialista</option>
+                    <option value="Apoyo Administrativo">Apoyo Administrativo</option>
+                    <option value="Jefe de Área">Jefe de Área</option>
+                    <option value="Jefe de Oficina">Jefe de Oficina</option>
+                    <option value="Asesor Legal">Asesor Legal</option>
+                    <option value="Analista">Analista</option>
+                    <option value="Coordinador">Coordinador</option>
+                    <option value="Técnico">Técnico</option>
+                    <option value="Practicante">Practicante</option>
+                    <option value="Servicio Profesional">Servicio Profesional</option>
+                    <option value="Vigilante">Vigilante</option>
+                    <option value="Otro">Otro</option>
+                  </select>
+                </div>
+
+                <div className="space-y-1">
                   <label className="text-[10px] font-bold uppercase text-slate-500">Cargo Institucional (Firma)</label>
                   <input 
                     type="text"
@@ -2003,6 +1806,7 @@ export default function ConfigView({ providers, currentUser, onUpdateProviders, 
                       <th className="p-3">Nombre Completo</th>
                       <th className="p-3">Área / Oficina</th>
                       <th className="p-3">Cargo Institucional</th>
+                      <th className="p-3">Condición</th>
                       <th className="p-3">Rol del Sistema</th>
                       <th className="p-3 text-right w-24">Acciones</th>
                     </tr>
@@ -2024,6 +1828,15 @@ export default function ConfigView({ providers, currentUser, onUpdateProviders, 
                           </td>
                           <td className="p-3 font-medium text-slate-500 dark:text-slate-400 italic">
                             {user.cargo || 'No especificado'}
+                          </td>
+                          <td className="p-3">
+                            {user.condicion ? (
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/15">
+                                {user.condicion}
+                              </span>
+                            ) : (
+                              <span className="text-[10px] text-slate-400 italic">—</span>
+                            )}
                           </td>
                           <td className="p-3">
                             <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
@@ -2228,23 +2041,111 @@ export default function ConfigView({ providers, currentUser, onUpdateProviders, 
                   )}
                 </div>
 
-                <div className="space-y-2">
-                  <label className="text-[10px] font-bold uppercase text-slate-500 block">Vincular Usuarios a esta Oficina / Área</label>
-                  <div className="max-h-36 overflow-y-auto border border-slate-200 dark:border-slate-800 rounded-xl p-3 space-y-1.5 bg-slate-50/50 dark:bg-slate-950/30">
-                    {systemUsers.length > 0 ? (
-                      systemUsers.map((u) => {
-                        const isChecked = areaLinkedUserIds.includes(u.id);
-                        return (
-                          <label key={u.id} className="flex items-center gap-2 text-xs font-medium cursor-pointer select-none">
+                <div className="space-y-3">
+                  <label className="text-[10px] font-bold uppercase text-slate-500 block">Miembros de esta Oficina / Área</label>
+                  
+                  {/* Linked members table */}
+                  {systemUsers.filter(u => areaLinkedUserIds.includes(u.id)).length > 0 ? (
+                    <div className="border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden">
+                      <table className="w-full text-left border-collapse text-[11px]">
+                        <thead>
+                          <tr className="bg-slate-50 dark:bg-slate-950/50 border-b border-slate-100 dark:border-slate-800 font-bold text-slate-500">
+                            <th className="p-2">Nombre</th>
+                            <th className="p-2">Condición</th>
+                            <th className="p-2">Cargo</th>
+                            <th className="p-2 w-10"></th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 dark:divide-slate-800/40">
+                          {systemUsers.filter(u => areaLinkedUserIds.includes(u.id)).map((u) => (
+                            <tr key={u.id} className="hover:bg-slate-50 dark:hover:bg-slate-950/20 text-slate-700 dark:text-slate-300">
+                              <td className="p-2 font-bold text-slate-900 dark:text-white uppercase text-[10px]">{u.name}</td>
+                              <td className="p-2">
+                                <select
+                                  value={u.condicion || ''}
+                                  onChange={async (e) => {
+                                    const newCondicion = e.target.value;
+                                    try {
+                                      const token = safeStorage.getItem('saved_session_token');
+                                      await fetch(`/api/users/${u.id}`, {
+                                        method: 'PUT',
+                                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                                        body: JSON.stringify({ ...u, condicion: newCondicion || undefined })
+                                      });
+                                      fetchSystemUsers();
+                                    } catch (err) { console.error(err); }
+                                  }}
+                                  className="w-full px-2 py-1 rounded bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-[10px] focus:outline-none"
+                                >
+                                  <option value="">Seleccionar</option>
+                                  <option value="Secretaria">Secretaria</option>
+                                  <option value="Especialista">Especialista</option>
+                                  <option value="Apoyo Administrativo">Apoyo Administrativo</option>
+                                  <option value="Jefe de Área">Jefe de Área</option>
+                                  <option value="Jefe de Oficina">Jefe de Oficina</option>
+                                  <option value="Asesor Legal">Asesor Legal</option>
+                                  <option value="Analista">Analista</option>
+                                  <option value="Coordinador">Coordinador</option>
+                                  <option value="Técnico">Técnico</option>
+                                  <option value="Practicante">Practicante</option>
+                                  <option value="Servicio Profesional">Servicio Profesional</option>
+                                  <option value="Vigilante">Vigilante</option>
+                                  <option value="Otro">Otro</option>
+                                </select>
+                              </td>
+                              <td className="p-2 text-[10px] text-slate-500 italic">{u.cargo || '—'}</td>
+                              <td className="p-2">
+                                <button
+                                  onClick={() => {
+                                    setAreaLinkedUserIds(prev => prev.filter(id => id !== u.id));
+                                    fetch(`/api/users/${u.id}`, {
+                                      method: 'PUT',
+                                      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${safeStorage.getItem('saved_session_token')}` },
+                                      body: JSON.stringify({ ...u, areaIds: (u.areaIds || []).filter(id => id !== selectedAreaToEdit?.id) })
+                                    }).then(() => fetchSystemUsers()).catch(() => {});
+                                  }}
+                                  className="p-1 rounded bg-red-500/10 text-red-500 hover:bg-red-500/20 transition-colors"
+                                  title="Desvincular"
+                                >
+                                  <X size={11} />
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <div className="text-[10px] text-slate-400 italic bg-slate-50 dark:bg-slate-950/30 p-3 rounded-xl border border-dashed border-slate-200 dark:border-slate-800 text-center">
+                      No hay miembros asignados a esta oficina.
+                    </div>
+                  )}
+
+                  {/* Add members button and search */}
+                  <details className="group">
+                    <summary className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 cursor-pointer hover:underline">
+                      + Agregar miembros
+                    </summary>
+                    <div className="mt-2 max-h-48 overflow-y-auto border border-slate-200 dark:border-slate-800 rounded-xl p-3 space-y-1.5 bg-slate-50/50 dark:bg-slate-950/30">
+                      {systemUsers.filter(u => !areaLinkedUserIds.includes(u.id)).length > 0 ? (
+                        systemUsers.filter(u => !areaLinkedUserIds.includes(u.id)).map((u) => (
+                          <label key={u.id} className="flex items-center gap-2 text-xs font-medium cursor-pointer select-none hover:bg-white dark:hover:bg-slate-900 p-1.5 rounded transition-colors">
                             <input
                               type="checkbox"
-                              checked={isChecked}
+                              checked={false}
                               onChange={(e) => {
                                 const checked = e.target.checked;
                                 if (checked) {
                                   setAreaLinkedUserIds(prev => [...prev, u.id]);
-                                } else {
-                                  setAreaLinkedUserIds(prev => prev.filter(id => id !== u.id));
+                                  // Also update user's areaIds
+                                  fetch(`/api/users/${u.id}`, {
+                                    method: 'PUT',
+                                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${safeStorage.getItem('saved_session_token')}` },
+                                    body: JSON.stringify({
+                                      ...u,
+                                      areaIds: [...(u.areaIds || (u.areaId ? [u.areaId] : [])), selectedAreaToEdit!.id]
+                                    })
+                                  }).then(() => fetchSystemUsers()).catch(() => {});
                                 }
                               }}
                               className="rounded border-slate-300 dark:border-slate-800 text-indigo-600 focus:ring-indigo-500/20"
@@ -2252,12 +2153,12 @@ export default function ConfigView({ providers, currentUser, onUpdateProviders, 
                             <span className="font-bold text-slate-700 dark:text-slate-200 uppercase">{u.name}</span>
                             <span className="text-[10px] text-slate-400 font-mono">({u.username} - {u.role})</span>
                           </label>
-                        );
-                      })
-                    ) : (
-                      <div className="text-[10px] text-slate-400 italic">No hay usuarios registrados en el sistema.</div>
-                    )}
-                  </div>
+                        ))
+                      ) : (
+                        <div className="text-[10px] text-slate-400 italic">Todos los usuarios ya están asignados.</div>
+                      )}
+                    </div>
+                  </details>
                 </div>
 
                 <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-slate-100 dark:border-slate-800/80">

@@ -10,6 +10,8 @@ export interface User {
   areaId?: string; // linked office or sub-office
   areaIds?: string[]; // linked offices or sub-offices (multiple support)
   cargo?: string; // custom institutional job title
+  condicion?: string; // condition: Secretaria, Especialista, Apoyo Administrativo, Jefe, etc.
+  sexo?: 'F' | 'M';
 }
 
 export type DocumentType =
