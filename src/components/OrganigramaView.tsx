@@ -149,9 +149,10 @@ export default function OrganigramaView() {
         'Presupuesto',
         'Racionalización',
         'SIAGIE',
-        'Finanzas'
+        'Finanzas',
+        'PREVAED'
       ],
-      description: 'Órgano de línea encargado de planificar, presupuestar y racionalizar los recursos, supervisando la infraestructura, estadística y sistemas de información como el SIAGIE.',
+      description: 'Órgano de línea encargado de planificar, presupuestar y racionalizar los recursos, supervisando la infraestructura, estadística, sistemas de información y la gestión del riesgo de desastres (PREVAED).',
       icon: Network
     },
     {
@@ -165,10 +166,9 @@ export default function OrganigramaView() {
         'Especialistas de Educación Primaria',
         'Especialistas de Educación Secundaria',
         'Coordinadores de PRONOEI',
-        'PREVAED',
         'Convivencia Escolar'
       ],
-      description: 'Órgano de línea encargado de orientar y evaluar el desarrollo curricular, el acompañamiento pedagógico, la prevención de violencia escolar y el monitoreo de las Instituciones Educativas.',
+      description: 'Órgano de línea encargado de orientar y evaluar el desarrollo curricular, el acompañamiento pedagógico, y el monitoreo de las Instituciones Educativas.',
       icon: GraduationCap
     }
   ];
