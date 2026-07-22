@@ -207,6 +207,19 @@ app.get('/api/users', (req, res) => {
   res.json(db.getUsers());
 });
 
+// Public user data for organigrama — no admin required, only safe fields
+app.get('/api/users/brief', (req, res) => {
+  const users = db.getUsers();
+  const brief = users.map(u => ({
+    id: u.id,
+    name: u.name,
+    areaId: u.areaId,
+    areaIds: u.areaIds,
+    condicion: u.condicion
+  }));
+  res.json(brief);
+});
+
 app.post('/api/users', async (req, res) => {
   if (!checkIsAdmin(req)) {
     return res.status(403).json({ error: 'Acceso denegado. Se requiere rol de Administrador.' });

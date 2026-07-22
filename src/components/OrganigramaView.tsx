@@ -3,7 +3,6 @@ import {
   Network, Search, Users, Building, UserCheck, HelpCircle, Plus, Layers, 
   ShieldAlert, FileSpreadsheet, GraduationCap, Scale, HeartHandshake, RefreshCw
 } from 'lucide-react';
-import { safeStorage } from '../utils/storage';
 
 interface OrgNode {
   id: string;
@@ -21,17 +20,20 @@ export default function OrganigramaView() {
   const [showSecretariesOnly, setShowSecretariesOnly] = useState(false);
   const [areas, setAreas] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const getToken = () => safeStorage.getItem('saved_session_token');
-  const authHeaders = () => ({ 'Authorization': `Bearer ${getToken()}` });
+  const fetchData = () => {
+    setLoading(true);
+    Promise.all([
+      fetch('/api/areas').then(r => r.json()).catch(() => []),
+      fetch('/api/users/brief').then(r => r.json()).catch(() => [])
+    ]).then(([areasData, usersData]) => {
+      if (Array.isArray(areasData)) setAreas(areasData);
+      if (Array.isArray(usersData)) setUsers(usersData);
+    }).finally(() => setLoading(false));
+  };
 
-  useEffect(() => {
-    fetch('/api/areas').then(r => r.json()).then(setAreas).catch(() => {});
-    fetch('/api/users', { headers: authHeaders() })
-      .then(r => r.json())
-      .then(data => setUsers(Array.isArray(data) ? data : []))
-      .catch(() => {});
-  }, []);
+  useEffect(() => { fetchData(); }, []);
 
   const getMemberIds = (areaId: string): string[] => {
     return users.filter(u => (u.areaIds || (u.areaId ? [u.areaId] : [])).includes(areaId)).map(u => u.id);
@@ -111,7 +113,7 @@ export default function OrganigramaView() {
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <button onClick={() => { fetch('/api/areas').then(r => r.json()).then(setAreas).catch(() => {}); fetch('/api/users', { headers: authHeaders() }).then(r => r.json()).then(data => setUsers(Array.isArray(data) ? data : [])).catch(() => {}); }}
+            <button onClick={fetchData}
               className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all active:scale-95">
               <RefreshCw size={13} /> <span>Actualizar</span>
             </button>
@@ -148,7 +150,17 @@ export default function OrganigramaView() {
               <span className="text-indigo-500 animate-pulse">● Haga clic en cualquier módulo</span>
             </div>
 
-            {tree.length > 0 && (
+            {loading ? (
+              <div className="flex items-center justify-center min-h-[300px] text-xs text-slate-400 font-semibold">
+                <RefreshCw size={16} className="animate-spin mr-2" /> Cargando organigrama...
+              </div>
+            ) : tree.length === 0 ? (
+              <div className="flex flex-col items-center justify-center min-h-[300px] text-xs text-slate-400 space-y-2">
+                <Building size={32} className="text-slate-300" />
+                <span className="font-semibold">No hay áreas registradas</span>
+                <span>Vaya a Configuraciones → Gestión de Áreas para crear la estructura.</span>
+              </div>
+            ) : (
               <div className="flex flex-col items-center gap-8 py-4 relative z-10 font-sans">
                 {/* Level 1: Dirección */}
                 <div className="w-full max-w-xs flex flex-col items-center">
