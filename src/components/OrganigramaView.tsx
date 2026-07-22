@@ -10,8 +10,7 @@ import {
   Layers, 
   ShieldAlert, 
   FileSpreadsheet, 
-  GraduationCap, 
-  FolderLock,
+  GraduationCap,
   Scale,
   HeartHandshake
 } from 'lucide-react';
@@ -41,20 +40,11 @@ export default function OrganigramaView() {
       secretarias: 2,
       secretariaType: 'Secretaría General',
       subUnits: [
-        'Oficina de Control Institucional',
         'Oficina de Asesoría Jurídica',
         'Consejo Participativo Local de Educación'
       ],
       description: 'Órgano de dirección de más alto nivel encargado de planificar, conducir y evaluar la gestión educativa, administrativa e institucional de la UGEL.',
       icon: Building
-    },
-    {
-      id: 'control_institucional',
-      name: 'Oficina de Control Institucional',
-      category: 'Apoyo',
-      secretarias: 0,
-      description: 'Órgano responsable de ejecutar el control gubernamental interno en la UGEL para cautelar la legalidad y eficiencia de las operaciones.',
-      icon: FolderLock
     },
     {
       id: 'asesoria_juridica',
@@ -260,30 +250,10 @@ export default function OrganigramaView() {
               </div>
 
               {/* Level 2: Apoyo & Staff offices (Horizontal row) */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 w-full relative">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full relative max-w-2xl mx-auto">
                 {/* Horizontal connection line backer */}
-                <div className="hidden md:block absolute top-0 left-[16%] right-[16%] h-0.5 bg-slate-300 dark:bg-slate-700 -translate-y-8"></div>
+                <div className="hidden sm:block absolute top-0 left-[25%] right-[25%] h-0.5 bg-slate-300 dark:bg-slate-700 -translate-y-8"></div>
                 
-                {/* OCI */}
-                <div className="flex flex-col items-center">
-                  <div className="hidden md:block h-8 w-0.5 bg-slate-300 dark:bg-slate-700 -mt-8"></div>
-                  <button
-                    onClick={() => setSelectedNode('control_institucional')}
-                    className={`w-full p-3 rounded-lg border text-center transition-all duration-300 ${
-                      selectedNode === 'control_institucional'
-                        ? 'border-indigo-500 bg-indigo-50/50 dark:bg-indigo-950/20 shadow-md'
-                        : 'border-slate-200 dark:border-slate-800 bg-white/90 dark:bg-slate-950/80 hover:border-indigo-400'
-                    }`}
-                    id="organigrama_node_oci"
-                  >
-                    <FolderLock className="mx-auto text-slate-400 dark:text-slate-500 mb-1" size={15} />
-                    <h5 className="text-[10px] font-bold uppercase text-slate-800 dark:text-slate-200">
-                      Control Institucional
-                    </h5>
-                    <span className="text-[8px] uppercase text-slate-400 block mt-1">Sin secretaria asignada</span>
-                  </button>
-                </div>
-
                 {/* Asesoría Jurídica */}
                 <div className="flex flex-col items-center">
                   <div className="hidden md:block h-8 w-0.5 bg-slate-300 dark:bg-slate-700 -mt-8"></div>
@@ -305,8 +275,8 @@ export default function OrganigramaView() {
                 </div>
 
                 {/* Administración */}
-                <div className="flex flex-col items-center col-span-1 sm:col-span-2 md:col-span-1 gap-3">
-                  <div className="hidden md:block h-8 w-0.5 bg-slate-300 dark:bg-slate-700 -mt-8"></div>
+                <div className="flex flex-col items-center col-span-1 gap-3">
+                  <div className="hidden sm:block h-8 w-0.5 bg-slate-300 dark:bg-slate-700 -mt-8"></div>
                   <div className="w-full flex flex-col items-center gap-2 p-2.5 rounded-xl bg-slate-50/50 dark:bg-slate-950/20 border border-slate-200/60 dark:border-slate-800/60">
                     <button
                       onClick={() => setSelectedNode('administracion')}

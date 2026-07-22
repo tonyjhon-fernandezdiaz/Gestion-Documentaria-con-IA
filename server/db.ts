@@ -27,12 +27,39 @@ interface DatabaseSchema {
 }
 
 export const DEFAULT_AREAS: AreaItem[] = [
+  // --- DIRECCIÓN (raíz de toda la estructura) ---
   {
     id: 'dir', name: 'Dirección UGEL', code: 'DIR', suffix: '-2026-UGEL-DIR',
     responsableNombre: '', responsableCargo: 'Director(a) de la UGEL Bellavista'
   },
+
+  // --- OFICINAS dependen de Dirección ---
+  {
+    id: 'oaj', name: 'Oficina de Asesoría Jurídica', code: 'OAJ', suffix: '-2026-UGEL-OAJ',
+    parentAreaId: 'dir',
+    responsableNombre: '', responsableCargo: 'Jefe de la Oficina de Asesoría Jurídica'
+  },
+  {
+    id: 'adm', name: 'Oficina de Administración', code: 'ADM', suffix: '-2026-UGEL-ADM',
+    parentAreaId: 'dir',
+    responsableNombre: 'Leydi Marín Quezada', responsableCargo: 'Jefe de la Oficina de Administración'
+  },
+  { id: 'finanzas', name: 'Finanzas y Tesorería', code: 'ADM-FT', parentAreaId: 'adm', suffix: '-2026-UGEL-ADM-FT' },
+  { id: 'contabilidad', name: 'Contabilidad y Abastecimiento', code: 'ADM-CA', parentAreaId: 'adm', suffix: '-2026-UGEL-ADM-CA' },
+
+  // Gestión de Recursos Humanos dentro de Administración
+  {
+    id: 'rrhh', name: 'Gestión de Recursos Humanos', code: 'RRHH', suffix: '-2026-UGEL-RRHH',
+    parentAreaId: 'adm',
+    responsableNombre: 'Segundo Hipólito Saldaña Pérez', responsableCargo: 'Jefe de la Oficina de Gestión de Recursos Humanos'
+  },
+  { id: 'planillas', name: 'Planillas y Escalafón', code: 'RRHH-PE', parentAreaId: 'rrhh', suffix: '-2026-UGEL-RRHH-PE' },
+  { id: 'bienestar', name: 'Bienestar Social', code: 'RRHH-BS', parentAreaId: 'rrhh', suffix: '-2026-UGEL-RRHH-BS' },
+
+  // --- ÁREAS dependen de Dirección ---
   {
     id: 'agi', name: 'Área de Gestión Institucional', code: 'AGI', suffix: '-2026-UGEL-AGI',
+    parentAreaId: 'dir',
     responsableNombre: 'Tony Jhon Fernandez Díaz', responsableCargo: 'Jefe del Área de Gestión Institucional'
   },
   { id: 'planificacion', name: 'Planificación y Presupuesto', code: 'AGI-PP', parentAreaId: 'agi', suffix: '-2026-UGEL-AGI-PP' },
@@ -40,23 +67,12 @@ export const DEFAULT_AREAS: AreaItem[] = [
   { id: 'infraestructura', name: 'Infraestructura Educativa', code: 'AGI-IE', parentAreaId: 'agi', suffix: '-2026-UGEL-AGI-IE' },
   {
     id: 'agp', name: 'Área de Gestión Pedagógica', code: 'AGP', suffix: '-2026-UGEL-AGP',
+    parentAreaId: 'dir',
     responsableNombre: 'Oscar Enrique Ayay Sánchez', responsableCargo: 'Jefe del Área de Gestión Pedagógica'
   },
   { id: 'inicial-primaria', name: 'Educación Inicial y Primaria', code: 'AGP-EIP', parentAreaId: 'agp', suffix: '-2026-UGEL-AGP-EIP' },
   { id: 'secundaria', name: 'Educación Secundaria y Superior', code: 'AGP-ESS', parentAreaId: 'agp', suffix: '-2026-UGEL-AGP-ESS' },
   { id: 'acompanamiento', name: 'Acompañamiento Pedagógico', code: 'AGP-AP', parentAreaId: 'agp', suffix: '-2026-UGEL-AGP-AP' },
-  {
-    id: 'adm', name: 'Área de Administración', code: 'ADM', suffix: '-2026-UGEL-ADM',
-    responsableNombre: 'Leydi Marín Quezada', responsableCargo: 'Jefe de la Oficina de Administración'
-  },
-  { id: 'finanzas', name: 'Finanzas y Tesorería', code: 'ADM-FT', parentAreaId: 'adm', suffix: '-2026-UGEL-ADM-FT' },
-  { id: 'contabilidad', name: 'Contabilidad y Abastecimiento', code: 'ADM-CA', parentAreaId: 'adm', suffix: '-2026-UGEL-ADM-CA' },
-  {
-    id: 'rrhh', name: 'Área de Recursos Humanos', code: 'RRHH', suffix: '-2026-UGEL-RRHH',
-    responsableNombre: 'Segundo Hipólito Saldaña Pérez', responsableCargo: 'Responsable de la Oficina de Gestión de Recursos Humanos'
-  },
-  { id: 'planillas', name: 'Planillas y Escalafón', code: 'RRHH-PE', parentAreaId: 'rrhh', suffix: '-2026-UGEL-RRHH-PE' },
-  { id: 'bienestar', name: 'Bienestar Social', code: 'RRHH-BS', parentAreaId: 'rrhh', suffix: '-2026-UGEL-RRHH-BS' },
 ];
 
 // Plantillas de área: aún no se cargan datos iniciales. Se define como lista vacía
@@ -96,10 +112,11 @@ const INITIAL_DB: DatabaseSchema = {
     // --- DIRECCIÓN UGEL (dir) ---
     { id: 'admin', username: 'admin', name: 'Administrador', role: 'Administrador', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150', password: '1012', areaId: 'dir', areaIds: ['dir'], cargo: 'Administrador del Sistema', condicion: 'Jefe de Área' },
     { id: '00874080', username: '00874080', name: 'Margot Fonseca de Vera', role: 'Secretaria', avatar: 'https://ui-avatars.com/api/?name=Margot+Fonseca&background=0D8ABC&color=fff', password: '00874080', areaId: 'dir', areaIds: ['dir'], cargo: 'Secretaria de Dirección', condicion: 'Secretaria', sexo: 'F' },
-    { id: '70076501', username: '70076501', name: 'Gianny Pezo Cumapa', role: 'Secretaria', avatar: 'https://ui-avatars.com/api/?name=Gianny+Pezo&background=0D8ABC&color=fff', password: '70076501', areaId: 'dir', areaIds: ['dir'], cargo: 'Asesora Legal', condicion: 'Asesor Legal', sexo: 'F' },
-    { id: '74148294', username: '74148294', name: 'Kevin Hafid Rojas Cubas', role: 'Secretaria', avatar: 'https://ui-avatars.com/api/?name=Kevin+Hafid&background=0D8ABC&color=fff', password: '74148294', areaId: 'dir', areaIds: ['dir'], cargo: 'Servicio Profesional Especializado en la Oficina de Asesoria Legal de la UGEL Bellavista', condicion: 'Servicio Profesional', sexo: 'M' },
+    // --- OFICINA DE ASESORÍA JURÍDICA (oaj, depende de Dirección) ---
+    { id: '70076501', username: '70076501', name: 'Gianny Pezo Cumapa', role: 'Secretaria', avatar: 'https://ui-avatars.com/api/?name=Gianny+Pezo&background=0D8ABC&color=fff', password: '70076501', areaId: 'oaj', areaIds: ['oaj'], cargo: 'Asesora Legal', condicion: 'Asesor Legal', sexo: 'F' },
+    { id: '74148294', username: '74148294', name: 'Kevin Hafid Rojas Cubas', role: 'Secretaria', avatar: 'https://ui-avatars.com/api/?name=Kevin+Hafid&background=0D8ABC&color=fff', password: '74148294', areaId: 'oaj', areaIds: ['oaj'], cargo: 'Servicio Profesional Especializado en la Oficina de Asesoria Legal de la UGEL Bellavista', condicion: 'Servicio Profesional', sexo: 'M' },
 
-    // --- ÁREA DE GESTIÓN INSTITUCIONAL - AGI (agi) ---
+    // --- ÁREA DE GESTIÓN INSTITUCIONAL - AGI (agi, depende de Dirección) ---
     { id: '74223117', username: '74223117', name: 'Tony Jhon Fernandez Díaz', role: 'Jefe', avatar: 'https://ui-avatars.com/api/?name=Tony+Jhon&background=0D8ABC&color=fff', password: '74223117', areaId: 'agi', areaIds: ['agi'], cargo: 'Jefe del Area de Gestion Institucional', condicion: 'Jefe de Área', sexo: 'M' },
     { id: '60294586', username: '60294586', name: 'Gisela Yudith Vásquez Gonzales', role: 'Secretaria', avatar: 'https://ui-avatars.com/api/?name=Gisela+Yudith&background=0D8ABC&color=fff', password: '60294586', areaId: 'agi', areaIds: ['agi'], cargo: 'Servicio Profesional Especializado en el Área de Gestión Institucional de la UGEL Bellavista', condicion: 'Servicio Profesional', sexo: 'F' },
     { id: '76642285', username: '76642285', name: 'Roxanita Carrasco Holguín', role: 'Secretaria', avatar: 'https://ui-avatars.com/api/?name=Roxanita+Carrasco&background=0D8ABC&color=fff', password: '76642285', areaId: 'agi', areaIds: ['agi'], cargo: 'Especialista de SIAGIE', condicion: 'Especialista', sexo: 'F' },
@@ -118,7 +135,7 @@ const INITIAL_DB: DatabaseSchema = {
     { id: '45849880', username: '45849880', name: 'Daniel Leonidas La Torre Rengifo', role: 'Secretaria', avatar: 'https://ui-avatars.com/api/?name=Daniel+Leonidas&background=0D8ABC&color=fff', password: '45849880', areaId: 'infraestructura', areaIds: ['infraestructura', 'agi'], cargo: 'Especialista en Infraestructura', condicion: 'Especialista', sexo: 'M' },
     { id: '70780194', username: '70780194', name: 'Zack Kevin Alvarado Maldonado', role: 'Secretaria', avatar: 'https://ui-avatars.com/api/?name=Zack+Kevin&background=0D8ABC&color=fff', password: '70780194', areaId: 'infraestructura', areaIds: ['infraestructura', 'agi'], cargo: 'Servicio Profesional Especializado en la Oficina de Infraestructura de la UGEL Bellavista', condicion: 'Servicio Profesional', sexo: 'M' },
 
-    // --- ÁREA DE ADMINISTRACIÓN (adm) ---
+    // --- OFICINA DE ADMINISTRACIÓN (adm, depende de Dirección) ---
     { id: '42268073', username: '42268073', name: 'Leydi Marín Quezada', role: 'Jefe', avatar: 'https://ui-avatars.com/api/?name=Leydi+Marín&background=0D8ABC&color=fff', password: '42268073', areaId: 'adm', areaIds: ['adm'], cargo: 'Jefe de la Oficina de Administración', condicion: 'Jefe de Área', sexo: 'F' },
     { id: '71928865', username: '71928865', name: 'Lleny Sangama Guerra', role: 'Secretaria', avatar: 'https://ui-avatars.com/api/?name=Lleny+Sangama&background=0D8ABC&color=fff', password: '71928865', areaId: 'adm', areaIds: ['adm'], cargo: 'Secretaria de la Oficina de Administracion', condicion: 'Secretaria', sexo: 'F' },
     { id: '73449707', username: '73449707', name: 'Fiorella Vela Vásquez', role: 'Secretaria', avatar: 'https://ui-avatars.com/api/?name=Fiorella+Vela&background=0D8ABC&color=fff', password: '73449707', areaId: 'adm', areaIds: ['adm'], cargo: 'Proyectista', condicion: 'Técnico', sexo: 'F' },
@@ -146,7 +163,7 @@ const INITIAL_DB: DatabaseSchema = {
     { id: '71602492', username: '71602492', name: 'Karen Janeth Flores Lanares', role: 'Secretaria', avatar: 'https://ui-avatars.com/api/?name=Karen+Janeth&background=0D8ABC&color=fff', password: '71602492', areaId: 'contabilidad', areaIds: ['contabilidad', 'adm'], cargo: 'Especialista en Contabilidad', condicion: 'Especialista', sexo: 'F' },
     { id: '48024213', username: '48024213', name: 'Veronica Salazar Castro', role: 'Secretaria', avatar: 'https://ui-avatars.com/api/?name=Veronica+Salazar&background=0D8ABC&color=fff', password: '48024213', areaId: 'contabilidad', areaIds: ['contabilidad', 'adm'], cargo: 'Especialista en Abastecimiento', condicion: 'Especialista', sexo: 'F' },
 
-    // --- ÁREA DE RECURSOS HUMANOS - RRHH (rrhh) ---
+    // --- GESTIÓN DE RECURSOS HUMANOS (rrhh, dentro de Administración) ---
     { id: '05373518', username: '05373518', name: 'Segundo Hipólito Saldaña Pérez', role: 'Jefe', avatar: 'https://ui-avatars.com/api/?name=Segundo+Hipólito&background=0D8ABC&color=fff', password: '05373518', areaId: 'rrhh', areaIds: ['rrhh'], cargo: 'Responsable de la Oficina de Gestión de Recursos Humanos', condicion: 'Jefe de Oficina', sexo: 'M' },
     { id: '47109452', username: '47109452', name: 'Yesenia Marisol Escobedo Vilchez', role: 'Secretaria', avatar: 'https://ui-avatars.com/api/?name=Yesenia+Marisol&background=0D8ABC&color=fff', password: '47109452', areaId: 'rrhh', areaIds: ['rrhh'], cargo: 'Secretaria de la Oficina de RR.HH.', condicion: 'Secretaria', sexo: 'F' },
     { id: '74657614', username: '74657614', name: 'Karen Tatiana Hidalgo Vásquez', role: 'Secretaria', avatar: 'https://ui-avatars.com/api/?name=Karen+Tatiana&background=0D8ABC&color=fff', password: '74657614', areaId: 'rrhh', areaIds: ['rrhh'], cargo: 'Servicio Profesional Especializado en la Oficina de Recursos Humanos de la UGEL Bellavista', condicion: 'Servicio Profesional', sexo: 'F' },
@@ -163,7 +180,7 @@ const INITIAL_DB: DatabaseSchema = {
     // RRHH - Bienestar Social (bienestar)
     { id: '71480435', username: '71480435', name: 'Violeta Salazar García', role: 'Secretaria', avatar: 'https://ui-avatars.com/api/?name=Violeta+Salazar&background=0D8ABC&color=fff', password: '71480435', areaId: 'bienestar', areaIds: ['bienestar', 'rrhh'], cargo: 'Especialista en Bienestar', condicion: 'Especialista', sexo: 'F' },
 
-    // --- ÁREA DE GESTIÓN PEDAGÓGICA - AGP (agp) ---
+    // --- ÁREA DE GESTIÓN PEDAGÓGICA - AGP (agp, depende de Dirección) ---
     { id: '19336148', username: '19336148', name: 'Oscar Enrique Ayay Sánchez', role: 'Jefe', avatar: 'https://ui-avatars.com/api/?name=Oscar+Enrique&background=0D8ABC&color=fff', password: '19336148', areaId: 'agp', areaIds: ['agp'], cargo: 'Jefe del Area de Gestión Pedagógica', condicion: 'Jefe de Área', sexo: 'M' },
     { id: '72120699', username: '72120699', name: 'Yolby Tapullima Tapullima', role: 'Secretaria', avatar: 'https://ui-avatars.com/api/?name=Yolby+Tapullima&background=0D8ABC&color=fff', password: '72120699', areaId: 'agp', areaIds: ['agp'], cargo: 'Servicio profesional Especializado en el Área de Gestión Pedagógica de la UGEL Bellavista', condicion: 'Servicio Profesional', sexo: 'F' },
     { id: '74761394', username: '74761394', name: 'Karen Esther Vela Arirama', role: 'Secretaria', avatar: 'https://ui-avatars.com/api/?name=Karen+Esther&background=0D8ABC&color=fff', password: '74761394', areaId: 'agp', areaIds: ['agp'], cargo: 'Servicio Profesional Especializado En El Área De Gestión Pedagógica De La UGEL Bellavista', condicion: 'Servicio Profesional', sexo: 'F' },
