@@ -1392,16 +1392,22 @@ export default function UploadView({ currentUser, onDocumentAdded }: UploadViewP
                         {/* Dropdown overlay specifically for this row */}
                         {activeDropdownIndex === index && (
                           <div className="absolute left-0 right-0 top-full mt-1.5 max-h-48 overflow-y-auto bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl z-50 divide-y divide-slate-50 dark:divide-slate-900/60 font-sans">
-                            {savedRecipients.filter(r => 
-                              !rec.nombre || r.nombre.toLowerCase().includes(rec.nombre.toLowerCase())
-                            ).length === 0 ? (
+                            {savedRecipients.filter(r => {
+                              const matchesSearch = !rec.nombre || r.nombre.toLowerCase().includes(rec.nombre.toLowerCase());
+                              const matchesArea = !r.areaId || r.areaId === selectedAreaId;
+                              return matchesSearch && matchesArea;
+                            }).length === 0 ? (
                               <div className="p-3 text-[11px] text-slate-400 italic text-center">
                                 Ningún destinatario coincide. Guarde uno nuevo en el ícono de arriba.
                               </div>
                             ) : (
-                              savedRecipients.filter(r => 
-                                !rec.nombre || r.nombre.toLowerCase().includes(rec.nombre.toLowerCase())
-                              ).map((recItem) => (
+                              savedRecipients.filter(r => {
+                                const matchesSearch = !rec.nombre || r.nombre.toLowerCase().includes(rec.nombre.toLowerCase());
+                                const matchesArea = !r.areaId || r.areaId === selectedAreaId;
+                                return matchesSearch && matchesArea;
+                              }).map((recItem) => {
+                                const areaName = areasList.find((a: any) => a.id === recItem.areaId)?.name;
+                                return (
                                 <div
                                   key={recItem.id}
                                   onMouseDown={() => {
@@ -1413,8 +1419,11 @@ export default function UploadView({ currentUser, onDocumentAdded }: UploadViewP
                                 >
                                   <div className="font-bold text-slate-900 dark:text-white uppercase">{recItem.nombre}</div>
                                   <div className="text-[9px] text-slate-500 dark:text-slate-400 font-semibold uppercase mt-0.5">{recItem.cargo}</div>
+                                  {areaName && (
+                                    <div className="text-[8px] text-indigo-500 dark:text-indigo-400 font-bold mt-0.5">📁 {areaName}</div>
+                                  )}
                                 </div>
-                              ))
+                              )})
                             )}
                           </div>
                         )}

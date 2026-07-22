@@ -11,7 +11,9 @@ import {
   ShieldAlert, 
   FileSpreadsheet, 
   GraduationCap, 
-  FolderLock
+  FolderLock,
+  Scale,
+  HeartHandshake
 } from 'lucide-react';
 
 interface DependencyNode {
@@ -61,6 +63,31 @@ export default function OrganigramaView() {
       secretarias: 0,
       description: 'Encargada de asesorar a la Dirección y demás áreas en asuntos jurídicos y legales de carácter administrativo e institucional.',
       icon: ShieldAlert
+    },
+    {
+      id: 'cppadd',
+      name: 'CPPADD (Comité de Participación y Apoyo a la Dirección Desconcentrada)',
+      category: 'Apoyo',
+      secretarias: 0,
+      subUnits: [
+        'Planificación Participativa',
+        'Presupuesto Participativo',
+        'Vigilancia Ciudadana'
+      ],
+      description: 'Comité de participación, vigilancia y apoyo a la gestión educativa, promoviendo la transparencia, la rendición de cuentas y la participación ciudadana en el ámbito local.',
+      icon: HeartHandshake
+    },
+    {
+      id: 'pad',
+      name: 'Secretaría Técnica de Procedimientos Administrativos Disciplinarios (PAD)',
+      category: 'Apoyo',
+      secretarias: 0,
+      subUnits: [
+        'Instrucción de Procesos Administrativos',
+        'Sub Comité de Apelaciones'
+      ],
+      description: 'Órgano encargado de instruir y resolver los procedimientos administrativos disciplinarios del personal docente y administrativo de la UGEL, garantizando el debido proceso.',
+      icon: Scale
     },
     {
       id: 'administracion',
@@ -137,9 +164,11 @@ export default function OrganigramaView() {
         'Especialistas de Educación Inicial',
         'Especialistas de Educación Primaria',
         'Especialistas de Educación Secundaria',
-        'Coordinadores de PRONOEI'
+        'Coordinadores de PRONOEI',
+        'PREVAED',
+        'Convivencia Escolar'
       ],
-      description: 'Órgano de línea encargado de orientar y evaluar el desarrollo curricular, el acompañamiento pedagógico, y el monitoreo de las Instituciones Educativas.',
+      description: 'Órgano de línea encargado de orientar y evaluar el desarrollo curricular, el acompañamiento pedagógico, la prevención de violencia escolar y el monitoreo de las Instituciones Educativas.',
       icon: GraduationCap
     }
   ];
@@ -254,10 +283,10 @@ export default function OrganigramaView() {
                 <div className="h-8 w-0.5 bg-slate-300 dark:bg-slate-700"></div>
               </div>
 
-              {/* Level 2: Apoyo & Staff offices (Horizontal row with control/asesoría) */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 w-full relative">
+              {/* Level 2: Apoyo & Staff offices (Horizontal row) */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4 w-full relative">
                 {/* Horizontal connection line backer */}
-                <div className="hidden md:block absolute top-0 left-[16%] right-[16%] h-0.5 bg-slate-300 dark:bg-slate-700 -translate-y-8"></div>
+                <div className="hidden md:block absolute top-0 left-[5%] right-[5%] h-0.5 bg-slate-300 dark:bg-slate-700 -translate-y-8"></div>
                 
                 {/* OCI */}
                 <div className="flex flex-col items-center">
@@ -294,6 +323,46 @@ export default function OrganigramaView() {
                     <ShieldAlert className="mx-auto text-slate-400 dark:text-slate-500 mb-1" size={15} />
                     <h5 className="text-[10px] font-bold uppercase text-slate-800 dark:text-slate-200">
                       Asesoría Jurídica
+                    </h5>
+                    <span className="text-[8px] uppercase text-slate-400 block mt-1">Sin secretaria asignada</span>
+                  </button>
+                </div>
+
+                {/* CPPADD */}
+                <div className="flex flex-col items-center">
+                  <div className="hidden md:block h-8 w-0.5 bg-slate-300 dark:bg-slate-700 -mt-8"></div>
+                  <button
+                    onClick={() => setSelectedNode('cppadd')}
+                    className={`w-full p-3 rounded-lg border text-center transition-all duration-300 ${
+                      selectedNode === 'cppadd'
+                        ? 'border-indigo-500 bg-indigo-50/50 dark:bg-indigo-950/20 shadow-md'
+                        : 'border-slate-200 dark:border-slate-800 bg-white/90 dark:bg-slate-950/80 hover:border-indigo-400'
+                    }`}
+                    id="organigrama_node_cppadd"
+                  >
+                    <HeartHandshake className="mx-auto text-slate-400 dark:text-slate-500 mb-1" size={15} />
+                    <h5 className="text-[10px] font-bold uppercase text-slate-800 dark:text-slate-200">
+                      CPPADD
+                    </h5>
+                    <span className="text-[8px] uppercase text-slate-400 block mt-1">Sin secretaria asignada</span>
+                  </button>
+                </div>
+
+                {/* PAD */}
+                <div className="flex flex-col items-center">
+                  <div className="hidden md:block h-8 w-0.5 bg-slate-300 dark:bg-slate-700 -mt-8"></div>
+                  <button
+                    onClick={() => setSelectedNode('pad')}
+                    className={`w-full p-3 rounded-lg border text-center transition-all duration-300 ${
+                      selectedNode === 'pad'
+                        ? 'border-indigo-500 bg-indigo-50/50 dark:bg-indigo-950/20 shadow-md'
+                        : 'border-slate-200 dark:border-slate-800 bg-white/90 dark:bg-slate-950/80 hover:border-indigo-400'
+                    }`}
+                    id="organigrama_node_pad"
+                  >
+                    <Scale className="mx-auto text-slate-400 dark:text-slate-500 mb-1" size={15} />
+                    <h5 className="text-[10px] font-bold uppercase text-slate-800 dark:text-slate-200">
+                      PAD / Sec. Técnica
                     </h5>
                     <span className="text-[8px] uppercase text-slate-400 block mt-1">Sin secretaria asignada</span>
                   </button>

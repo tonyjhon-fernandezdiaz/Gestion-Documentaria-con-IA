@@ -66,11 +66,14 @@ interface Recipient {
   nombre: string;
   cargo: string;
   sexo?: 'F' | 'M';
+  areaId?: string;
 }
 
 export default function ConfigView({ providers, currentUser, onUpdateProviders, logs = [], onThemeChanged, currentTheme }: ConfigViewProps) {
   // Tabs management
-  const [activeTab, setActiveTab] = useState<'area' | 'destinatarios' | 'ia' | 'usuarios' | 'logs'>('area');
+  const [activeTab, setActiveTab] = useState<'area' | 'destinatarios' | 'ia' | 'usuarios' | 'logs'>(
+    currentUser.role === 'Administrador' ? 'area' : 'destinatarios'
+  );
 
   // Custom Alert / Confirm Modal State
   const [customModal, setCustomModal] = useState<{
@@ -134,6 +137,8 @@ export default function ConfigView({ providers, currentUser, onUpdateProviders, 
   const [editingRecipient, setEditingRecipient] = useState<Recipient | null>(null);
   const [newRecName, setNewRecName] = useState('');
   const [newRecCargo, setNewRecCargo] = useState('');
+  const [newRecAreaId, setNewRecAreaId] = useState('');
+  const [recFilterAreaId, setRecFilterAreaId] = useState('');
   const [showAddForm, setShowAddForm] = useState(false);
 
   // IA Providers core state
@@ -367,7 +372,8 @@ export default function ConfigView({ providers, currentUser, onUpdateProviders, 
     const newRec: Recipient = {
       id: `rec-${Date.now()}`,
       nombre: newRecName.trim().toUpperCase(),
-      cargo: newRecCargo.trim().toUpperCase()
+      cargo: newRecCargo.trim().toUpperCase(),
+      areaId: newRecAreaId || undefined
     };
 
     const updated = [...recipients, newRec];
@@ -376,6 +382,7 @@ export default function ConfigView({ providers, currentUser, onUpdateProviders, 
 
     setNewRecName('');
     setNewRecCargo('');
+    setNewRecAreaId('');
     setShowAddForm(false);
     setRecSuccess(true);
     setTimeout(() => setRecSuccess(false), 3000);
@@ -802,10 +809,12 @@ export default function ConfigView({ providers, currentUser, onUpdateProviders, 
   };
 
   // Filtered recipients
-  const filteredRecipients = recipients.filter(r => 
-    r.nombre.toLowerCase().includes(recSearch.toLowerCase()) || 
-    r.cargo.toLowerCase().includes(recSearch.toLowerCase())
-  );
+  const filteredRecipients = recipients.filter(r => {
+    const matchesSearch = r.nombre.toLowerCase().includes(recSearch.toLowerCase()) || 
+      r.cargo.toLowerCase().includes(recSearch.toLowerCase());
+    const matchesArea = !recFilterAreaId || r.areaId === recFilterAreaId;
+    return matchesSearch && matchesArea;
+  });
 
   return (
     <div className="space-y-6 text-slate-800 dark:text-slate-100 font-sans" id="config_view_root">
@@ -823,18 +832,6 @@ export default function ConfigView({ providers, currentUser, onUpdateProviders, 
       {/* Sub tabs navigation */}
       <div className="flex flex-wrap items-center gap-1 border-b border-slate-200 dark:border-slate-800 pb-px">
         <button
-          onClick={() => setActiveTab('area')}
-          className={`flex items-center gap-2 px-4 py-2.5 text-xs font-semibold border-b-2 transition-all ${
-            activeTab === 'area'
-              ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400 bg-indigo-50/20 dark:bg-slate-900/40 rounded-t-lg'
-              : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
-          }`}
-        >
-          <Building2 size={14} />
-          <span>Información de Área y Membrete</span>
-        </button>
-
-        <button
           onClick={() => setActiveTab('destinatarios')}
           className={`flex items-center gap-2 px-4 py-2.5 text-xs font-semibold border-b-2 transition-all ${
             activeTab === 'destinatarios'
@@ -848,6 +845,18 @@ export default function ConfigView({ providers, currentUser, onUpdateProviders, 
 
         {currentUser.role === 'Administrador' && (
           <>
+            <button
+              onClick={() => setActiveTab('area')}
+              className={`flex items-center gap-2 px-4 py-2.5 text-xs font-semibold border-b-2 transition-all ${
+                activeTab === 'area'
+                  ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400 bg-indigo-50/20 dark:bg-slate-900/40 rounded-t-lg'
+                  : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+              }`}
+            >
+              <Building2 size={14} />
+              <span>Información de Área y Membrete</span>
+            </button>
+
             <button
               onClick={() => setActiveTab('ia')}
               className={`flex items-center gap-2 px-4 py-2.5 text-xs font-semibold border-b-2 transition-all ${
@@ -899,8 +908,8 @@ export default function ConfigView({ providers, currentUser, onUpdateProviders, 
         )}
       </div>
 
-      {/* Tab 1: Configuración de Área */}
-      {activeTab === 'area' && (
+      {/* Tab 1: Configuración de Área (Admin-Only) */}
+      {activeTab === 'area' && currentUser.role === 'Administrador' && (
         <div className="grid lg:grid-cols-12 gap-6 items-start animate-fade-in">
           <div className="lg:col-span-5 space-y-6">
             {/* Header Image upload */}
@@ -1132,10 +1141,25 @@ export default function ConfigView({ providers, currentUser, onUpdateProviders, 
               />
             </div>
 
+            {/* Area filter */}
+            <select
+              value={recFilterAreaId}
+              onChange={(e) => setRecFilterAreaId(e.target.value)}
+              className="px-3 py-1.5 rounded-lg bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs text-slate-700 dark:text-slate-300 focus:outline-none"
+            >
+              <option value="">Todas las áreas</option>
+              {areasList.map((a: any) => (
+                <option key={a.id} value={a.id}>{a.name}</option>
+              ))}
+            </select>
+
             {/* Add recipient btn */}
             <button
               onClick={() => {
                 setEditingRecipient(null);
+                setNewRecName('');
+                setNewRecCargo('');
+                setNewRecAreaId('');
                 setShowAddForm(!showAddForm);
               }}
               className="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold transition-all active:scale-95 shrink-0"
@@ -1203,6 +1227,28 @@ export default function ConfigView({ providers, currentUser, onUpdateProviders, 
                     className="w-full px-3 py-2 rounded bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs text-slate-800 dark:text-slate-200 focus:outline-none"
                   />
                 </div>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold uppercase text-slate-500">Área / Oficina (Organigrama)</label>
+                  <select
+                    value={editingRecipient ? (editingRecipient.areaId || '') : newRecAreaId}
+                    onChange={(e) => {
+                      if (editingRecipient) {
+                        setEditingRecipient({ ...editingRecipient, areaId: e.target.value || undefined });
+                      } else {
+                        setNewRecAreaId(e.target.value);
+                      }
+                    }}
+                    className="w-full px-3 py-2 rounded bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs text-slate-800 dark:text-slate-200 focus:outline-none"
+                  >
+                    <option value="">Sin área específica</option>
+                    {areasList.map((a: any) => (
+                      <option key={a.id} value={a.id}>
+                        {a.parentAreaId ? `↳ ${a.name}` : a.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
               <div className="flex justify-end gap-2 pt-2">
@@ -1235,13 +1281,14 @@ export default function ConfigView({ providers, currentUser, onUpdateProviders, 
                   <tr className="bg-slate-50 dark:bg-slate-950/50 border-b border-slate-100 dark:border-slate-800 font-bold text-slate-500 dark:text-slate-400">
                     <th className="p-3">Destinatario (Nombre)</th>
                     <th className="p-3">Cargo del Destinatario</th>
+                    <th className="p-3">Área / Oficina</th>
                     <th className="p-3 text-right w-24">Acciones</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800/40">
                   {filteredRecipients.length === 0 ? (
                     <tr>
-                      <td colSpan={3} className="p-8 text-center text-slate-400">
+                      <td colSpan={4} className="p-8 text-center text-slate-400">
                         No hay destinatarios registrados que coincidan.
                       </td>
                     </tr>
@@ -1250,6 +1297,15 @@ export default function ConfigView({ providers, currentUser, onUpdateProviders, 
                       <tr key={rec.id} className="hover:bg-slate-50 dark:hover:bg-slate-950/20 text-slate-700 dark:text-slate-300 font-sans">
                         <td className="p-3 font-bold text-slate-900 dark:text-white uppercase">{rec.nombre}</td>
                         <td className="p-3 uppercase text-[11px] text-slate-500 dark:text-slate-400 font-semibold">{rec.cargo}</td>
+                        <td className="p-3">
+                          {rec.areaId ? (
+                            <span className="text-[10px] px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-bold border border-indigo-500/10">
+                              {areasList.find((a: any) => a.id === rec.areaId)?.name || rec.areaId}
+                            </span>
+                          ) : (
+                            <span className="text-[10px] text-slate-400 italic">General</span>
+                          )}
+                        </td>
                         <td className="p-3 text-right">
                           <div className="flex items-center justify-end gap-1.5">
                             <button
