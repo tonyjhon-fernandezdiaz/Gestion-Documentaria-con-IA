@@ -158,6 +158,16 @@ function addSectionChildren(children: (Paragraph | Table)[], section: TemplateSe
       }
       break;
     }
+    case 'lugarFecha': {
+      const lfColor = section.estilo?.fuente?.color?.replace('#', '') || '00B050';
+      const lfSize = section.estilo?.fuente?.size || 24;
+      children.push(new Paragraph({
+        children: [new TextRun({ text: context.date, size: lfSize, font: section.estilo?.fuente?.name || 'Arial Narrow', color: lfColor })],
+        alignment: AlignmentType.RIGHT,
+        spacing: { after: 200 },
+      }));
+      break;
+    }
     case 'codigo': {
       const codColor = section.estilo?.fuente?.color?.replace('#', '') || '00B050';
       const codSize = section.estilo?.fuente?.size || 24;
@@ -207,10 +217,16 @@ function addSectionChildren(children: (Paragraph | Table)[], section: TemplateSe
     }
     case 'separator': {
       children.push(new Paragraph({
-        children: [new TextRun({ text: '─'.repeat(90), size: 12, color: '#777777' })],
+        children: [new TextRun({ text: '-------------------------------------------------------------------------------------------------', size: 14, color: '000000' })],
         alignment: AlignmentType.CENTER,
-        spacing: { before: 300, after: 300 },
+        spacing: { before: 200, after: 200 },
       }));
+      break;
+    }
+    case 'custom': {
+      if (section.contenidoEstatico) {
+        children.push(buildParagraphFromStyle(section.contenidoEstatico, section.estilo));
+      }
       break;
     }
     case 'body': {
@@ -248,12 +264,7 @@ function addSectionChildren(children: (Paragraph | Table)[], section: TemplateSe
       }
       break;
     }
-    case 'saludo': {
-      if (section.contenidoEstatico) {
-        children.push(buildParagraphFromStyle(resolveTemplateVars(section.contenidoEstatico, context), section.estilo));
-      }
-      break;
-    }
+    case 'saludo':
     case 'custom': {
       if (section.contenidoEstatico) {
         children.push(buildParagraphFromStyle(resolveTemplateVars(section.contenidoEstatico, context), section.estilo));
@@ -267,11 +278,35 @@ export async function generateDocxBlob(opts: DocxOptions): Promise<Blob> {
   const template = opts.template;
   const children: (Paragraph | Table)[] = [];
 
+  function addSpacer(afterTipo?: string): void {
+    if (afterTipo === 'lugarFecha' || afterTipo === 'codigo') {
+      children.push(new Paragraph({ children: [], spacing: { after: 120 } }));
+    } else if (afterTipo === 'destinatario') {
+      children.push(new Paragraph({ children: [], spacing: { after: 120 } }));
+      children.push(new Paragraph({ children: [], spacing: { after: 60 } }));
+    } else if (afterTipo === 'lugar') {
+      // 5 blank paragraphs like in original
+      for (let i = 0; i < 3; i++) children.push(new Paragraph({ children: [], spacing: { after: 60 } }));
+    } else if (afterTipo === 'asunto') {
+      for (let i = 0; i < 2; i++) children.push(new Paragraph({ children: [], spacing: { after: 60 } }));
+    } else if (afterTipo === 'separator') {
+      for (let i = 0; i < 2; i++) children.push(new Paragraph({ children: [], spacing: { after: 60 } }));
+    } else if (afterTipo === 'body') {
+      for (let i = 0; i < 4; i++) children.push(new Paragraph({ children: [], spacing: { after: 60 } }));
+    } else if (afterTipo === 'despedida') {
+      for (let i = 0; i < 2; i++) children.push(new Paragraph({ children: [], spacing: { after: 60 } }));
+    } else {
+      children.push(new Paragraph({ children: [], spacing: { after: 120 } }));
+    }
+  }
+
   if (template?.sections && template.sections.length > 0) {
-    // Usar estructura de la plantilla
+    let lastTipo: string | undefined;
     for (const section of template.sections) {
       if (!section.obligatorio && !section.editable) continue;
+      if (lastTipo) addSpacer(lastTipo);
       addSectionChildren(children, section, opts);
+      lastTipo = section.tipo;
     }
   } else {
     // Estructura por defecto (compatibilidad hacia atrás)

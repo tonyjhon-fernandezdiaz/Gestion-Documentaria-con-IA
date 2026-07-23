@@ -10,15 +10,16 @@ const DOCUMENT_TYPES: DocumentType[] = [
 ];
 
 const CARTA_SECTIONS: TemplateSection[] = [
-  { id: 'lugarFecha', tipo: 'metadatos', nombre: 'Lugar y fecha', obligatorio: true, editable: false, origen: 'sistema', campos: ['lugarFecha'], estilo: { alineacion: 'right', fuente: { name: 'Arial Narrow', size: 24, color: '#00B050' } } },
-  { id: 'codigo', tipo: 'codigo', nombre: 'N° de documento', obligatorio: true, editable: false, origen: 'sistema', estilo: { alineacion: 'justify', fuente: { name: 'Arial Narrow', size: 24, color: '#00B050' } } },
-  { id: 'destinatario', tipo: 'destinatario', nombre: 'Destinatario', obligatorio: true, editable: false, origen: 'fijo', estilo: { alineacion: 'left', fuente: { name: 'Arial', size: 22 } } },
+  { id: 'lugarFecha', tipo: 'lugarFecha', nombre: 'Lugar y fecha', obligatorio: true, editable: false, origen: 'sistema', estilo: { alineacion: 'right', fuente: { name: 'Arial', size: 22, color: '#00B050' } } },
+  { id: 'codigo', tipo: 'codigo', nombre: 'N° de documento', obligatorio: true, editable: false, origen: 'sistema', estilo: { alineacion: 'left', fuente: { name: 'Arial', size: 22, bold: true, color: '#00B050' } } },
+  { id: 'destinatario', tipo: 'destinatario', nombre: 'Destinatario', obligatorio: true, editable: false, origen: 'sistema', estilo: { alineacion: 'left', fuente: { name: 'Arial', size: 22 } } },
   { id: 'lugarDestino', tipo: 'lugar', nombre: 'Lugar destino', obligatorio: true, editable: false, origen: 'sistema', estilo: { alineacion: 'left', fuente: { name: 'Arial', size: 22, color: '#00B050' } } },
-  { id: 'asunto', tipo: 'asunto', nombre: 'Asunto', obligatorio: true, editable: false, origen: 'fijo', estilo: { alineacion: 'left', fuente: { name: 'Arial', size: 22 } } },
+  { id: 'asunto', tipo: 'asunto', nombre: 'Asunto', obligatorio: true, editable: false, origen: 'sistema', estilo: { alineacion: 'left', fuente: { name: 'Arial', size: 22 } } },
   { id: 'separator', tipo: 'separator', nombre: 'Línea separadora', obligatorio: false, editable: false, origen: 'fijo' },
-  { id: 'cuerpo', tipo: 'body', nombre: 'Cuerpo del documento', obligatorio: true, editable: false, origen: 'ia', estilo: { alineacion: 'justify', fuente: { name: 'Arial', size: 20, color: '#FF0000' }, espaciado: { antes: 0, despues: 240, interlineado: 1.15 } } },
-  { id: 'despedida', tipo: 'despedida', nombre: 'Despedida', obligatorio: true, editable: false, origen: 'ia', contenidoEstatico: 'Atentamente,', estilo: { alineacion: 'center', fuente: { name: 'Arial', size: 20, bold: true, color: '#FF0000' } } },
-  { id: 'firma', tipo: 'firma', nombre: 'Firma y pie', obligatorio: true, editable: false, origen: 'fijo', estilo: { alineacion: 'left', fuente: { name: 'Arial', size: 16 } }, contenidoEstatico: '{{iniciales}}\n{{direccion}}\n{{url}}' },
+  { id: 'saludoFijo', tipo: 'custom', nombre: 'Saludo Fijo de Plantilla (Negro)', obligatorio: true, editable: false, origen: 'fijo', contenidoEstatico: 'Tengo el agrado de dirigirme a usted para expresarle mi cordial y afectuoso saludo en representación de la Unidad de Gestión Educativa Local de Bellavista, ', estilo: { alineacion: 'justify', fuente: { name: 'Arial', size: 22, color: '#000000' } } },
+  { id: 'cuerpo', tipo: 'body', nombre: 'Cuerpo redactado por la IA (Rojo)', obligatorio: true, editable: false, origen: 'ia', estilo: { alineacion: 'justify', fuente: { name: 'Arial', size: 20, color: '#FF0000' }, espaciado: { antes: 0, despues: 240, interlineado: 1.15 } } },
+  { id: 'despedida', tipo: 'despedida', nombre: 'Despedida generada por la IA (Rojo)', obligatorio: true, editable: false, origen: 'ia', contenidoEstatico: 'Atentamente,', estilo: { alineacion: 'center', fuente: { name: 'Arial', size: 20, bold: true, color: '#FF0000' } } },
+  { id: 'firma', tipo: 'firma', nombre: 'Pie de página y firma (Negro / Azul)', obligatorio: true, editable: false, origen: 'fijo', estilo: { alineacion: 'left', fuente: { name: 'Arial', size: 16, color: '#000000' } }, contenidoEstatico: 'PRHB/D-UGEL-B\nMfs.\nEsq. Avenida Loreto y Jr. San Martín – Tercer Piso – Ampliación. Bellavista - Telefax042-544342\nhttps://www.gob.pe/ugelbellavista' },
 ];
 
 const DEFAULT_SECTIONS: TemplateSection[] = [
@@ -270,45 +271,49 @@ export default function TemplateEditorView() {
                 lineHeight: sp.interlineado || 1.15,
               };
 
-              if (section.tipo === 'metadatos' && section.campos?.includes('lugarFecha')) {
+              if (section.tipo === 'lugarFecha') {
                 return (
-                  <div key={section.id} style={{ ...style, textAlign: 'right', fontFamily: 'Arial Narrow', color: '#00B050' }}>
-                    Bellavista, XX de mes del 2026
+                  <div key={section.id} style={{ ...style, textAlign: 'right', fontFamily: 'Arial', color: '#00B050', fontWeight: 'bold' }}>
+                    Bellavista, 08 de enero del 2026.
                   </div>
                 );
               }
               if (section.tipo === 'codigo') {
                 return (
-                  <div key={section.id} style={{ ...style, fontFamily: 'Arial Narrow', color: '#00B050' }}>
-                    CARTA N° 001 -2026-GRSM-DRE-UGEL-B.
+                  <div key={section.id} style={{ ...style, fontFamily: 'Arial', color: '#00B050', fontWeight: 'bold', marginTop: '10px' }}>
+                    CARTA N° 001 -2026-GRSM- DRE-UGEL-B.
                   </div>
                 );
               }
               if (section.tipo === 'destinatario') {
                 return (
-                  <div key={section.id} style={style}>
-                    <b>SEÑOR</b> : <span style={{ color: '#00B050' }}>DESTINATARIO</span>
+                  <div key={section.id} style={{ ...style, marginTop: '10px' }}>
+                    <b style={{ color: '#000000' }}>SEÑOR&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</b>
+                    <span style={{ color: '#00B050', fontWeight: 'bold' }}>YAVE CARBONEL SILVA</span>
                   </div>
                 );
               }
               if (section.tipo === 'lugar') {
                 return (
-                  <div key={section.id} style={{ ...style, color: '#00B050' }}>
+                  <div key={section.id} style={{ ...style, paddingLeft: '96px', color: '#00B050', fontWeight: 'bold' }}>
                     TARAPOTO. -
                   </div>
                 );
               }
               if (section.tipo === 'asunto') {
                 return (
-                  <div key={section.id} style={style}>
-                    <b>ASUNTO</b> : <span style={{ color: '#00B050' }}>Asunto del documento</span>
+                  <div key={section.id} style={{ ...style, marginTop: '6px' }}>
+                    <b style={{ color: '#000000' }}>ASUNTO&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</b>
+                    <span style={{ color: '#00B050', fontWeight: 'bold' }}>
+                      Solicito que subsane omisión con la presentación del Formato N°1 de la Directiva N°001-2021-SERVIR/TSC, a recurso de apelación
+                    </span>
                   </div>
                 );
               }
               if (section.tipo === 'metadatos') {
                 const fields = section.campos || [];
                 const vals: Record<string, string> = {
-                  lugarFecha: 'Bellavista, XX de mes del 2026',
+                  lugarFecha: 'Bellavista, 08 de enero del 2026.',
                   codigo: `${editing.documentType.toUpperCase()} N° XXXX-2026`,
                   destinatario: 'SEÑOR : DESTINATARIO',
                   remitente: 'DE : REMITENTE',
@@ -318,39 +323,58 @@ export default function TemplateEditorView() {
                 return (
                   <div key={section.id} style={style}>
                     {fields.map(f => (
-                      <div key={f}><b>{f === 'lugarFecha' ? 'LUGAR Y FECHA' : f === 'codigo' ? 'CÓDIGO' : f.toUpperCase()}</b>: <span style={{ color: '#64748b' }}>{vals[f]}</span></div>
+                      <div key={f}><b style={{ color: '#000000' }}>{f === 'lugarFecha' ? 'LUGAR Y FECHA' : f === 'codigo' ? 'CÓDIGO' : f.toUpperCase()}</b>: <span style={{ color: '#00B050' }}>{vals[f]}</span></div>
                     ))}
                   </div>
                 );
               }
               if (section.tipo === 'separator') {
                 return (
-                  <div key={section.id} style={{ textAlign: 'center', color: '#94a3b8', fontSize: 8, marginTop: 8, marginBottom: 8 }}>
-                    ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─
+                  <div key={section.id} style={{ textAlign: 'center', color: '#000000', fontSize: '9px', marginTop: '10px', marginBottom: '10px', fontWeight: 'bold', overflow: 'hidden' }}>
+                    -----------------------------------------------------------------------------------------------------------------
                   </div>
                 );
               }
               if (section.tipo === 'body') {
                 return (
-                  <div key={section.id} style={{ ...style, color: '#FF0000' }}>
-                    [Cuerpo del documento — redactado automáticamente por la IA]
+                  <div key={section.id} style={{ ...style, color: '#FF0000', textAlign: 'justify', lineHeight: '1.4' }}>
+                    <p style={{ marginTop: '0', marginBottom: '10px' }}>
+                      y a la vez manifestarle que habiendo presentado su persona Recurso de Apelación Contra la Resolución Directoral N°2100-2025-GRSM-DRE/UGEL-B de fecha 21 de noviembre del 2025, omitió adjuntar el Formato N°1 de la Directiva N°001-2021-SERVIR/TCS que debe ser presentado por el impugnante conteniendo los datos referidos a su persona e indicando fecha en el formato.
+                    </p>
+                    <p style={{ marginBottom: '10px' }}>
+                      Por lo tanto, solicito se sirva adjuntar el referido formato en un plazo de dos (02) días de recepcionado el presente, que nos permitirá de inmediato continuar con su trámite.
+                    </p>
+                    <p style={{ marginBottom: '16px' }}>
+                      Hago propicia la oportunidad para expresarle muestras de consideración y estima personal.
+                    </p>
                   </div>
                 );
               }
-              if (section.tipo === 'despedida' || section.tipo === 'custom') {
+              if (section.tipo === 'despedida') {
                 return (
-                  <div key={section.id} style={{ ...style, textAlign: 'center', fontWeight: 'bold', color: section.origen === 'ia' ? '#FF0000' : (f.color || '#000000') }}>
+                  <div key={section.id} style={{ ...style, textAlign: 'center', fontWeight: 'bold', color: '#FF0000', marginTop: '20px', marginBottom: '40px' }}>
                     {section.contenidoEstatico || 'Atentamente,'}
+                  </div>
+                );
+              }
+              if (section.tipo === 'custom') {
+                return (
+                  <div key={section.id} style={{ ...style, color: '#000000', textAlign: 'justify', lineHeight: '1.4', marginBottom: '0px' }}>
+                    {section.contenidoEstatico || 'Tengo el agrado de dirigirme a usted para expresarle mi cordial y afectuoso saludo en representación de la Unidad de Gestión Educativa Local de Bellavista, '}
                   </div>
                 );
               }
               if (section.tipo === 'firma') {
                 return (
-                  <div key={section.id} style={style}>
-                    <div style={{ fontWeight: 'bold', fontSize: 7 }}>[REMITENTE]</div>
-                    <div style={{ fontSize: 6, color: '#64748b' }}>[CARGO DEL REMITENTE]</div>
-                    <div style={{ fontSize: 6, color: '#64748b' }}>Esq. Avenida Loreto y Jr. San Martín – Tercer Piso – Ampliación. Bellavista - Telefax 042-544342</div>
-                    <div style={{ fontSize: 5, color: '#64748b' }}>https://www.gob.pe/ugelbellavista</div>
+                  <div key={section.id} style={{ ...style, fontSize: '8px', borderTop: '1px solid #000000', paddingTop: '6px', marginTop: '40px' }}>
+                    <div style={{ color: '#000000', fontWeight: 'bold' }}>PRHB/D-UGEL-B</div>
+                    <div style={{ color: '#000000' }}>Mfs.</div>
+                    <div style={{ color: '#000000', marginTop: '4px' }}>
+                      Esq. Avenida Loreto y Jr. San Martín – Tercer Piso – Ampliación. Bellavista - Telefax042-544342
+                    </div>
+                    <div style={{ color: '#0070C0', textDecoration: 'underline', marginTop: '2px', fontWeight: 'bold' }}>
+                      https://www.gob.pe/ugelbellavista
+                    </div>
                   </div>
                 );
               }
@@ -360,10 +384,12 @@ export default function TemplateEditorView() {
         </div>
         {/* Leyenda de colores */}
         {editing.documentType === 'Carta' && (
-          <div className="flex items-center gap-4 mt-2 text-[9px] text-slate-400">
-            <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full" style={{ background: '#00B050' }}></span> Sistema</span>
-            <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full" style={{ background: '#FF0000' }}></span> IA</span>
-            <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full" style={{ background: '#000000' }}></span> Fijo</span>
+          <div className="flex items-center justify-between mt-3 p-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-[10px]">
+            <div className="flex items-center gap-4 font-bold">
+              <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-[#00B050]"></span> Verde: Sistema (Datos automáticos)</span>
+              <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-[#FF0000]"></span> Rojo: IA (Redacción y despedida)</span>
+              <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-[#000000]"></span> Negro / <span className="w-3 h-3 rounded-full bg-[#0070C0]"></span> Azul: Fijo (Plantilla y Pie de página)</span>
+            </div>
           </div>
         )}
       </div>

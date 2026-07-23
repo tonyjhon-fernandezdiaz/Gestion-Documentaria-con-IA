@@ -97,7 +97,7 @@ export interface DocumentTemplate {
 
 export interface TemplateSection {
   id: string;
-  tipo: 'header' | 'body' | 'footer' | 'membrete' | 'metadatos' | 'saludo' | 'despedida' | 'firma' | 'custom' | 'separator' | 'codigo' | 'lugar' | 'destinatario' | 'asunto';
+  tipo: 'header' | 'body' | 'footer' | 'membrete' | 'metadatos' | 'saludo' | 'despedida' | 'firma' | 'custom' | 'separator' | 'codigo' | 'lugar' | 'destinatario' | 'asunto' | 'lugarFecha';
   nombre: string; // nombre visible
   obligatorio: boolean;
   editable: boolean; // si el usuario puede editarlo en el editor visual
