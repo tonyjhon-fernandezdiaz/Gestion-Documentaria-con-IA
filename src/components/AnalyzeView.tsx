@@ -46,11 +46,11 @@ export default function AnalyzeView({ currentUser }: AnalyzeViewProps) {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const selectedFile = e.target.files[0];
-      const validExtensions = ['.pdf', '.docx', '.doc'];
+      const validExtensions = ['.pdf', '.docx', '.doc', '.png', '.jpg', '.jpeg', '.gif', '.webp', '.bmp'];
       const fileExt = selectedFile.name.substring(selectedFile.name.lastIndexOf('.')).toLowerCase();
       
       if (!validExtensions.includes(fileExt)) {
-        setErrorMsg('Formato no soportado. Suba un archivo PDF o Word (.docx, .doc).');
+        setErrorMsg('Formato no soportado. Suba un archivo PDF, Word (.docx, .doc) o imagen.');
         return;
       }
 
@@ -84,11 +84,11 @@ export default function AnalyzeView({ currentUser }: AnalyzeViewProps) {
 
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       const selectedFile = e.dataTransfer.files[0];
-      const validExtensions = ['.pdf', '.docx', '.doc'];
+      const validExtensions = ['.pdf', '.docx', '.doc', '.png', '.jpg', '.jpeg', '.gif', '.webp', '.bmp'];
       const fileExt = selectedFile.name.substring(selectedFile.name.lastIndexOf('.')).toLowerCase();
       
       if (!validExtensions.includes(fileExt)) {
-        setErrorMsg('Formato no soportado. Suba un archivo PDF o Word (.docx, .doc).');
+        setErrorMsg('Formato no soportado. Suba un archivo PDF, Word (.docx, .doc) o imagen.');
         return;
       }
 
@@ -181,7 +181,7 @@ export default function AnalyzeView({ currentUser }: AnalyzeViewProps) {
             </h1>
             <p className="text-xs text-slate-500 dark:text-slate-400 max-w-2xl leading-relaxed">
               Herramienta de revisión automatizada para informes de planificación, presupuestos, convenios o directivas. 
-              Sube archivos en formato <strong className="text-teal-600 dark:text-teal-400">PDF o Word (.docx) de hasta 40 hojas</strong> para validar consistencia de datos, ortografía y estructura administrativa.
+              Sube archivos en formato <strong className="text-teal-600 dark:text-teal-400">PDF, Word (.docx) o imágenes</strong> para validar consistencia de datos, ortografía y estructura administrativa.
             </p>
           </div>
         </div>
@@ -214,7 +214,7 @@ export default function AnalyzeView({ currentUser }: AnalyzeViewProps) {
                   type="file" 
                   id="doc-analyzer-file" 
                   className="hidden" 
-                  accept=".pdf,.docx,.doc" 
+                  accept=".pdf,.docx,.doc,.png,.jpg,.jpeg,.gif,.webp,.bmp" 
                   onChange={handleFileChange}
                 />
                 <label htmlFor="doc-analyzer-file" className="cursor-pointer flex flex-col items-center space-y-3">
@@ -226,7 +226,7 @@ export default function AnalyzeView({ currentUser }: AnalyzeViewProps) {
                       Haz clic para examinar
                     </span>
                     <span className="text-[10px] text-slate-400 block">
-                      o arrastra tu archivo PDF, DOCX o DOC aquí
+                      o arrastra tu archivo PDF, DOCX, DOC o imagen aquí
                     </span>
                   </div>
                   <span className="inline-block px-2.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-[8px] text-slate-500 uppercase font-extrabold">

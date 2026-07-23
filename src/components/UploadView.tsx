@@ -517,17 +517,6 @@ export default function UploadView({ currentUser, onDocumentAdded }: UploadViewP
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       
-      // Reject image files — the AI models selected here do not support image vision input
-      if (/\.(png|jpg|jpeg|gif|webp|bmp|svg)$/i.test(file.name) || /^image\//.test(file.type)) {
-        triggerAlert(
-          'Formato no compatible',
-          'Los archivos de imagen (PNG, JPG, etc.) no son compatibles con el modelo de IA seleccionado. Use archivos PDF, Word (.docx) o texto (.txt).',
-          'warning'
-        );
-        e.target.value = '';
-        return;
-      }
-
       setUploadedFileName(file.name);
       setUploadedFileMimeType(file.type || 'application/octet-stream');
 
@@ -535,14 +524,15 @@ export default function UploadView({ currentUser, onDocumentAdded }: UploadViewP
         triggerAlert('Documento Extenso Detectado', 'El archivo seleccionado es grande. El sistema aplicará compresión de contexto y resumen inteligente para optimizar el consumo de tokens.', 'info');
       }
       
+      const isBinary = /\.(pdf|png|jpg|jpeg|gif|webp|bmp)$/i.test(file.name) || file.type === 'application/pdf' || file.type.startsWith('image/');
       const reader = new FileReader();
-      if (file.type === 'application/pdf' || file.name.endsWith('.pdf')) {
+      if (isBinary) {
         reader.onload = (event) => {
           const base64String = event.target?.result as string;
+          const mimeType = file.type || 'application/octet-stream';
           setUploadedFileBase64(base64String);
-          // For PDFs, we don't have text content in frontend, we send a placeholder, and let backend parse the base64 PDF
-          setReferenceFileText('[Documento PDF Adjunto - Analizado con IA Multimodal]');
-          triggerOcrPipeline('[Documento PDF Adjunto - Analizado con IA Multimodal]', file.name, base64String, 'application/pdf');
+          setReferenceFileText('[Documento Adjunto - Analizado con IA]');
+          triggerOcrPipeline('[Documento Adjunto - Analizado con IA]', file.name, base64String, mimeType);
         };
         reader.readAsDataURL(file);
       } else {
@@ -1543,7 +1533,7 @@ export default function UploadView({ currentUser, onDocumentAdded }: UploadViewP
                 type="file" 
                 ref={fileInputRef}
                 onChange={handleFileChange}
-                accept=".txt,.doc,.docx,.pdf"
+                accept=".txt,.doc,.docx,.pdf,.png,.jpg,.jpeg,.gif,.webp,.bmp"
                 className="hidden" 
               />
 

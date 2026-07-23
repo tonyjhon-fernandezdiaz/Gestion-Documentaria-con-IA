@@ -9,6 +9,7 @@ import { db } from './server/db.js';
 import { DocumentType, AIProvider } from './src/types.js';
 import fs from 'fs';
 import { exec } from 'child_process';
+import * as Tesseract from 'tesseract.js';
 
 const app = express();
 const PORT = 3000;
@@ -1100,6 +1101,40 @@ function optimizeDocumentPages(text: string): { optimizedText: string; isOptimiz
   };
 }
 
+// Detect MIME type from filename for multimodal AI processing
+function getMimeFromFilename(filename: string): string | undefined {
+  const ext = path.extname(filename).toLowerCase();
+  const mimeMap: Record<string, string> = {
+    '.pdf': 'application/pdf',
+    '.png': 'image/png',
+    '.jpg': 'image/jpeg',
+    '.jpeg': 'image/jpeg',
+    '.gif': 'image/gif',
+    '.webp': 'image/webp',
+    '.bmp': 'image/bmp',
+    '.doc': 'application/msword',
+    '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    '.txt': 'text/plain',
+  };
+  return mimeMap[ext];
+}
+
+// Local OCR for images using Tesseract.js — saves tokens by extracting text locally
+async function ocrImageLocally(fileBase64: string): Promise<string> {
+  try {
+    const base64Data = fileBase64.includes(',') ? fileBase64.split(',')[1] : fileBase64;
+    const { data } = await Tesseract.recognize(
+      Buffer.from(base64Data, 'base64'),
+      'spa+eng',
+      { logger: () => {} }
+    );
+    return (data.text || '').trim();
+  } catch (e) {
+    console.error('Local OCR failed:', e);
+    return '';
+  }
+}
+
 // -----------------------------------------------------------------
 // AI MULTI-PROVIDER FAILOVER & ENGINE
 // -----------------------------------------------------------------
@@ -1564,19 +1599,38 @@ app.post('/api/ai/analyze', async (req, res) => {
   }
 
   const startTime = Date.now();
+  const mimeType = getMimeFromFilename(filename);
+  const ext = path.extname(filename).toLowerCase();
+  const isImage = /\.(png|jpg|jpeg|gif|webp|bmp)$/i.test(ext);
 
-  // 1. Extract text and page count locally
-  const { text: rawText, pageCount } = await extractTextAndPagesLocally(fileBase64, filename);
-  
-  if (!rawText || rawText.trim().length < 20) {
-    return res.status(400).json({ error: 'No se pudo extraer texto suficiente del archivo. Asegúrese de que el archivo no esté protegido o vacío.' });
+  // 1. Extract text locally — for images try OCR first, for PDFs/DOCX use python
+  let rawText = '';
+  let pageCount = 1;
+
+  if (isImage) {
+    rawText = await ocrImageLocally(fileBase64);
+  } else {
+    const result = await extractTextAndPagesLocally(fileBase64, filename);
+    rawText = result.text;
+    pageCount = result.pageCount;
   }
 
-  if (pageCount > 40) {
+  // 2. If local extraction failed (<20 chars) and file is not an image, try OCR as fallback
+  if ((!rawText || rawText.trim().length < 20) && !isImage) {
+    const ocrText = await ocrImageLocally(fileBase64);
+    if (ocrText && ocrText.length >= 20) {
+      rawText = ocrText;
+    }
+  }
+
+  // 3. If we still have no text but have the file, still proceed — AI will read it via multimodal
+  const hasText = rawText && rawText.trim().length >= 20;
+
+  if (hasText && pageCount > 40) {
     return res.status(400).json({ error: `El documento excede el límite permitido de 40 páginas (detectadas: ${pageCount} páginas). Por favor, suba un documento de menor extensión.` });
   }
 
-  // 2. Prepare analysis instruction
+  // 4. Prepare analysis instruction
   const systemInstruction = `Eres un sistema experto en auditoría documental, análisis de estilo y control de calidad normativa para la UGEL Bellavista y la administración pública en el Perú. 
 Analiza minuciosamente el texto completo del documento oficial provisto para detectar:
 1. ERRORES DE COHERENCIA O CONTRADICCIONES: Datos que se contradicen (ej. fechas inconsistentes, nombres escritos de diferentes maneras, números de informes que cambian, contradicciones en los argumentos).
@@ -1615,17 +1669,24 @@ Debes responder ÚNICAMENTE con un objeto JSON válido con la siguiente estructu
   for (const provider of sortedProviders) {
     attempted.push(provider.id);
     try {
-      const response = await callAIProvider(
+      const userPrompt = hasText
+        ? `Analiza el siguiente documento de ${pageCount} páginas titulado "${filename}":\n\n${rawText}`
+        : `Analiza el siguiente documento titulado "${filename}". Extrae el texto del archivo adjunto y luego realiza la auditoría de consistencia.`;
+
+      const response = await requestProviderAPI(
         provider,
         systemInstruction,
-        `Analiza el siguiente documento de ${pageCount} páginas titulado "${filename}":\n\n${rawText}`,
-        true // JSON mode
+        userPrompt,
+        provider.apiKey,
+        false,
+        hasText ? undefined : fileBase64,
+        hasText ? undefined : mimeType
       );
 
       resultJSON = JSON.parse(response.text.trim());
       finalTokens = response.tokens;
       successfulProvider = provider;
-      break; // Succeeded! Stop iterating
+      break;
     } catch (err: any) {
       console.warn(`Error en analizador con ${provider.name}: ${err.message || err}. Intentando siguiente...`);
       errorsDetail[provider.id] = err.message || String(err);
