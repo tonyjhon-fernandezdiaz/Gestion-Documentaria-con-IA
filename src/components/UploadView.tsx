@@ -1223,26 +1223,11 @@ export default function UploadView({ currentUser, onDocumentAdded }: UploadViewP
   return (
     <div className="space-y-4 text-slate-800 dark:text-slate-100 font-sans" id="upload_view">
       
-      {/* Dynamic Upper Header block matching screenshot */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-b border-slate-100 dark:border-slate-800/80 pb-3">
-        <div>
-          <h1 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">
-            Nuevo documento
-          </h1>
-          <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-            Redacta cualquier tipo de documento con ayuda de la IA
-          </p>
-        </div>
-        <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 px-3 py-1.5 rounded-xl shadow-sm text-[11px] text-slate-500 font-medium">
-          {new Date().toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })}
-        </div>
-      </div>
-
       {/* Main Grid View */}
       <div className="grid lg:grid-cols-12 gap-5 items-start">
         
         {/* LEFT COLUMN: Input Form Parameters matching mockup perfectly */}
-        <div className="lg:col-span-6 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl p-5 shadow-sm space-y-3.5" id="form_panel">
+        <div className="lg:col-span-6 space-y-3.5" id="form_panel">
           
 
 
