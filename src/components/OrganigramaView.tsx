@@ -86,25 +86,6 @@ export default function OrganigramaView() {
           root.map((a: any) => <Node key={a.id} id={a.id} name={a.name} depth={0} />)
         )}
       </div>
-
-      {!loading && users.length > 0 && (
-        <div className="rounded-xl border bg-white dark:bg-slate-900/60 p-4">
-          <p className="text-[10px] font-bold uppercase text-slate-400 mb-2">Colaboradores por área</p>
-          <div className="space-y-1">
-            {areas.filter((a: any) => membersOf(a.id).length > 0).map((a: any) => (
-              <div key={a.id} className="text-xs flex items-center gap-2 py-1">
-                <span className="font-semibold truncate min-w-0">{a.name}</span>
-                <span className="shrink-0 text-slate-400">{membersOf(a.id).length} miembros</span>
-                {membersOf(a.id).filter((u: any) => u.condicion === 'Secretaria').length > 0 && (
-                  <span className="shrink-0 text-[10px] text-amber-500 font-bold">
-                    ({membersOf(a.id).filter((u: any) => u.condicion === 'Secretaria').length} Sec)
-                  </span>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   )
 }
