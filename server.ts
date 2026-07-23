@@ -1101,6 +1101,59 @@ function optimizeDocumentPages(text: string): { optimizedText: string; isOptimiz
   };
 }
 
+// Normalise dates in extracted text — extract, validate, and standardise for reliable AI analysis
+interface NormalizedDate { raw: string; normalized: string; index: number; confidence: 'high' | 'low'; }
+function normalizeDates(text: string): { cleaned: string; dates: NormalizedDate[] } {
+  const dates: NormalizedDate[] = [];
+  const spanishMonths: Record<string, string> = {
+    enero:'01',febrero:'02',marzo:'03',abril:'04',mayo:'05',junio:'06',
+    julio:'07',agosto:'08',septiembre:'09',octubre:'10',noviembre:'11',diciembre:'12'
+  };
+  let cleaned = text;
+
+  // Pattern 1: "15 de enero de 2024" or "15 de enero del 2024"
+  const pattern1 = /(\d{1,2})\s+de\s+(enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre)\s+de(l)?\s+(\d{4})/gi;
+  cleaned = cleaned.replace(pattern1, (match, day, month) => {
+    const m = spanishMonths[month.toLowerCase()];
+    const d = day.padStart(2, '0');
+    // Try to find the year in the match
+    const yearMatch = match.match(/\d{4}/);
+    const y = yearMatch ? yearMatch[0] : '2024';
+    const norm = `${y}-${m}-${d}`;
+    dates.push({ raw: match, normalized: norm, index: cleaned.indexOf(match), confidence: 'high' });
+    return norm;
+  });
+
+  // Pattern 2: "DD/MM/YYYY" or "DD-MM-YYYY"
+  const pattern2 = /\b(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})\b/g;
+  cleaned = cleaned.replace(pattern2, (match, d, m, y) => {
+    const dd = d.padStart(2, '0');
+    const mm = m.padStart(2, '0');
+    const norm = `${y}-${mm}-${dd}`;
+    dates.push({ raw: match, normalized: norm, index: cleaned.indexOf(match), confidence: 'high' });
+    return norm;
+  });
+
+  // Pattern 3: "YYYY-MM-DD" (ISO — already normalised)
+  const pattern3 = /\b(\d{4})-(\d{2})-(\d{2})\b/g;
+  cleaned = cleaned.replace(pattern3, (match) => {
+    dates.push({ raw: match, normalized: match, index: cleaned.indexOf(match), confidence: 'high' });
+    return match;
+  });
+
+  // Fuzzy OCR-pattern: digits that look like a date but might have OCR noise (e.g. "Z024" instead of "2024")
+  cleaned = cleaned.replace(/\b([12Z][09Z])\/(\d{2})\/(\d{4})\b/g, (m: string, y: string, mo: string, d: string) => `${d}-${mo}-${y.replace(/Z/g, '2')}`);
+  cleaned = cleaned.replace(/\b(\d{2})\/(\d{2})\/([12Z][09Z]\d{2})\b/g, (m: string, d: string, mo: string, y: string) => `${y.replace(/Z/g, '2')}-${mo}-${d}`);
+
+  // Build a summary of all dates found for the AI prompt
+  const uniqueDates = [...new Set(dates.map(d => d.normalized))].sort().filter(d => {
+    const [y, m, day] = d.split('-').map(Number);
+    return y >= 1900 && y <= 2100 && m >= 1 && m <= 12 && day >= 1 && day <= 31;
+  });
+
+  return { cleaned, dates: uniqueDates.map(n => ({ raw: n, normalized: n, index: 0, confidence: 'high' as const })) };
+}
+
 // Detect MIME type from filename for multimodal AI processing
 function getMimeFromFilename(filename: string): string | undefined {
   const ext = path.extname(filename).toLowerCase();
@@ -1630,13 +1683,36 @@ app.post('/api/ai/analyze', async (req, res) => {
     return res.status(400).json({ error: `El documento excede el límite permitido de 40 páginas (detectadas: ${pageCount} páginas). Por favor, suba un documento de menor extensión.` });
   }
 
-  // 4. Prepare analysis instruction
+  // 4. Date normalization — extract and standardise dates before AI analysis
+  let analyzedText = rawText;
+  let detectedDates: NormalizedDate[] = [];
+  let dateSummary = '';
+  if (hasText) {
+    const result = normalizeDates(rawText);
+    analyzedText = result.cleaned;
+    detectedDates = result.dates;
+    if (detectedDates.length > 0) {
+      dateSummary = `\n\n[FECHAS NORMALIZADAS DETECTADAS EN EL DOCUMENTO]:\n${detectedDates.map(d => `  - ${d.normalized}`).join('\n')}\n`;
+    }
+  }
+
+  // 5. Prepare analysis instruction — with explicit date validation
   const systemInstruction = `Eres un sistema experto en auditoría documental, análisis de estilo y control de calidad normativa para la UGEL Bellavista y la administración pública en el Perú. 
 Analiza minuciosamente el texto completo del documento oficial provisto para detectar:
 1. ERRORES DE COHERENCIA O CONTRADICCIONES: Datos que se contradicen (ej. fechas inconsistentes, nombres escritos de diferentes maneras, números de informes que cambian, contradicciones en los argumentos).
 2. ERRORES ORTOGRÁFICOS Y GRAMATICALES: Palabras mal escritas, errores de concordancia o de puntuación.
 3. ERRORES DE REDACCIÓN Y ESTILO: Frases redundantes, oraciones demasiado largas o confusas, términos inapropiados para la formalidad institucional.
 4. INCONSISTENCIAS NORMATIVAS BÁSICAS: Si menciona resoluciones o normativas mal estructuradas o mal citadas (si aplica).
+
+*** VALIDACIÓN DE FECHAS — CRÍTICO ***
+Extrae TODAS las fechas del documento y verifica rigurosamente:
+- ¿Hay fechas que son lógicamente inconsistentes? (ej. fecha de fin menor que fecha de inicio, fechas futuras para eventos pasados).
+- ¿Hay fechas con formato incorrecto o valores imposibles? (ej. mes 13, día 32).
+- ¿Hay saltos temporales injustificados o anacronismos? (ej. un documento de 2024 mencionando eventos de 2030).
+- Compara las fechas entre sí: si el documento menciona "15/03/2024" en un párrafo y "15/03/2025" en otro refiriéndose al mismo evento, señálalo.
+- Para cada fecha sospechosa, indica el fragmento original exacto donde aparece.
+
+Si no encuentras errores de fechas, indícalo explícitamente con un error de tipo "Fecha" y severity informativa.
 
 Genera recomendaciones específicas y recomendaciones generales para mejorar la calidad jurídica y de redacción del documento.
 
@@ -1645,7 +1721,7 @@ Debes responder ÚNICAMENTE con un objeto JSON válido con la siguiente estructu
   "errorCount": 5,
   "errors": [
     {
-      "tipo": "Ortográfico | Gramatical | Coherencia | Redacción | Normativo | Contradicción | Otro",
+      "tipo": "Ortográfico | Gramatical | Coherencia | Redacción | Normativo | Contradicción | Fecha | Otro",
       "descripcion": "Explicación detallada del error o inconsistencia encontrada.",
       "original": "El fragmento o frase original exacta donde se detecta el problema.",
       "recomendacion": "Cómo redactarlo o corregirlo correctamente."
@@ -1666,11 +1742,14 @@ Debes responder ÚNICAMENTE con un objeto JSON válido con la siguiente estructu
   let resultJSON: any = null;
   let finalTokens = 0;
 
+  // 6. Run date-focused analysis in a second pass (dedicated to dates only)
+  let dateAnalysisErrors: any[] = [];
+
   for (const provider of sortedProviders) {
     attempted.push(provider.id);
     try {
       const userPrompt = hasText
-        ? `Analiza el siguiente documento de ${pageCount} páginas titulado "${filename}":\n\n${rawText}`
+        ? `Analiza el siguiente documento de ${pageCount} páginas titulado "${filename}":\n\n${analyzedText}${dateSummary}`
         : `Analiza el siguiente documento titulado "${filename}". Extrae el texto del archivo adjunto y luego realiza la auditoría de consistencia.`;
 
       const response = await requestProviderAPI(
@@ -1690,6 +1769,35 @@ Debes responder ÚNICAMENTE con un objeto JSON válido con la siguiente estructu
     } catch (err: any) {
       console.warn(`Error en analizador con ${provider.name}: ${err.message || err}. Intentando siguiente...`);
       errorsDetail[provider.id] = err.message || String(err);
+    }
+  }
+
+  // 7. Second pass: dedicated date validation to catch date-specific issues
+  if (successfulProvider && resultJSON && hasText && detectedDates.length > 0) {
+    const datePrompt = `Eres un validador de fechas institucionales. Revisa exclusivamente las siguientes fechas extraídas de un documento oficial de la UGEL Bellavista y determina si hay inconsistencias:\n\nFECHAS DETECTADAS:\n${detectedDates.map(d => `  - ${d.normalized}`).join('\n')}\n\nTEXTO COMPLETO:\n${analyzedText}\n\nResponde ÚNICAMENTE con un array JSON de errores de fecha encontrados. Si no hay errores, responde []. Cada error debe tener: { "tipo": "Fecha", "descripcion": "...", "original": "...", "recomendacion": "..." }`;
+
+    for (const provider of sortedProviders) {
+      try {
+        const resp = await requestProviderAPI(provider, 'Eres un validador de fechas.', datePrompt, provider.apiKey, false, undefined, undefined);
+        const parsed = JSON.parse(resp.text.trim());
+        if (Array.isArray(parsed)) {
+          dateAnalysisErrors = parsed;
+        } else if (parsed.errors && Array.isArray(parsed.errors)) {
+          dateAnalysisErrors = parsed.errors;
+        }
+        break;
+      } catch { /* skip — main result already has date info */ }
+    }
+
+    // Merge date-specific errors into main results (avoid duplicates)
+    const existingDateErrors = new Set(
+      (resultJSON.errors || []).filter((e: any) => e.tipo === 'Fecha').map((e: any) => e.descripcion)
+    );
+    for (const de of dateAnalysisErrors) {
+      if (!existingDateErrors.has(de.descripcion)) {
+        resultJSON.errors.push(de);
+        resultJSON.errorCount = (resultJSON.errorCount || 0) + 1;
+      }
     }
   }
 
