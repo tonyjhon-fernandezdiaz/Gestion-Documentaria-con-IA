@@ -307,15 +307,6 @@ export class NeonDatabase {
         }
       }
 
-      // Limpieza única: dejar solo los usuarios oficiales del Excel (admin + colaboradores),
-      // eliminando cualquier usuario sembrado anteriormente que ya no esté en la lista.
-      const usersCleanup = await this.q("SELECT value FROM kv WHERE key = 'users_cleanup'");
-      if (usersCleanup[0]?.value !== 'v-ugel-3') {
-        const keepIds = INITIAL_DB.users.map(u => u.id);
-        await this.q('DELETE FROM users WHERE id <> ALL($1::text[])', [keepIds]);
-        await this.q("INSERT INTO kv (key, value) VALUES ('users_cleanup', 'v-ugel-3') ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value");
-      }
-
       // Auto-heal: asegurar que las áreas principales existan (Administración, RRHH, etc.)
       // sin sobreescribir las personalizaciones ya guardadas por el usuario.
       for (const a of DEFAULT_AREAS.filter(x => !x.parentAreaId)) {
