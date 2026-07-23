@@ -296,6 +296,25 @@ export class NeonDatabase {
     if ((existing[0]?.n ?? 0) === 0) {
       await this.seed();
     } else {
+      // One-time cleanup: remove duplicate users created when DNI starts with 00
+      // (e.g. "00874080" and "874080" — keep the one with full DNI)
+      const dupCleanup = await this.q("SELECT value FROM kv WHERE key = 'users_dup_cleanup_v2'");
+      if (dupCleanup[0]?.value !== 'done') {
+        const allUsers = await this.q('SELECT data FROM users');
+        const initialIds = new Set(INITIAL_DB.users.map(u => u.id));
+        const usernameSet = new Set(allUsers.map((r: any) => String(r.data.username || '')));
+        for (const row of allUsers) {
+          const u = row.data;
+          if (initialIds.has(u.id)) continue;
+          const uname = String(u.username || '');
+          const with00 = '00' + uname;
+          if (usernameSet.has(with00)) {
+            await this.remove('users', u.id);
+          }
+        }
+        await this.q("INSERT INTO kv (key, value) VALUES ('users_dup_cleanup_v2', 'done') ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value");
+      }
+
       // Auto-heal and sync active default users (e.g. AGP, AGI, RRHH, ADM, DIR)
       for (const u of INITIAL_DB.users) {
         const byId = await this.q('SELECT data FROM users WHERE id = $1', [u.id]);
