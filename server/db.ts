@@ -1,6 +1,6 @@
 import pkg from 'pg';
 const { Pool } = pkg;
-import { User, Document, AIProvider, PromptTemplate, SystemLog, DocumentType, LearningCorrection, AgendaEvent, AreaItem, AreaTemplate, CorrelativeCounter } from '../src/types.js';
+import { User, Document, AIProvider, PromptTemplate, SystemLog, DocumentType, LearningCorrection, AgendaEvent, AreaItem, AreaTemplate, CorrelativeCounter, DocumentTemplate, TemplateSection } from '../src/types.js';
 
 // -----------------------------------------------------------------
 // Postgres (Neon) backed store with an in-memory cache.
@@ -23,6 +23,7 @@ interface DatabaseSchema {
   areaTemplates: AreaTemplate[];
   correlatives: CorrelativeCounter[];
   areas: AreaItem[];
+  documentTemplates: DocumentTemplate[];
   activeTheme?: string;
 }
 
@@ -238,16 +239,17 @@ const INITIAL_DB: DatabaseSchema = {
   agenda: [],
   areaTemplates: [],
   correlatives: [],
-  areas: DEFAULT_AREAS
+  areas: DEFAULT_AREAS,
+  documentTemplates: []
 };
 
-const TABLES = ['users', 'documents', 'providers', 'prompts', 'logs', 'agenda', 'learning_corrections', 'area_templates', 'correlatives', 'areas'];
+const TABLES = ['users', 'documents', 'providers', 'prompts', 'logs', 'agenda', 'learning_corrections', 'area_templates', 'correlatives', 'areas', 'document_templates'];
 const RELOAD_THROTTLE_MS = 3000;
 
 export class NeonDatabase {
   private pool: InstanceType<typeof Pool> | null = null;
   private data: DatabaseSchema = {
-    users: [], documents: [], providers: [], prompts: [], logs: [], learningCorrections: [], agenda: [], areaTemplates: [], correlatives: [], areas: []
+    users: [], documents: [], providers: [], prompts: [], logs: [], learningCorrections: [], agenda: [], areaTemplates: [], correlatives: [], areas: [], documentTemplates: []
   };
   private initPromise: Promise<void> | null = null;
   private lastLoad = 0;
@@ -288,7 +290,11 @@ export class NeonDatabase {
 
   private async init(): Promise<void> {
     for (const t of TABLES) {
-      await this.q(`CREATE TABLE IF NOT EXISTS ${t} (id text PRIMARY KEY, seq bigserial, data jsonb NOT NULL)`).catch(e => console.error(`Error creando tabla ${t}:`, e));
+      if (t === 'document_templates') {
+        await this.q(`CREATE TABLE IF NOT EXISTS ${t} (key text PRIMARY KEY, seq bigserial, value jsonb NOT NULL)`).catch(e => console.error(`Error creando tabla ${t}:`, e));
+      } else {
+        await this.q(`CREATE TABLE IF NOT EXISTS ${t} (id text PRIMARY KEY, seq bigserial, data jsonb NOT NULL)`).catch(e => console.error(`Error creando tabla ${t}:`, e));
+      }
     }
     await this.q(`CREATE TABLE IF NOT EXISTS kv (key text PRIMARY KEY, value text)`);
 
@@ -383,17 +389,18 @@ export class NeonDatabase {
   }
 
   private async load(): Promise<void> {
-    const [users, documents, providers, prompts, logs, agenda, corrections, areaTemplates, correlatives, areas, theme] = await Promise.all([
+    const [users, documents, providers, prompts, logs, agenda, corrections, areaTemplates, correlatives, areas, documentTemplates, theme] = await Promise.all([
       this.q('SELECT data FROM users ORDER BY seq ASC').catch(() => []),
       this.q('SELECT data FROM documents ORDER BY seq DESC').catch(() => []),
       this.q('SELECT data FROM providers ORDER BY seq ASC').catch(() => []),
       this.q('SELECT data FROM prompts ORDER BY seq ASC').catch(() => []),
-      this.q('SELECT data FROM logs ORDER BY seq DESC LIMIT 1000').catch(() => []),
+      this.q('SELECT data FROM logs ORDER BY seq DESC').catch(() => []),
       this.q('SELECT data FROM agenda ORDER BY seq DESC').catch(() => []),
       this.q('SELECT data FROM learning_corrections ORDER BY seq DESC').catch(() => []),
-      this.q('SELECT data FROM area_templates ORDER BY seq DESC').catch(() => []),
+      this.q('SELECT data FROM area_templates ORDER BY seq ASC').catch(() => []),
       this.q('SELECT data FROM correlatives ORDER BY seq ASC').catch(() => []),
       this.q('SELECT data FROM areas ORDER BY seq ASC').catch(() => []),
+      this.q('SELECT value FROM document_templates').catch(() => []),
       this.q("SELECT value FROM kv WHERE key = 'activeTheme'").catch(() => []),
     ]);
     this.data = {
@@ -419,6 +426,7 @@ export class NeonDatabase {
       areaTemplates: areaTemplates.length > 0 ? areaTemplates.map((r: any) => r.data) : INITIAL_AREA_TEMPLATES,
       correlatives: correlatives.map((r: any) => r.data),
       areas: areas.length > 0 ? areas.map((r: any) => r.data) : DEFAULT_AREAS,
+      documentTemplates: documentTemplates.length > 0 ? documentTemplates.map((r: any) => r.value) : [],
       activeTheme: theme[0]?.value,
     };
     this.lastLoad = Date.now();
@@ -760,6 +768,36 @@ export class NeonDatabase {
       this.data.correlatives.push(newRecord);
     }
     await this.upsert('correlatives', key, newRecord);
+  }
+
+  // ==================== DOCUMENT TEMPLATES ====================
+  async getDocumentTemplates(): Promise<DocumentTemplate[]> {
+    try {
+      const rows = await this.q('SELECT value FROM document_templates');
+      return rows.map(r => r.value);
+    } catch { return []; }
+  }
+
+  async getDocumentTemplate(documentType: DocumentType): Promise<DocumentTemplate | null> {
+    try {
+      const rows = await this.q('SELECT value FROM document_templates WHERE key = $1', [documentType]);
+      return rows[0]?.value || null;
+    } catch { return null; }
+  }
+
+  async saveDocumentTemplate(template: DocumentTemplate): Promise<void> {
+    await this.q(
+      "INSERT INTO document_templates (key, value) VALUES ($1, $2) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value",
+      [template.documentType, template]
+    );
+    // Refresh cache
+    const all = await this.getDocumentTemplates();
+    this.data.documentTemplates = all;
+  }
+
+  async deleteDocumentTemplate(documentType: DocumentType): Promise<void> {
+    await this.q('DELETE FROM document_templates WHERE key = $1', [documentType]);
+    this.data.documentTemplates = this.data.documentTemplates.filter(t => t.documentType !== documentType);
   }
 
   async getKV(key: string): Promise<string | null> {

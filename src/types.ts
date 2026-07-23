@@ -63,6 +63,57 @@ export interface AreaTemplate {
   }[];
 }
 
+export interface DocumentTemplate {
+  id: string; // documentType (e.g. 'Carta', 'Oficio', 'Memorando')
+  documentType: DocumentType;
+  nombre: string; // nombre visible
+  descripcion?: string;
+  // Configuración de página
+  page: {
+    marginTop: number; // twips (1/1440 inch)
+    marginRight: number;
+    marginBottom: number;
+    marginLeft: number;
+    pageWidth: number; // twips (letter = 12240)
+    pageHeight: number; // twips (letter = 15840)
+    orientation: 'portrait' | 'landscape';
+  };
+  // Fuente por defecto
+  defaultFont: {
+    name: string; // 'Arial', 'Times New Roman', etc.
+    size: number; // half-points (11pt = 22)
+    color: string; // hex
+  };
+  // Estructura de la plantilla (secciones en orden)
+  sections: TemplateSection[];
+  // Metadatos
+  version: number;
+  historial: {
+    version: number;
+    fecha: string;
+    modificadoPor: string;
+  }[];
+}
+
+export interface TemplateSection {
+  id: string;
+  tipo: 'header' | 'body' | 'footer' | 'membrete' | 'metadatos' | 'saludo' | 'despedida' | 'firma' | 'custom' | 'separator';
+  nombre: string; // nombre visible
+  obligatorio: boolean;
+  editable: boolean; // si el usuario puede editarlo en el editor visual
+  // Contenido estático (para membrete, saludo, despedida, firma)
+  contenidoEstatico?: string; // HTML o texto plano
+  // Para secciones dinámicas (metadatos): qué campos mostrar
+  campos?: ('lugarFecha' | 'codigo' | 'destinatario' | 'remitente' | 'asunto' | 'referencia' | 'custom')[];
+  // Estilos específicos de la sección
+  estilo?: {
+    alineacion?: 'left' | 'center' | 'right' | 'justify';
+    fuente?: { name: string; size: number; bold?: boolean; italic?: boolean; color?: string };
+    espaciado?: { antes: number; despues: number; interlineado: number };
+    bordes?: { inferior?: { tipo: 'single' | 'dashed' | 'none'; color: string; grosor: number } };
+  };
+}
+
 export interface CorrelativeCounter {
   id: string; // e.g. 'adm_Memorando'
   areaId: string;
@@ -152,5 +203,4 @@ export interface AgendaEvent {
   creadoPor: string;
   fechaCreacion: string;
 }
-
 

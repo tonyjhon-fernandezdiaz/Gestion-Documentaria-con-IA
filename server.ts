@@ -6,7 +6,7 @@ import express from 'express';
 import path from 'path';
 import { GoogleGenAI, Type } from '@google/genai';
 import { db } from './server/db.js';
-import { DocumentType, AIProvider } from './src/types.js';
+import { DocumentType, AIProvider, DocumentTemplate } from './src/types.js';
 import { DEFAULT_RECIPIENTS } from './src/defaultRecipients.js';
 import fs from 'fs';
 import { exec } from 'child_process';
@@ -2434,6 +2434,116 @@ app.delete('/api/recipients/:id', async (req, res) => {
     res.json({ success: true });
   } catch (e) {
     res.status(500).json({ error: 'Error al eliminar destinatario' });
+  }
+});
+
+// ==================== DOCUMENT TEMPLATES API ====================
+app.get('/api/templates', async (req, res) => {
+  try {
+    const templates = await db.getDocumentTemplates();
+    res.json(templates);
+  } catch (e) {
+    res.status(500).json({ error: 'Error al obtener plantillas' });
+  }
+});
+
+app.get('/api/templates/:documentType', async (req, res) => {
+  try {
+    const template = await db.getDocumentTemplate(req.params.documentType as DocumentType);
+    if (!template) return res.status(404).json({ error: 'Plantilla no encontrada' });
+    res.json(template);
+  } catch (e) {
+    res.status(500).json({ error: 'Error al obtener plantilla' });
+  }
+});
+
+app.post('/api/templates', async (req, res) => {
+  try {
+    const template = req.body as DocumentTemplate;
+    if (!template?.documentType || !template?.id) {
+      return res.status(400).json({ error: 'documentType e id son requeridos' });
+    }
+    template.version = (template.version || 0) + 1;
+    template.historial = template.historial || [];
+    template.historial.push({
+      version: template.version,
+      fecha: new Date().toISOString(),
+      modificadoPor: (req as any).user?.name || 'Sistema'
+    });
+    await db.saveDocumentTemplate(template);
+    res.json({ success: true, template });
+  } catch (e) {
+    res.status(500).json({ error: 'Error al guardar plantilla' });
+  }
+});
+
+app.put('/api/templates/:documentType', async (req, res) => {
+  try {
+    const existing = await db.getDocumentTemplate(req.params.documentType as DocumentType);
+    if (!existing) return res.status(404).json({ error: 'Plantilla no encontrada' });
+    const updated = { ...existing, ...req.body, documentType: req.params.documentType };
+    updated.version = (updated.version || 0) + 1;
+    updated.historial = updated.historial || [];
+    updated.historial.push({
+      version: updated.version,
+      fecha: new Date().toISOString(),
+      modificadoPor: (req as any).user?.name || 'Sistema'
+    });
+    await db.saveDocumentTemplate(updated);
+    res.json({ success: true, template: updated });
+  } catch (e) {
+    res.status(500).json({ error: 'Error al actualizar plantilla' });
+  }
+});
+
+app.delete('/api/templates/:documentType', async (req, res) => {
+  try {
+    await db.deleteDocumentTemplate(req.params.documentType as DocumentType);
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ error: 'Error al eliminar plantilla' });
+  }
+});
+
+// Descargar plantilla como .docx real para editar en Word
+app.get('/api/templates/:documentType/download', async (req, res) => {
+  try {
+    const template = await db.getDocumentTemplate(req.params.documentType as DocumentType);
+    if (!template) return res.status(404).json({ error: 'Plantilla no encontrada' });
+
+    const { generateDocxBlob } = await import('./src/utils/docxGenerator.js');
+    const blob = await generateDocxBlob({
+      docType: template.documentType,
+      docCode: 'PLANTILLA-001',
+      salutation: '',
+      recipients: [],
+      fromName: '',
+      fromRole: '',
+      subject: `Plantilla de ${template.documentType}`,
+      referencia: '',
+      date: '',
+      body: '',
+      filename: `Plantilla_${template.documentType}.docx`,
+      template,
+    });
+
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+    res.setHeader('Content-Disposition', `attachment; filename="Plantilla_${template.documentType}.docx"`);
+    res.send(Buffer.from(await blob.arrayBuffer()));
+  } catch (e) {
+    console.error('Error downloading template:', e);
+    res.status(500).json({ error: 'Error al generar .docx' });
+  }
+});
+
+// Subir plantilla .docx actualizada y parsear estructura
+app.post('/api/templates/:documentType/upload', async (req, res) => {
+  try {
+    // This would need multipart/form-data parsing
+    // For now, return info about the expected format
+    res.json({ info: 'Use multipart/form-data with file field "template"' });
+  } catch (e) {
+    res.status(500).json({ error: 'Error al subir plantilla' });
   }
 });
 
