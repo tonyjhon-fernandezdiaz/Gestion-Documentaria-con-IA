@@ -7,6 +7,7 @@ import path from 'path';
 import { GoogleGenAI, Type } from '@google/genai';
 import { db } from './server/db.js';
 import { DocumentType, AIProvider } from './src/types.js';
+import { DEFAULT_RECIPIENTS } from './src/defaultRecipients.js';
 import fs from 'fs';
 import { exec } from 'child_process';
 import * as Tesseract from 'tesseract.js';
@@ -1489,6 +1490,13 @@ app.post('/api/ai/ocr', async (req, res) => {
     if (localText && localText.trim().length > 50) {
       rawText = localText;
       isDocxOrPdfUploaded = true;
+    } else {
+      // If Python extraction failed (scanned PDF or image), try local OCR to save tokens
+      const ocrText = await ocrImageLocally(fileBase64);
+      if (ocrText && ocrText.trim().length > 50) {
+        rawText = ocrText;
+        isDocxOrPdfUploaded = true;
+      }
     }
   }
 
@@ -2362,7 +2370,6 @@ app.get('/api/recipients', async (req, res) => {
       return res.json(JSON.parse(saved));
     }
     // Seed defaults on first access
-    const { DEFAULT_RECIPIENTS } = await import('./src/defaultRecipients.js');
     await db.setKV('recipients_list', JSON.stringify(DEFAULT_RECIPIENTS));
     res.json(DEFAULT_RECIPIENTS);
   } catch (e) {
