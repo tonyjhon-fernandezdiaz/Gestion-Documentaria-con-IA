@@ -255,7 +255,7 @@ export default function App() {
           />
         );
       case 'analizar':
-        const isPlanif = currentUser.role === 'Administrador' || currentUser.areaId === 'planificacion' || (currentUser.areaIds && currentUser.areaIds.includes('planificacion'));
+        const isPlanif = currentUser.role === 'Administrador' || currentUser.areaId === 'planificacion' || (currentUser.areaIds && (currentUser.areaIds.includes('planificacion') || currentUser.areaIds.includes('agp')));
         if (!isPlanif) {
           return <RoleUnauthorizedBlock />;
         }

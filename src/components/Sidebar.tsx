@@ -58,7 +58,7 @@ export default function Sidebar({
       bgColor: 'bg-teal-50 dark:bg-teal-950/40 text-teal-600 dark:text-teal-400',
       activeColor: 'ring-2 ring-teal-500 bg-teal-100 dark:bg-teal-900/60 text-teal-700 dark:text-teal-300',
       roles: ['Administrador', 'Secretaria', 'Jefe', 'Consulta'],
-      customVisible: currentUser.role === 'Administrador' || currentUser.areaId === 'planificacion' || (currentUser.areaIds && currentUser.areaIds.includes('planificacion'))
+      customVisible: currentUser.role === 'Administrador' || currentUser.areaId === 'planificacion' || (currentUser.areaIds && (currentUser.areaIds.includes('planificacion') || currentUser.areaIds.includes('agp')))
     },
     { 
       id: 'documentos' as const, 
