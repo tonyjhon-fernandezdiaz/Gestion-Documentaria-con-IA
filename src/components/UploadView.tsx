@@ -205,22 +205,16 @@ export default function UploadView({ currentUser, onDocumentAdded }: UploadViewP
       setDocSuffix(suffix);
     }
 
-    // Fetch collaborators from database and format them as recipients autocomplete
-    fetch('/api/users')
+    // Fetch shared directory from server for autocomplete
+    fetch('/api/recipients')
       .then(res => res.json())
-      .then((users: any[]) => {
-        const formatted = users
-          .filter(u => u.username !== 'admin')
-          .map(u => ({
-            id: u.id,
-            nombre: u.name,
-            cargo: u.cargo || '',
-            sexo: u.sexo || 'M'
-          }));
-        setSavedRecipients(formatted);
+      .then((list: any[]) => {
+        if (Array.isArray(list)) {
+          setSavedRecipients(list);
+        }
       })
       .catch(err => {
-        console.error("Error loading users for recipients:", err);
+        console.error("Error loading recipients directory:", err);
       });
   }, [currentUser]);
 
@@ -501,16 +495,24 @@ export default function UploadView({ currentUser, onDocumentAdded }: UploadViewP
       return;
     }
 
-    const newRec = {
-      id: `rec-${Date.now()}`,
-      nombre: destinatario.trim().toUpperCase(),
-      cargo: (cargoDestinatario || 'SIN CARGO').trim().toUpperCase()
-    };
-
-    const updated = [...savedRecipients, newRec];
-    setSavedRecipients(updated);
-    safeStorage.setItem('saved_destinatarios_list', JSON.stringify(updated));
-    triggerAlert('Directorio Actualizado', `El destinatario "${newRec.nombre}" con cargo "${newRec.cargo}" ha sido registrado con éxito en su directorio institucional.`, 'success');
+    fetch('/api/recipients', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        nombre: destinatario.trim(),
+        cargo: cargoDestinatario || 'SIN CARGO'
+      })
+    })
+      .then(r => r.json())
+      .then(data => {
+        if (data.success) {
+          setSavedRecipients(data.list);
+          triggerAlert('Directorio Actualizado', `El destinatario "${destinatario.trim().toUpperCase()}" ha sido registrado con éxito en el directorio institucional compartido.`, 'success');
+        }
+      })
+      .catch(() => {
+        triggerAlert('Error', 'No se pudo guardar el destinatario en el servidor.', 'error');
+      });
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1303,22 +1305,30 @@ export default function UploadView({ currentUser, onDocumentAdded }: UploadViewP
                               triggerAlert('Campo Faltante', 'Por favor ingrese un nombre de destinatario primero.', 'warning');
                               return;
                             }
-                            // Save this specific recipient to local storage directory
-                            const newRec = {
-                              id: Date.now().toString(),
-                              nombre: rec.nombre.trim().toUpperCase(),
-                              cargo: rec.cargo.trim().toUpperCase()
-                            };
-                            const updatedList = [...savedRecipients];
-                            // Check if already exists
-                            if (!updatedList.some(r => r.nombre === newRec.nombre)) {
-                              updatedList.push(newRec);
-                              safeStorage.setItem('saved_destinatarios_list', JSON.stringify(updatedList));
-                              setSavedRecipients(updatedList);
-                              triggerAlert('Directorio Actualizado', 'Destinatario guardado en el directorio UGEL exitosamente.', 'success');
-                            } else {
+                            // Save this recipient to shared server directory
+                            const exists = savedRecipients.some(r => r.nombre.toUpperCase() === rec.nombre.trim().toUpperCase());
+                            if (exists) {
                               triggerAlert('Ya Existe', 'Este destinatario ya se encuentra registrado en el directorio.', 'info');
+                              return;
                             }
+                            fetch('/api/recipients', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({
+                                nombre: rec.nombre.trim(),
+                                cargo: rec.cargo.trim() || 'SIN CARGO'
+                              })
+                            })
+                              .then(r => r.json())
+                              .then(data => {
+                                if (data.success) {
+                                  setSavedRecipients(data.list);
+                                  triggerAlert('Directorio Actualizado', 'Destinatario guardado en el directorio compartido exitosamente.', 'success');
+                                }
+                              })
+                              .catch(() => {
+                                triggerAlert('Error', 'No se pudo guardar en el servidor.', 'error');
+                              });
                           }}
                           className="p-1 rounded hover:bg-slate-250 dark:hover:bg-slate-850 text-blue-600 dark:text-blue-400 transition-colors"
                           title="Guardar en directorio"

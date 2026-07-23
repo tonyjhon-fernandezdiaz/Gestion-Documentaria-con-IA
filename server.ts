@@ -62,7 +62,7 @@ function getGeminiClient(overrideKey?: string): GoogleGenAI | null {
 
 // Robust content generation helper with automatic model fallback (e.g. gemini-3.1-flash-lite -> gemini-3.5-flash)
 async function generateContentWithFallback(ai: any, params: any): Promise<any> {
-  const modelsToTry = ['gemini-3.1-flash-lite', 'gemini-3.5-flash', 'gemini-2.0-flash'];
+  const modelsToTry = ['gemini-2.0-flash-lite', 'gemini-2.5-flash', 'gemini-2.5-pro'];
   let lastError: any = null;
   for (const model of modelsToTry) {
     try {
@@ -2244,6 +2244,80 @@ ${draftText}
   }
 
   res.json({ errors });
+});
+
+// Recipients API — shared directory stored in kv store
+app.get('/api/recipients', async (req, res) => {
+  try {
+    const saved = await db.getKV('recipients_list');
+    if (saved) {
+      return res.json(JSON.parse(saved));
+    }
+    // Seed defaults on first access
+    const { DEFAULT_RECIPIENTS } = await import('./src/defaultRecipients.js');
+    await db.setKV('recipients_list', JSON.stringify(DEFAULT_RECIPIENTS));
+    res.json(DEFAULT_RECIPIENTS);
+  } catch (e) {
+    res.json([]);
+  }
+});
+
+app.post('/api/recipients', async (req, res) => {
+  try {
+    const { nombre, cargo, sexo, areaId } = req.body;
+    if (!nombre?.trim() || !cargo?.trim()) {
+      return res.status(400).json({ error: 'Nombre y cargo son requeridos' });
+    }
+    const saved = await db.getKV('recipients_list');
+    const list = saved ? JSON.parse(saved) : [];
+    const newRec = {
+      id: `rec-${Date.now()}`,
+      nombre: nombre.trim().toUpperCase(),
+      cargo: cargo.trim().toUpperCase(),
+      sexo: sexo || 'M',
+      areaId: areaId || undefined
+    };
+    list.push(newRec);
+    await db.setKV('recipients_list', JSON.stringify(list));
+    res.json({ success: true, recipient: newRec, list });
+  } catch (e) {
+    res.status(500).json({ error: 'Error al guardar destinatario' });
+  }
+});
+
+app.put('/api/recipients/:id', async (req, res) => {
+  try {
+    const { nombre, cargo, sexo, areaId } = req.body;
+    const saved = await db.getKV('recipients_list');
+    if (!saved) return res.status(404).json({ error: 'No hay destinatarios' });
+    const list = JSON.parse(saved);
+    const idx = list.findIndex((r: any) => r.id === req.params.id);
+    if (idx === -1) return res.status(404).json({ error: 'Destinatario no encontrado' });
+    list[idx] = {
+      ...list[idx],
+      nombre: (nombre || list[idx].nombre).trim().toUpperCase(),
+      cargo: (cargo || list[idx].cargo).trim().toUpperCase(),
+      sexo: sexo || list[idx].sexo,
+      areaId: areaId !== undefined ? areaId : list[idx].areaId
+    };
+    await db.setKV('recipients_list', JSON.stringify(list));
+    res.json({ success: true, recipient: list[idx], list });
+  } catch (e) {
+    res.status(500).json({ error: 'Error al actualizar destinatario' });
+  }
+});
+
+app.delete('/api/recipients/:id', async (req, res) => {
+  try {
+    const saved = await db.getKV('recipients_list');
+    if (!saved) return res.status(404).json({ error: 'No hay destinatarios' });
+    const list = JSON.parse(saved);
+    const filtered = list.filter((r: any) => r.id !== req.params.id);
+    await db.setKV('recipients_list', JSON.stringify(filtered));
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ error: 'Error al eliminar destinatario' });
+  }
 });
 
 // Global Error Handling Middleware to guarantee JSON error responses

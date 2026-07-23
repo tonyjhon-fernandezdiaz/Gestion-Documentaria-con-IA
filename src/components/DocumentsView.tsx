@@ -21,16 +21,15 @@ import { Document, DocumentType, User as UserType } from '../types';
 import { safeStorage } from '../utils/storage';
 import { saveDocument } from '../utils/fileSaver';
 
-// Saludo del documento guardado según el sexo del destinatario (busca en el directorio local).
+// Cache shared directory for sexo lookup (loaded from server)
+let _recipientsCache: any[] | null = null;
 function getDocSalutation(doc: any): string {
   const dests = doc?.datosExtraidos?.destinatarios;
   const name = ((Array.isArray(dests) && dests.length > 0) ? dests[0]?.nombre : doc?.solicitante) || '';
   if (!name) return 'AL';
-  try {
-    const dir = JSON.parse(safeStorage.getItem('saved_destinatarios_list') || '[]');
-    const match = dir.find((r: any) => (r.nombre || '').trim().toUpperCase() === String(name).trim().toUpperCase());
-    return (match && match.sexo === 'F') ? 'A LA' : 'AL';
-  } catch { return 'AL'; }
+  const dir = _recipientsCache || [];
+  const match = dir.find((r: any) => (r.nombre || '').trim().toUpperCase() === String(name).trim().toUpperCase());
+  return (match && match.sexo === 'F') ? 'A LA' : 'AL';
 }
 
 interface DocumentsViewProps {
@@ -55,6 +54,16 @@ export default function DocumentsView({
   React.useEffect(() => {
     setShowDeleteConfirm(false);
   }, [selectedDoc?.id]);
+
+  // Load shared directory for sexo lookup
+  React.useEffect(() => {
+    fetch('/api/recipients')
+      .then(r => r.json())
+      .then((list: any[]) => {
+        if (Array.isArray(list)) _recipientsCache = list;
+      })
+      .catch(() => {});
+  }, []);
 
   // Extract all unique types of documents created so far
   const folderTypes = Array.from(new Set(documents.map(d => d.tipo))).filter(Boolean);

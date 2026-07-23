@@ -761,6 +761,24 @@ export class NeonDatabase {
     }
     await this.upsert('correlatives', key, newRecord);
   }
+
+  async getKV(key: string): Promise<string | null> {
+    try {
+      const rows = await this.q('SELECT value FROM kv WHERE key = $1', [key]);
+      return rows[0]?.value || null;
+    } catch { return null; }
+  }
+
+  async setKV(key: string, value: string): Promise<void> {
+    try {
+      await this.q(
+        "INSERT INTO kv (key, value) VALUES ($1, $2) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value",
+        [key, value]
+      );
+    } catch (e) {
+      console.error('Error setting KV:', e);
+    }
+  }
 }
 
 export const db = new NeonDatabase();

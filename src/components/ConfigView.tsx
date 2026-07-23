@@ -315,16 +315,24 @@ export default function ConfigView({ providers, currentUser, onUpdateProviders, 
     setSavedSuffix(safeStorage.getItem('saved_area_suffix') || '-2026-UGEL-AGI');
     setSavedAutoSavePath(safeStorage.getItem('saved_auto_save_path') || '/documentos_automaticos');
 
-    // 2. Recipients
-    const RECIPIENTS_VERSION = 'ugel-2026-v1';
-    const savedRecs = safeStorage.getItem('saved_destinatarios_list');
-    if (savedRecs && safeStorage.getItem('saved_destinatarios_version') === RECIPIENTS_VERSION) {
-      setRecipients(JSON.parse(savedRecs));
-    } else {
-      safeStorage.setItem('saved_destinatarios_list', JSON.stringify(DEFAULT_RECIPIENTS));
-      safeStorage.setItem('saved_destinatarios_version', RECIPIENTS_VERSION);
-      setRecipients(DEFAULT_RECIPIENTS);
-    }
+    // 2. Recipients — load from server (shared across users)
+    fetch('/api/recipients')
+      .then(r => r.json())
+      .then((data: Recipient[]) => {
+        if (Array.isArray(data) && data.length > 0) {
+          setRecipients(data);
+        } else {
+          setRecipients(DEFAULT_RECIPIENTS);
+          fetch('/api/recipients', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(DEFAULT_RECIPIENTS[0])
+          }).catch(() => {});
+        }
+      })
+      .catch(() => {
+        setRecipients(DEFAULT_RECIPIENTS);
+      });
 
     // 3. Providers load
     const sorted = [...providers].sort((a, b) => a.priority - b.priority);
@@ -414,21 +422,29 @@ export default function ConfigView({ providers, currentUser, onUpdateProviders, 
     setTimeout(() => setAreaSuccess(false), 3000);
   };
 
-  // Recipients functions
-  const handleAddRecipient = (e: React.FormEvent) => {
+  // Recipients functions — all operations sync to server (shared across users)
+  const handleAddRecipient = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newRecName.trim() || !newRecCargo.trim()) return;
 
-    const newRec: Recipient = {
-      id: `rec-${Date.now()}`,
-      nombre: newRecName.trim().toUpperCase(),
-      cargo: newRecCargo.trim().toUpperCase(),
-      areaId: newRecAreaId || undefined
-    };
-
-    const updated = [...recipients, newRec];
-    setRecipients(updated);
-    safeStorage.setItem('saved_destinatarios_list', JSON.stringify(updated));
+    try {
+      const resp = await fetch('/api/recipients', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          nombre: newRecName.trim(),
+          cargo: newRecCargo.trim(),
+          sexo: undefined,
+          areaId: newRecAreaId || undefined
+        })
+      });
+      const data = await resp.json();
+      if (data.success) {
+        setRecipients(data.list);
+      }
+    } catch (e) {
+      console.error('Error adding recipient:', e);
+    }
 
     setNewRecName('');
     setNewRecCargo('');
@@ -438,18 +454,29 @@ export default function ConfigView({ providers, currentUser, onUpdateProviders, 
     setTimeout(() => setRecSuccess(false), 3000);
   };
 
-  const handleUpdateRecipient = (e: React.FormEvent) => {
+  const handleUpdateRecipient = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingRecipient || !editingRecipient.nombre.trim() || !editingRecipient.cargo.trim()) return;
 
-    const updated = recipients.map(r => r.id === editingRecipient.id ? {
-      ...editingRecipient,
-      nombre: editingRecipient.nombre.toUpperCase(),
-      cargo: editingRecipient.cargo.toUpperCase()
-    } : r);
+    try {
+      const resp = await fetch(`/api/recipients/${editingRecipient.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          nombre: editingRecipient.nombre.trim(),
+          cargo: editingRecipient.cargo.trim(),
+          sexo: editingRecipient.sexo,
+          areaId: editingRecipient.areaId
+        })
+      });
+      const data = await resp.json();
+      if (data.success) {
+        setRecipients(data.list);
+      }
+    } catch (e) {
+      console.error('Error updating recipient:', e);
+    }
 
-    setRecipients(updated);
-    safeStorage.setItem('saved_destinatarios_list', JSON.stringify(updated));
     setEditingRecipient(null);
     setRecSuccess(true);
     setTimeout(() => setRecSuccess(false), 3000);
@@ -459,10 +486,13 @@ export default function ConfigView({ providers, currentUser, onUpdateProviders, 
     showConfirm(
       'Eliminar Destinatario',
       '¿Está seguro de eliminar este destinatario?',
-      () => {
-        const updated = recipients.filter(r => r.id !== id);
-        setRecipients(updated);
-        safeStorage.setItem('saved_destinatarios_list', JSON.stringify(updated));
+      async () => {
+        try {
+          await fetch(`/api/recipients/${id}`, { method: 'DELETE' });
+          setRecipients(prev => prev.filter(r => r.id !== id));
+        } catch (e) {
+          console.error('Error deleting recipient:', e);
+        }
       },
       'danger'
     );
