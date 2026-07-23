@@ -302,14 +302,20 @@ export class NeonDatabase {
       if (dupCleanup[0]?.value !== 'done') {
         const allUsers = await this.q('SELECT data FROM users');
         const initialIds = new Set(INITIAL_DB.users.map(u => u.id));
-        const usernameSet = new Set(allUsers.map((r: any) => String(r.data.username || '')));
+        const stripMap = new Map<string, any[]>();
         for (const row of allUsers) {
           const u = row.data;
-          if (initialIds.has(u.id)) continue;
-          const uname = String(u.username || '');
-          const with00 = '00' + uname;
-          if (usernameSet.has(with00)) {
-            await this.remove('users', u.id);
+          const key = String(u.username || '').replace(/^0+/, '');
+          if (!stripMap.has(key)) stripMap.set(key, []);
+          stripMap.get(key)!.push(u);
+        }
+        for (const [stripped, users] of stripMap) {
+          if (users.length < 2) continue;
+          const sorted = users.sort((a, b) => String(b.username || '').length - String(a.username || '').length);
+          for (let i = 1; i < sorted.length; i++) {
+            if (!initialIds.has(sorted[i].id)) {
+              await this.remove('users', sorted[i].id);
+            }
           }
         }
         await this.q("INSERT INTO kv (key, value) VALUES ('users_dup_cleanup_v2', 'done') ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value");
