@@ -30,6 +30,7 @@ import { DocumentType, User as UserType } from '../types';
 import { safeStorage } from '../utils/storage';
 import { saveDocument } from '../utils/fileSaver';
 import { DEFAULT_RECIPIENTS } from '../defaultRecipients';
+import { getDocumentHTML } from '../templates';
 
 interface UploadViewProps {
   currentUser: UserType;
@@ -1184,48 +1185,16 @@ export default function UploadView({ currentUser, onDocumentAdded }: UploadViewP
               </div>
             `}
             
-            <div class="title">${activeDocTypeLabel.toUpperCase()} ${getFullDocCode()}</div>
-            
-            <table class="meta-list">
-              <tr>
-                <td class="meta-label">${getSalutation()}</td>
-                <td class="meta-colon">:</td>
-                <td class="meta-value" style="text-transform: uppercase;">
-                  ${recipients.map((dest, idx) => `
-                    ${idx > 0 ? '<div style="margin-top: 10px;"></div>' : ''}
-                    <span style="font-weight: bold;">${dest.nombre || '-----'}</span>
-                    ${dest.cargo ? `<span class="meta-subtitle">${dest.cargo}</span>` : ''}
-                  `).join('')}
-                </td>
-              </tr>
-              <tr>
-                <td class="meta-label">DE</td>
-                <td class="meta-colon">:</td>
-                <td class="meta-value" style="text-transform: uppercase;">
-                  ${currentUser.name}
-                  <span class="meta-subtitle">${currentUser.role}</span>
-                </td>
-              </tr>
-              <tr>
-                <td class="meta-label">ASUNTO</td>
-                <td class="meta-colon">:</td>
-                <td class="meta-value" style="text-transform: uppercase;">${asunto}</td>
-              </tr>
-              <tr>
-                <td class="meta-label">REFERENCIA</td>
-                <td class="meta-colon">:</td>
-                <td class="meta-value-regular">${referencia || 'SIN REFERENCIA'}</td>
-              </tr>
-              <tr>
-                <td class="meta-label">LUGAR Y FECHA</td>
-                <td class="meta-colon">:</td>
-                <td class="meta-value-regular">Bellavista, ${new Date().toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })}</td>
-              </tr>
-            </table>
-            
-            <hr class="divider" />
-            
-            <div class="content">${cleanText || '◇ la IA redactará el cuerpo aquí'}</div>
+            ${getDocumentHTML(currentUser.areaId || 'dir', {
+              docType: activeDocTypeLabel,
+              docNumber,
+              docSuffix,
+              recipients,
+              asunto: asunto || '',
+              referencia: referencia || '',
+              body: cleanText || '◇ la IA redactará el cuerpo aquí',
+              fecha: new Date().toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })
+            })}
             
             <script>
               window.onload = function() { window.print(); window.close(); }
@@ -1784,129 +1753,21 @@ export default function UploadView({ currentUser, onDocumentAdded }: UploadViewP
                   </div>
                 )}
 
-                {activeDocTypeLabel.toLowerCase() === 'carta' ? (
-                  /* --- CARTA OFFICIAL PREVIEW LAYOUT --- */
-                  <div className="space-y-3 font-sans text-[11px] text-slate-900 dark:text-slate-100">
-                    <div className="text-right text-slate-500 font-medium">
-                      Bellavista, {new Date().toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })}.
-                    </div>
-                    
-                    <div className="text-left font-bold text-slate-950 dark:text-white uppercase">
-                      {activeDocTypeLabel.toUpperCase()} N° {docNumber}{docSuffix}
-                    </div>
-
-                    <div className="text-left leading-normal">
-                      <strong className="uppercase">{recipients[0]?.sexo === 'F' ? 'SEÑORA' : 'SEÑOR'}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; : &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {recipients[0]?.nombre || '-----'}</strong>
-                      {recipients[0]?.cargo && (
-                        <span className="block text-[10px] font-extrabold text-slate-600 dark:text-slate-400 uppercase mt-0.5 ml-20 sm:ml-24">
-                          {recipients[0].cargo}
-                        </span>
-                      )}
-                      <span className="block font-bold mt-0.5 uppercase ml-20 sm:ml-24">BELLAVISTA.-</span>
-                    </div>
-
-                    <div className="text-left">
-                      <strong>ASUNTO &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; : &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span className="uppercase">{asunto || '-----'}</span></strong>
-                    </div>
-
-                    {referencia && (
-                      <div className="text-left">
-                        <strong>REF. &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; : &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span className="uppercase">{referencia}</span></strong>
-                      </div>
-                    )}
-
-                    <div className="text-center text-slate-300 dark:text-slate-700 tracking-tighter select-none font-extrabold">
-                      ------------------------------------------------------------------------------------------------------------------------
-                    </div>
-                  </div>
-                ) : (
-                  /* --- STANDARD MEMORANDO/INFORME/OFICIO PREVIEW LAYOUT --- */
-                  <>
-                    {/* Document Main Title centered and underlined (as shown in second image) */}
-                    <div className="text-center font-extrabold text-slate-900 dark:text-white uppercase text-xs sm:text-xs tracking-wide underline pt-1 font-sans">
-                      {activeDocTypeLabel.toUpperCase() || 'DOCUMENTO'} {getFullDocCode()}
-                    </div>
-
-                    {/* Metadata Sheet List (perfectly left-aligned to the margin, matching the red vertical line from Image 2) */}
-                    <div className="space-y-1.5 pt-2 text-[10px] sm:text-[11px] font-sans text-slate-900 dark:text-slate-100">
-                      
-                      <div className="flex items-start">
-                        <div className="w-20 sm:w-24 font-extrabold tracking-wide shrink-0 text-slate-950 dark:text-white">{getSalutation()}</div>
-                        <div className="px-1.5 font-extrabold shrink-0 text-slate-950 dark:text-white">:</div>
-                        <div className="flex-1 font-bold text-slate-950 dark:text-white">
-                          {recipients.length > 0 && recipients[0].nombre ? (
-                            <div className="space-y-2">
-                              {recipients.map((rec) => (
-                                <div key={rec.id} className="uppercase">
-                                  {rec.nombre}
-                                  {rec.cargo && (
-                                    <span className="block text-[9px] sm:text-[10px] text-slate-600 dark:text-slate-400 font-extrabold mt-0.5 uppercase">
-                                      {rec.cargo}
-                                    </span>
-                                  )}
-                                </div>
-                              ))}
-                            </div>
-                          ) : (
-                            <div className="text-slate-300 dark:text-slate-700 italic">
-                              TONY JHON FERNANDEZ DIAZ
-                              <span className="block text-[9px] sm:text-[10px] text-slate-400 dark:text-slate-600 font-bold mt-0.5 uppercase">
-                                JEFE DEL ÁREA DE GESTIÓN INSTITUCIONAL
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="flex items-start">
-                        <div className="w-20 sm:w-24 font-extrabold tracking-wide shrink-0 text-slate-950 dark:text-white">DE</div>
-                        <div className="px-1.5 font-extrabold shrink-0 text-slate-950 dark:text-white">:</div>
-                        <div className="flex-1 font-bold text-slate-950 dark:text-white">
-                          <div className="uppercase">
-                            {remitenteNombre || currentUser.name}
-                            <span className="block text-[9px] sm:text-[10px] text-slate-600 dark:text-slate-400 font-extrabold mt-0.5 uppercase">
-                              {remitenteCargo || currentUser.role}
-                              {isEncargado && (
-                                <span className="inline-flex items-center gap-0.5 ml-1.5 text-[9px] font-bold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 px-1.5 py-0.5 rounded-sm border border-amber-200/50 dark:border-amber-700/50">
-                                  <ShieldCheck size={9} />
-                                  (e)
-                                </span>
-                              )}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="flex items-start">
-                        <div className="w-20 sm:w-24 font-extrabold tracking-wide shrink-0 text-slate-950 dark:text-white">ASUNTO</div>
-                        <div className="px-1.5 font-extrabold shrink-0 text-slate-950 dark:text-white">:</div>
-                        <div className="flex-1 font-bold text-slate-950 dark:text-white uppercase">
-                          {asunto || <span className="text-slate-300 dark:text-slate-700 italic font-bold">REQUERIMIENTO DE PLAZAS PARA 2025</span>}
-                        </div>
-                      </div>
-
-                      <div className="flex items-start">
-                        <div className="w-20 sm:w-24 font-extrabold tracking-wide shrink-0 text-slate-950 dark:text-white">REFERENCIA</div>
-                        <div className="px-1.5 font-extrabold shrink-0 text-slate-950 dark:text-white">:</div>
-                        <div className="flex-1 font-semibold text-slate-800 dark:text-slate-200">
-                          {referencia || <span className="text-slate-300 dark:text-slate-700 italic font-semibold font-sans">OFICIO N° 169-2024 DIR-ODEC-J</span>}
-                        </div>
-                      </div>
-
-                      <div className="flex items-start">
-                        <div className="w-20 sm:w-24 font-extrabold tracking-wide shrink-0 text-slate-950 dark:text-white">LUGAR Y FECHA</div>
-                        <div className="px-1.5 font-extrabold shrink-0 text-slate-950 dark:text-white">:</div>
-                        <div className="flex-1 font-medium text-slate-800 dark:text-slate-200">
-                          Bellavista, {new Date().toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })}
-                        </div>
-                      </div>
-
-                    </div>
-
-                    {/* Dotted/Dashed divider as shown in Image 2 */}
-                    <div className="border-t border-dashed border-slate-300 dark:border-slate-800 my-2.5 select-none font-sans" />
-                  </>
-                )}
+                {/* Document header rendered from template */}
+                <div className="space-y-3 font-sans text-[11px] text-slate-900 dark:text-slate-100"
+                  dangerouslySetInnerHTML={{
+                    __html: getDocumentHTML(currentUser.areaId || 'dir', {
+                      docType: activeDocTypeLabel,
+                      docNumber,
+                      docSuffix,
+                      recipients,
+                      asunto: asunto || '',
+                      referencia: referencia || '',
+                      body: '',
+                      fecha: new Date().toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })
+                    })
+                  }}
+                />
               </div>
 
               {/* Document Sheet Body Area */}
