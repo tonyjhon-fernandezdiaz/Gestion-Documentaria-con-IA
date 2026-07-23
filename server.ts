@@ -19,7 +19,7 @@ app.use(express.json({ limit: '10mb' }));
 
 // Normalize URL path for Vercel serverless function rewrites (/api/index)
 app.use((req, _res, next) => {
-  if (req.url && !req.url.startsWith('/api')) {
+  if (process.env.VERCEL && req.url && !req.url.startsWith('/api')) {
     req.url = '/api' + (req.url.startsWith('/') ? '' : '/') + req.url;
   }
   next();

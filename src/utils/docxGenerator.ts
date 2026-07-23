@@ -10,8 +10,10 @@ interface DocxRecipient {
 interface DocxOptions {
   docType: string;
   docCode: string;
+  docCodeFull?: string; // código completo ej: "001 -2026-GRSM-DRE-UGEL-B."
   salutation: string;
   recipients: DocxRecipient[];
+  recipientLocation?: string; // lugar del destinatario ej: "TARAPOTO. -"
   fromName: string;
   fromRole: string;
   subject: string;
@@ -65,6 +67,19 @@ function buildParagraphFromStyle(text: string, estilo?: TemplateSection['estilo'
       },
     } : undefined,
   });
+}
+
+function resolveTemplateVars(text: string, context: DocxOptions): string {
+  const vars: Record<string, string> = {
+    iniciales: 'PRHB/D-UGEL-B\nMfs.',
+    direccion: 'Esq. Avenida Loreto y Jr. San Martín – Tercer Piso – Ampliación. Bellavista - Telefax 042-544342',
+    url: 'https://www.gob.pe/ugelbellavista',
+    destinatario: context.recipients[0]?.nombre || 'DESTINATARIO',
+    asunto: context.subject,
+    fecha: context.date,
+    codigo: context.docCodeFull || context.docCode,
+  };
+  return text.replace(/\{\{(\w+)\}\}/g, (_, key) => vars[key] || '');
 }
 
 function addSectionChildren(children: (Paragraph | Table)[], section: TemplateSection, context: DocxOptions): void {
@@ -143,6 +158,53 @@ function addSectionChildren(children: (Paragraph | Table)[], section: TemplateSe
       }
       break;
     }
+    case 'codigo': {
+      const codColor = section.estilo?.fuente?.color?.replace('#', '') || '00B050';
+      const codSize = section.estilo?.fuente?.size || 24;
+      const codText = context.docCodeFull
+        ? `${context.docType.toUpperCase()} N° ${context.docCodeFull}`
+        : `${context.docType.toUpperCase()} N° ${context.docCode}`;
+      children.push(new Paragraph({
+        children: [new TextRun({ text: codText, size: codSize, font: section.estilo?.fuente?.name || 'Arial Narrow', color: codColor })],
+        alignment: AlignmentType.BOTH,
+        spacing: { after: 200 },
+      }));
+      break;
+    }
+    case 'lugar': {
+      const lugColor = section.estilo?.fuente?.color?.replace('#', '') || '00B050';
+      const lugSize = section.estilo?.fuente?.size || 22;
+      children.push(new Paragraph({
+        children: [new TextRun({ text: context.recipientLocation || 'LUGAR. -', size: lugSize, color: lugColor })],
+        alignment: AlignmentType.LEFT,
+        spacing: { after: 200 },
+      }));
+      break;
+    }
+    case 'destinatario': {
+      const desSize = section.estilo?.fuente?.size || 22;
+      children.push(new Paragraph({
+        children: [
+          new TextRun({ text: (context.salutation || 'SEÑOR') + ' : ', bold: true, size: desSize }),
+          new TextRun({ text: context.recipients[0]?.nombre || 'DESTINATARIO', size: desSize, color: '00B050' }),
+        ],
+        alignment: AlignmentType.LEFT,
+        spacing: { after: 100 },
+      }));
+      break;
+    }
+    case 'asunto': {
+      const asuSize = section.estilo?.fuente?.size || 22;
+      children.push(new Paragraph({
+        children: [
+          new TextRun({ text: 'ASUNTO : ', bold: true, size: asuSize }),
+          new TextRun({ text: context.subject, size: asuSize, color: '00B050' }),
+        ],
+        alignment: AlignmentType.LEFT,
+        spacing: { after: 200 },
+      }));
+      break;
+    }
     case 'separator': {
       children.push(new Paragraph({
         children: [new TextRun({ text: '─'.repeat(90), size: 12, color: '#777777' })],
@@ -167,24 +229,34 @@ function addSectionChildren(children: (Paragraph | Table)[], section: TemplateSe
     }
     case 'despedida': {
       children.push(new Paragraph({ children: [], spacing: { after: 400 } }));
-      children.push(buildParagraphFromStyle('Atentamente,', { alineacion: 'center', fuente: { name: 'Arial', size: 21, bold: true }, espaciado: { antes: 0, despues: 600, interlineado: 1.15 } }));
+      const despText = section.contenidoEstatico || 'Atentamente,';
+      children.push(buildParagraphFromStyle(despText, section.estilo || { alineacion: 'center', fuente: { name: 'Arial', size: 21, bold: true }, espaciado: { antes: 0, despues: 600, interlineado: 1.15 } }));
       break;
     }
     case 'firma': {
-      children.push(new Paragraph({ children: [], spacing: { after: 600 } }));
-      children.push(buildParagraphFromStyle(context.fromName, { alineacion: 'center', fuente: { name: 'Arial', size: 21, bold: true }, espaciado: { antes: 0, despues: 0, interlineado: 1.15 } }));
-      children.push(buildParagraphFromStyle(context.fromRole, { alineacion: 'center', fuente: { name: 'Arial', size: 20, color: '#334155' }, espaciado: { antes: 0, despues: 0, interlineado: 1.15 } }));
+      if (section.contenidoEstatico) {
+        const resolved = resolveTemplateVars(section.contenidoEstatico, context);
+        const lines = resolved.split('\n').filter(Boolean);
+        lines.forEach((line, i) => {
+          if (i === 0) children.push(new Paragraph({ children: [], spacing: { after: 600 } }));
+          children.push(buildParagraphFromStyle(line, { ...section.estilo, alineacion: section.estilo?.alineacion || 'left' }));
+        });
+      } else {
+        children.push(new Paragraph({ children: [], spacing: { after: 600 } }));
+        children.push(buildParagraphFromStyle(context.fromName, { alineacion: 'center', fuente: { name: 'Arial', size: 21, bold: true }, espaciado: { antes: 0, despues: 0, interlineado: 1.15 } }));
+        children.push(buildParagraphFromStyle(context.fromRole, { alineacion: 'center', fuente: { name: 'Arial', size: 20, color: '#334155' }, espaciado: { antes: 0, despues: 0, interlineado: 1.15 } }));
+      }
       break;
     }
     case 'saludo': {
       if (section.contenidoEstatico) {
-        children.push(buildParagraphFromStyle(section.contenidoEstatico, section.estilo));
+        children.push(buildParagraphFromStyle(resolveTemplateVars(section.contenidoEstatico, context), section.estilo));
       }
       break;
     }
     case 'custom': {
       if (section.contenidoEstatico) {
-        children.push(buildParagraphFromStyle(section.contenidoEstatico, section.estilo));
+        children.push(buildParagraphFromStyle(resolveTemplateVars(section.contenidoEstatico, context), section.estilo));
       }
       break;
     }

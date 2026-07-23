@@ -11,6 +11,7 @@ import DocumentsView from './components/DocumentsView';
 import UploadView from './components/UploadView';
 import AnalyzeView from './components/AnalyzeView';
 import PromptConfigView from './components/PromptConfigView';
+import TemplateEditorView from './components/TemplateEditorView';
 import ConfigView from './components/ConfigView';
 import LogsView from './components/LogsView';
 import OrganigramaView from './components/OrganigramaView';
@@ -274,6 +275,13 @@ export default function App() {
             currentUser={currentUser}
             onUpdatePrompt={handleUpdatePromptInState}
           />
+        );
+      case 'plantillas':
+        if (!['Administrador'].includes(currentUser.role)) {
+          return <RoleUnauthorizedBlock />;
+        }
+        return (
+          <TemplateEditorView />
         );
       case 'config':
         return (

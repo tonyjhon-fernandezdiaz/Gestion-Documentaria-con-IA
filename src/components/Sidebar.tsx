@@ -10,11 +10,12 @@ import {
   LogOut,
   ShieldCheck,
   Calendar,
-  Network
+  Network,
+  Layers
 } from 'lucide-react';
 import { User as UserType } from '../types';
 
-export type SidebarTab = 'inicio' | 'documentos' | 'subir' | 'analizar' | 'prompts' | 'config' | 'logs' | 'organigrama';
+export type SidebarTab = 'inicio' | 'documentos' | 'subir' | 'analizar' | 'prompts' | 'plantillas' | 'config' | 'logs' | 'organigrama';
 
 interface SidebarProps {
   currentTab: SidebarTab;
@@ -79,10 +80,18 @@ export default function Sidebar({
     },
     { 
       id: 'prompts' as const, 
-      label: 'Plantillas', 
+      label: 'Enseñanza a la IA', 
       icon: Sliders,
       bgColor: 'bg-purple-50 dark:bg-purple-950/40 text-purple-600 dark:text-purple-400',
       activeColor: 'ring-2 ring-purple-500 bg-purple-100 dark:bg-purple-900/60 text-purple-700 dark:text-purple-300',
+      roles: ['Administrador']
+    },
+    { 
+      id: 'plantillas' as const, 
+      label: 'Plantillas',
+      icon: Layers,
+      bgColor: 'bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400',
+      activeColor: 'ring-2 ring-rose-500 bg-rose-100 dark:bg-rose-900/60 text-rose-700 dark:text-rose-300',
       roles: ['Administrador']
     }
   ];

@@ -97,10 +97,11 @@ export interface DocumentTemplate {
 
 export interface TemplateSection {
   id: string;
-  tipo: 'header' | 'body' | 'footer' | 'membrete' | 'metadatos' | 'saludo' | 'despedida' | 'firma' | 'custom' | 'separator';
+  tipo: 'header' | 'body' | 'footer' | 'membrete' | 'metadatos' | 'saludo' | 'despedida' | 'firma' | 'custom' | 'separator' | 'codigo' | 'lugar' | 'destinatario' | 'asunto';
   nombre: string; // nombre visible
   obligatorio: boolean;
   editable: boolean; // si el usuario puede editarlo en el editor visual
+  origen: 'sistema' | 'ia' | 'fijo'; // qué genera el contenido de esta sección
   // Contenido estático (para membrete, saludo, despedida, firma)
   contenidoEstatico?: string; // HTML o texto plano
   // Para secciones dinámicas (metadatos): qué campos mostrar

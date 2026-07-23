@@ -1,5 +1,7 @@
 import pkg from 'pg';
 const { Pool } = pkg;
+import fs from 'fs';
+import path from 'path';
 import { User, Document, AIProvider, PromptTemplate, SystemLog, DocumentType, LearningCorrection, AgendaEvent, AreaItem, AreaTemplate, CorrelativeCounter, DocumentTemplate, TemplateSection } from '../src/types.js';
 
 // -----------------------------------------------------------------
@@ -253,6 +255,8 @@ export class NeonDatabase {
   };
   private initPromise: Promise<void> | null = null;
   private lastLoad = 0;
+  private isLocalMode = false;
+  private localFilePath = path.join(process.cwd(), 'local_db.json');
 
   // Memoised one-time initialisation (create tables, seed, first load).
   ready(): Promise<void> {
@@ -266,9 +270,12 @@ export class NeonDatabase {
   }
 
   private getPool(): InstanceType<typeof Pool> {
+    if (this.isLocalMode) {
+      throw new Error('Database is running in local file fallback mode.');
+    }
     if (!this.pool) {
       const url = process.env.DATABASE_URL;
-      if (!url) throw new Error('La variable de entorno DATABASE_URL no está configurada en Vercel.');
+      if (!url) throw new Error('La variable de entorno DATABASE_URL no está configurada.');
       this.pool = new Pool({
         connectionString: url,
         ssl: { rejectUnauthorized: false },
@@ -284,11 +291,82 @@ export class NeonDatabase {
   }
 
   private async q(text: string, params: any[] = []): Promise<any[]> {
+    if (this.isLocalMode) {
+      return [];
+    }
     const res = await this.getPool().query(text, params);
     return res.rows;
   }
 
   private async init(): Promise<void> {
+    // Detect if we should run in local fallback mode
+    const url = process.env.DATABASE_URL;
+    if (!url || process.env.USE_LOCAL_DB === 'true') {
+      this.isLocalMode = true;
+    } else {
+      try {
+        const testPool = new Pool({
+          connectionString: url,
+          ssl: { rejectUnauthorized: false },
+          connectionTimeoutMillis: 3000
+        });
+        await testPool.query('SELECT 1');
+        await testPool.end();
+      } catch (dbErr) {
+        console.warn("⚠️ Postgres/Neon no responde o el límite gratuito se ha agotado. Iniciando en modo local usando 'local_db.json'...");
+        this.isLocalMode = true;
+      }
+    }
+
+    if (this.isLocalMode) {
+      if (fs.existsSync(this.localFilePath)) {
+        try {
+          const raw = fs.readFileSync(this.localFilePath, 'utf8');
+          this.data = JSON.parse(raw);
+          console.log(`📂 Base de datos local cargada con éxito desde: ${this.localFilePath}`);
+        } catch (e) {
+          console.error("Error leyendo local_db.json, usando base de datos inicial:", e);
+          this.data = { ...INITIAL_DB, areas: DEFAULT_AREAS };
+        }
+      } else {
+        console.log("🌱 Creando nueva base de datos local 'local_db.json'...");
+        this.data = { ...INITIAL_DB, areas: DEFAULT_AREAS };
+        const collPath = "C:\\Users\\Lenovo\\.gemini\\antigravity\\brain\\71af1868-75b9-4207-9e7c-576191fa1828\\scratch\\collaborators.json";
+        if (fs.existsSync(collPath)) {
+          try {
+            const rawColl = fs.readFileSync(collPath, 'utf8');
+            const list = JSON.parse(rawColl);
+            const mergedUsers = [...INITIAL_DB.users.filter(u => u.id !== 'admin' && u.id !== '1')];
+            const adminUser = {
+              id: 'admin',
+              username: 'admin',
+              name: 'Administrador General',
+              role: 'Administrador' as const,
+              avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150',
+              password: '1012',
+              areaId: 'dir',
+              areaIds: ['dir'],
+              cargo: 'Administrador del Sistema'
+            };
+            mergedUsers.unshift(adminUser);
+            
+            for (const col of list) {
+              if (col.id !== 'admin' && col.id !== '1' && !mergedUsers.some(u => u.id === col.id)) {
+                mergedUsers.push(col);
+              }
+            }
+            this.data.users = mergedUsers;
+            console.log(`🌱 Se precargaron ${list.length} colaboradores desde collaborators.json en la base local.`);
+          } catch (err) {
+            console.error("Error precargando colaboradores:", err);
+          }
+        }
+        fs.writeFileSync(this.localFilePath, JSON.stringify(this.data, null, 2), 'utf8');
+      }
+      this.lastLoad = Date.now();
+      return;
+    }
+
     for (const t of TABLES) {
       if (t === 'document_templates') {
         await this.q(`CREATE TABLE IF NOT EXISTS ${t} (key text PRIMARY KEY, seq bigserial, value jsonb NOT NULL)`).catch(e => console.error(`Error creando tabla ${t}:`, e));
@@ -434,11 +512,40 @@ export class NeonDatabase {
 
   // Refresh the cache from Postgres, throttled to avoid hammering the DB.
   async reload(): Promise<void> {
+    if (this.isLocalMode) return;
     if (Date.now() - this.lastLoad < RELOAD_THROTTLE_MS) return;
     await this.load();
   }
 
   private async upsert(table: string, id: string, obj: any): Promise<void> {
+    if (this.isLocalMode) {
+      let colName: keyof DatabaseSchema = 'users';
+      if (table === 'users') colName = 'users';
+      else if (table === 'documents') colName = 'documents';
+      else if (table === 'providers') colName = 'providers';
+      else if (table === 'prompts') colName = 'prompts';
+      else if (table === 'logs') colName = 'logs';
+      else if (table === 'agenda') colName = 'agenda';
+      else if (table === 'learning_corrections') colName = 'learningCorrections';
+      else if (table === 'area_templates') colName = 'areaTemplates';
+      else if (table === 'correlatives') colName = 'correlatives';
+      else if (table === 'areas') colName = 'areas';
+      else if (table === 'document_templates') colName = 'documentTemplates';
+
+      if (table === 'document_templates') {
+        const arr = (this.data.documentTemplates || []) as any[];
+        const idx = arr.findIndex(x => x.key === id);
+        if (idx !== -1) arr[idx] = obj;
+        else arr.push(obj);
+      } else {
+        const arr = (this.data[colName] || []) as any[];
+        const idx = arr.findIndex(x => x.id === id);
+        if (idx !== -1) arr[idx] = obj;
+        else arr.push(obj);
+      }
+      fs.writeFileSync(this.localFilePath, JSON.stringify(this.data, null, 2), 'utf8');
+      return;
+    }
     await this.q(
       `INSERT INTO ${table} (id, data) VALUES ($1, $2::jsonb)
        ON CONFLICT (id) DO UPDATE SET data = EXCLUDED.data`,
@@ -447,6 +554,28 @@ export class NeonDatabase {
   }
 
   private async remove(table: string, id: string): Promise<void> {
+    if (this.isLocalMode) {
+      let colName: keyof DatabaseSchema = 'users';
+      if (table === 'users') colName = 'users';
+      else if (table === 'documents') colName = 'documents';
+      else if (table === 'providers') colName = 'providers';
+      else if (table === 'prompts') colName = 'prompts';
+      else if (table === 'logs') colName = 'logs';
+      else if (table === 'agenda') colName = 'agenda';
+      else if (table === 'learning_corrections') colName = 'learningCorrections';
+      else if (table === 'area_templates') colName = 'areaTemplates';
+      else if (table === 'correlatives') colName = 'correlatives';
+      else if (table === 'areas') colName = 'areas';
+      else if (table === 'document_templates') colName = 'documentTemplates';
+
+      if (table === 'document_templates') {
+        this.data.documentTemplates = ((this.data.documentTemplates || []) as any[]).filter(x => x.key !== id);
+      } else {
+        (this.data as any)[colName] = ((this.data as any)[colName] || []).filter((x: any) => x.id !== id);
+      }
+      fs.writeFileSync(this.localFilePath, JSON.stringify(this.data, null, 2), 'utf8');
+      return;
+    }
     await this.q(`DELETE FROM ${table} WHERE id = $1`, [id]);
   }
 
