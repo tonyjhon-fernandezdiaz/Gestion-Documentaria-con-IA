@@ -172,19 +172,28 @@ export default function UploadView({ currentUser, onDocumentAdded }: UploadViewP
     });
   };
 
+  const handleSelectRecipient = (index: number, nombre: string, cargo: string, sexo?: 'F' | 'M') => {
+    setRecipients(prev => {
+      const updated = [...prev];
+      if (updated[index]) {
+        updated[index] = { ...updated[index], nombre, cargo, sexo };
+      }
+      return updated;
+    });
+  };
+
   // Area state overrides & directory autocomplete
   const [savedHeaderImage, setSavedHeaderImage] = useState<string | null>(null);
   const [savedUserName, setSavedUserName] = useState<string>('');
   const [savedUserRole, setSavedUserRole] = useState<string>('');
   const [savedRecipients, setSavedRecipients] = useState<{ id: string; nombre: string; cargo: string; sexo?: 'F' | 'M' }[]>([]);
 
-  // Siempre "A" (cubre ambos géneros, reemplazando "A LA"/"AL")
-  const getSalutation = (name?: string): string => {
-    return 'A';
+  const getSalutation = (): string => {
+    return recipients[0]?.sexo === 'F' ? 'A LA' : 'AL';
   };
   const [showDestinatarioDropdown, setShowDestinatarioDropdown] = useState(false);
 
-  // Load and reactively update configurations from localStorage
+  // Load and reactively update configurations from localStorage and fetch collaborators
   useEffect(() => {
     setSavedHeaderImage(safeStorage.getItem('saved_area_header_image'));
     setSavedUserName(safeStorage.getItem('saved_user_name') || currentUser.name);
@@ -195,15 +204,23 @@ export default function UploadView({ currentUser, onDocumentAdded }: UploadViewP
       setDocSuffix(suffix);
     }
 
-    const RECIPIENTS_VERSION = 'ugel-2026-v1';
-    const recs = safeStorage.getItem('saved_destinatarios_list');
-    if (recs && safeStorage.getItem('saved_destinatarios_version') === RECIPIENTS_VERSION) {
-      setSavedRecipients(JSON.parse(recs));
-    } else {
-      safeStorage.setItem('saved_destinatarios_list', JSON.stringify(DEFAULT_RECIPIENTS));
-      safeStorage.setItem('saved_destinatarios_version', RECIPIENTS_VERSION);
-      setSavedRecipients(DEFAULT_RECIPIENTS);
-    }
+    // Fetch collaborators from database and format them as recipients autocomplete
+    fetch('/api/users')
+      .then(res => res.json())
+      .then((users: any[]) => {
+        const formatted = users
+          .filter(u => u.username !== 'admin')
+          .map(u => ({
+            id: u.id,
+            nombre: u.name,
+            cargo: u.cargo || '',
+            sexo: u.sexo || 'M'
+          }));
+        setSavedRecipients(formatted);
+      })
+      .catch(err => {
+        console.error("Error loading users for recipients:", err);
+      });
   }, [currentUser]);
 
   // Processing & Multi-Provider status states
@@ -1000,7 +1017,7 @@ export default function UploadView({ currentUser, onDocumentAdded }: UploadViewP
           </div>
 
           <div style="text-align: left; font-size: 11pt; margin-bottom: 15px; font-family: Arial, sans-serif; line-height: 1.3;">
-            <strong style="text-transform: uppercase;">SEÑOR&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; : &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ${recipients[0]?.nombre || '-----'}</strong>
+            <strong style="text-transform: uppercase;">${recipients[0]?.sexo === 'F' ? 'SEÑORA' : 'SEÑOR'}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; : &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ${recipients[0]?.nombre || '-----'}</strong>
             ${recipients[0]?.cargo ? `<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="font-size: 10pt; text-transform: uppercase; font-weight: bold; color: #334155;">${recipients[0].cargo}</span>` : ''}
             <br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong style="text-transform: uppercase;">BELLAVISTA.-</strong>
           </div>
@@ -1049,7 +1066,7 @@ export default function UploadView({ currentUser, onDocumentAdded }: UploadViewP
           </h2>
           <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 11pt; font-family: Arial, sans-serif; line-height: 1.15;">
             <tr>
-              <td style="width: 140px; font-weight: bold; padding: 6px 0; vertical-align: top;">${getSalutation(recipients[0]?.nombre)}</td>
+              <td style="width: 140px; font-weight: bold; padding: 6px 0; vertical-align: top;">${getSalutation()}</td>
               <td style="width: 15px; font-weight: bold; padding: 6px 0; vertical-align: top;">:</td>
               <td style="padding: 6px 0; vertical-align: top;">
                 ${recipients.map((dest, idx) => `
@@ -1171,7 +1188,7 @@ export default function UploadView({ currentUser, onDocumentAdded }: UploadViewP
             
             <table class="meta-list">
               <tr>
-                <td class="meta-label">${getSalutation(recipients[0]?.nombre)}</td>
+                <td class="meta-label">${getSalutation()}</td>
                 <td class="meta-colon">:</td>
                 <td class="meta-value" style="text-transform: uppercase;">
                   ${recipients.map((dest, idx) => `
@@ -1412,8 +1429,7 @@ export default function UploadView({ currentUser, onDocumentAdded }: UploadViewP
                                 <div
                                   key={recItem.id}
                                   onMouseDown={() => {
-                                    handleRecipientChange(index, 'nombre', recItem.nombre);
-                                    handleRecipientChange(index, 'cargo', recItem.cargo);
+                                    handleSelectRecipient(index, recItem.nombre, recItem.cargo, recItem.sexo);
                                     setActiveDropdownIndex(null);
                                   }}
                                   className="p-2.5 text-left text-[11px] hover:bg-indigo-50 dark:hover:bg-slate-900/60 cursor-pointer transition-all"
@@ -1780,7 +1796,7 @@ export default function UploadView({ currentUser, onDocumentAdded }: UploadViewP
                     </div>
 
                     <div className="text-left leading-normal">
-                      <strong className="uppercase">SEÑOR&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; : &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {recipients[0]?.nombre || '-----'}</strong>
+                      <strong className="uppercase">{recipients[0]?.sexo === 'F' ? 'SEÑORA' : 'SEÑOR'}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; : &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {recipients[0]?.nombre || '-----'}</strong>
                       {recipients[0]?.cargo && (
                         <span className="block text-[10px] font-extrabold text-slate-600 dark:text-slate-400 uppercase mt-0.5 ml-20 sm:ml-24">
                           {recipients[0].cargo}
@@ -1815,7 +1831,7 @@ export default function UploadView({ currentUser, onDocumentAdded }: UploadViewP
                     <div className="space-y-1.5 pt-2 text-[10px] sm:text-[11px] font-sans text-slate-900 dark:text-slate-100">
                       
                       <div className="flex items-start">
-                        <div className="w-20 sm:w-24 font-extrabold tracking-wide shrink-0 text-slate-950 dark:text-white">{getSalutation(recipients[0]?.nombre)}</div>
+                        <div className="w-20 sm:w-24 font-extrabold tracking-wide shrink-0 text-slate-950 dark:text-white">{getSalutation()}</div>
                         <div className="px-1.5 font-extrabold shrink-0 text-slate-950 dark:text-white">:</div>
                         <div className="flex-1 font-bold text-slate-950 dark:text-white">
                           {recipients.length > 0 && recipients[0].nombre ? (

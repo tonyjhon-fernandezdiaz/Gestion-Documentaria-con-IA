@@ -1006,6 +1006,55 @@ function extractTextLocally(fileBase64: string, filename: string): Promise<strin
   });
 }
 
+function extractTextAndPagesLocally(fileBase64: string, filename: string): Promise<{ text: string; pageCount: number }> {
+  return new Promise((resolve) => {
+    try {
+      const base64Data = fileBase64.includes(',') ? fileBase64.split(',')[1] : fileBase64;
+      const buffer = Buffer.from(base64Data, 'base64');
+      
+      const tempDir = path.join(process.cwd(), 'temp_uploads');
+      if (!fs.existsSync(tempDir)) {
+        fs.mkdirSync(tempDir, { recursive: true });
+      }
+      
+      const fileExt = path.extname(filename).toLowerCase() || (filename.endsWith('.pdf') ? '.pdf' : '.docx');
+      const tempFilePath = path.join(tempDir, `ocr_${Date.now()}${fileExt}`);
+      
+      fs.writeFileSync(tempFilePath, buffer);
+      
+      const pythonScript = path.join(process.cwd(), 'scratch', 'local_extractor.py');
+      const alternativeScript = "C:\\Users\\Lenovo\\.gemini\\antigravity\\brain\\71af1868-75b9-4207-9e7c-576191fa1828\\scratch\\local_extractor.py";
+      const scriptToUse = fs.existsSync(pythonScript) ? pythonScript : alternativeScript;
+      
+      exec(`python "${scriptToUse}" "${tempFilePath}"`, (error, stdout, stderr) => {
+        try {
+          fs.unlinkSync(tempFilePath);
+        } catch (_) {}
+        
+        if (error) {
+          console.error("Local text extraction failed:", error.message);
+          resolve({ text: "", pageCount: 1 });
+          return;
+        }
+        
+        try {
+          const res = JSON.parse(stdout);
+          if (res.success && res.text) {
+            resolve({ text: res.text, pageCount: res.page_count || 1 });
+          } else {
+            resolve({ text: "", pageCount: 1 });
+          }
+        } catch (_) {
+          resolve({ text: "", pageCount: 1 });
+        }
+      });
+    } catch (e) {
+      console.error("Error setting up local extraction:", e);
+      resolve({ text: "", pageCount: 1 });
+    }
+  });
+}
+
 // Helper to optimize document length to save tokens (keeps 1st and last pages if > 5 pages)
 function optimizeDocumentPages(text: string): { optimizedText: string; isOptimized: boolean; originalPageCount: number } {
   if (!text) return { optimizedText: '', isOptimized: false, originalPageCount: 0 };
@@ -1496,6 +1545,132 @@ Debe contener obligatoriamente estos campos:
 
   return res.status(502).json({
     error: 'Todos los proveedores de IA fallaron al procesar la solicitud.',
+    attempted,
+    errorsDetail
+  });
+});
+
+// Analyze Document (find errors and inconsistencies for up to 40 pages)
+app.post('/api/ai/analyze', async (req, res) => {
+  const { filename, usuario, fileBase64 } = req.body;
+
+  if (!fileBase64) {
+    return res.status(400).json({ error: 'Debe subir un archivo de documento para analizar.' });
+  }
+
+  const hasUsableProvider = db.getProviders().some(p => p.enabled && (p.apiKey || (p.id === 'gemini' && process.env.GEMINI_API_KEY)));
+  if (!hasUsableProvider) {
+    return res.status(500).json({ error: 'No hay ningún proveedor de IA configurado con una API key. Configúrelo en Configuraciones -> Proveedores de IA.' });
+  }
+
+  const startTime = Date.now();
+
+  // 1. Extract text and page count locally
+  const { text: rawText, pageCount } = await extractTextAndPagesLocally(fileBase64, filename);
+  
+  if (!rawText || rawText.trim().length < 20) {
+    return res.status(400).json({ error: 'No se pudo extraer texto suficiente del archivo. Asegúrese de que el archivo no esté protegido o vacío.' });
+  }
+
+  if (pageCount > 40) {
+    return res.status(400).json({ error: `El documento excede el límite permitido de 40 páginas (detectadas: ${pageCount} páginas). Por favor, suba un documento de menor extensión.` });
+  }
+
+  // 2. Prepare analysis instruction
+  const systemInstruction = `Eres un sistema experto en auditoría documental, análisis de estilo y control de calidad normativa para la UGEL Bellavista y la administración pública en el Perú. 
+Analiza minuciosamente el texto completo del documento oficial provisto para detectar:
+1. ERRORES DE COHERENCIA O CONTRADICCIONES: Datos que se contradicen (ej. fechas inconsistentes, nombres escritos de diferentes maneras, números de informes que cambian, contradicciones en los argumentos).
+2. ERRORES ORTOGRÁFICOS Y GRAMATICALES: Palabras mal escritas, errores de concordancia o de puntuación.
+3. ERRORES DE REDACCIÓN Y ESTILO: Frases redundantes, oraciones demasiado largas o confusas, términos inapropiados para la formalidad institucional.
+4. INCONSISTENCIAS NORMATIVAS BÁSICAS: Si menciona resoluciones o normativas mal estructuradas o mal citadas (si aplica).
+
+Genera recomendaciones específicas y recomendaciones generales para mejorar la calidad jurídica y de redacción del documento.
+
+Debes responder ÚNICAMENTE con un objeto JSON válido con la siguiente estructura (no agregues bloques de código Markdown ni texto explicativo fuera del JSON):
+{
+  "errorCount": 5,
+  "errors": [
+    {
+      "tipo": "Ortográfico | Gramatical | Coherencia | Redacción | Normativo | Contradicción | Otro",
+      "descripcion": "Explicación detallada del error o inconsistencia encontrada.",
+      "original": "El fragmento o frase original exacta donde se detecta el problema.",
+      "recomendacion": "Cómo redactarlo o corregirlo correctamente."
+    }
+  ],
+  "recomendacionesGenerales": [
+    "Recomendación general para mejorar la estructura o redacción general del tipo de documento."
+  ]
+}`;
+
+  const sortedProviders = db.getProviders()
+    .filter((p) => p.enabled)
+    .sort((a, b) => a.priority - b.priority);
+
+  const attempted: string[] = [];
+  const errorsDetail: Record<string, string> = {};
+  let successfulProvider: AIProvider | null = null;
+  let resultJSON: any = null;
+  let finalTokens = 0;
+
+  for (const provider of sortedProviders) {
+    attempted.push(provider.id);
+    try {
+      const response = await callAIProvider(
+        provider,
+        systemInstruction,
+        `Analiza el siguiente documento de ${pageCount} páginas titulado "${filename}":\n\n${rawText}`,
+        true // JSON mode
+      );
+
+      resultJSON = JSON.parse(response.text.trim());
+      finalTokens = response.tokens;
+      successfulProvider = provider;
+      break; // Succeeded! Stop iterating
+    } catch (err: any) {
+      console.warn(`Error en analizador con ${provider.name}: ${err.message || err}. Intentando siguiente...`);
+      errorsDetail[provider.id] = err.message || String(err);
+    }
+  }
+
+  const responseTimeMs = Date.now() - startTime;
+
+  if (successfulProvider && resultJSON) {
+    updateProviderStats(successfulProvider.id, finalTokens);
+    logSystemAction(
+      usuario || 'Usuario',
+      'Análisis de Documento',
+      `Análisis de consistencia exitoso del archivo "${filename}" (${pageCount} pág.) usando ${successfulProvider.name}. Se encontraron ${resultJSON.errorCount || 0} errores/observaciones.`,
+      'success',
+      {
+        providerSucceeded: successfulProvider.id,
+        tokensUsed: finalTokens,
+        responseTimeMs,
+        pageCount,
+        errorCount: resultJSON.errorCount
+      }
+    );
+
+    return res.json({
+      success: true,
+      pageCount,
+      errorCount: resultJSON.errorCount || 0,
+      errors: resultJSON.errors || [],
+      recomendacionesGenerales: resultJSON.recomendacionesGenerales || [],
+      ia_utilizada: `${successfulProvider.name} (${successfulProvider.modelName})`,
+      responseTimeMs
+    });
+  }
+
+  logSystemAction(
+    usuario || 'Usuario',
+    'Análisis Fallido',
+    `Fallo al analizar consistencia de "${filename}". Todos los proveedores de IA fallaron.`,
+    'error',
+    { providerAttempted: attempted }
+  );
+
+  return res.status(502).json({
+    error: 'Todos los proveedores de IA fallaron al analizar el documento.',
     attempted,
     errorsDetail
   });

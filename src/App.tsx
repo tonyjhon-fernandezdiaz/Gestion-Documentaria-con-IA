@@ -9,6 +9,7 @@ import Sidebar, { SidebarTab } from './components/Sidebar';
 import DashboardView from './components/DashboardView';
 import DocumentsView from './components/DocumentsView';
 import UploadView from './components/UploadView';
+import AnalyzeView from './components/AnalyzeView';
 import PromptConfigView from './components/PromptConfigView';
 import ConfigView from './components/ConfigView';
 import LogsView from './components/LogsView';
@@ -251,6 +252,16 @@ export default function App() {
               fetchDocuments();
               fetchSystemLogs();
             }} 
+          />
+        );
+      case 'analizar':
+        const isPlanif = currentUser.role === 'Administrador' || currentUser.areaId === 'planificacion' || (currentUser.areaIds && currentUser.areaIds.includes('planificacion'));
+        if (!isPlanif) {
+          return <RoleUnauthorizedBlock />;
+        }
+        return (
+          <AnalyzeView 
+            currentUser={currentUser}
           />
         );
       case 'prompts':

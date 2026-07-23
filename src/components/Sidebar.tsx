@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 import { User as UserType } from '../types';
 
-export type SidebarTab = 'inicio' | 'documentos' | 'subir' | 'prompts' | 'config' | 'logs' | 'organigrama';
+export type SidebarTab = 'inicio' | 'documentos' | 'subir' | 'analizar' | 'prompts' | 'config' | 'logs' | 'organigrama';
 
 interface SidebarProps {
   currentTab: SidebarTab;
@@ -50,6 +50,15 @@ export default function Sidebar({
       bgColor: 'bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400',
       activeColor: 'ring-2 ring-amber-500 bg-amber-100 dark:bg-amber-900/60 text-amber-700 dark:text-amber-300',
       roles: ['Administrador', 'Secretaria', 'Jefe', 'Consulta']
+    },
+    { 
+      id: 'analizar' as const, 
+      label: 'Analizar Documento', 
+      icon: ShieldCheck,
+      bgColor: 'bg-teal-50 dark:bg-teal-950/40 text-teal-600 dark:text-teal-400',
+      activeColor: 'ring-2 ring-teal-500 bg-teal-100 dark:bg-teal-900/60 text-teal-700 dark:text-teal-300',
+      roles: ['Administrador', 'Secretaria', 'Jefe', 'Consulta'],
+      customVisible: currentUser.role === 'Administrador' || currentUser.areaId === 'planificacion' || (currentUser.areaIds && currentUser.areaIds.includes('planificacion'))
     },
     { 
       id: 'documentos' as const, 
@@ -89,7 +98,13 @@ export default function Sidebar({
     }
   ];
 
-  const visibleMainItems = mainMenuItems.filter(item => item.roles.includes(currentUser.role));
+  const visibleMainItems = mainMenuItems.filter(item => {
+    const isRoleOk = item.roles.includes(currentUser.role);
+    if ('customVisible' in item) {
+      return isRoleOk && item.customVisible;
+    }
+    return isRoleOk;
+  });
   const visibleBottomItems = bottomMenuItems.filter(item => item.roles.includes(currentUser.role));
 
   return (
