@@ -1227,7 +1227,7 @@ export default function UploadView({ currentUser, onDocumentAdded }: UploadViewP
       <div className="grid lg:grid-cols-12 gap-5 items-start">
         
         {/* LEFT COLUMN: Input Form Parameters matching mockup perfectly */}
-        <div className="lg:col-span-6 space-y-3.5" id="form_panel">
+        <div className="lg:col-span-6 rounded-2xl bg-slate-100 dark:bg-slate-900/40 border border-slate-200/60 dark:border-slate-800/80 p-4 space-y-3.5" id="form_panel">
           
 
 
