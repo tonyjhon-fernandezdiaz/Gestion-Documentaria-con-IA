@@ -385,43 +385,6 @@ export default function UploadView({ currentUser, onDocumentAdded }: UploadViewP
     setAlertState({ isOpen: true, title, message, type });
   };
 
-  // Administrative Error Detector State Variables
-  const [errorReport, setErrorReport] = useState<{ id: string; gravedad: string; seccion: string; descripcion: string; sugerencia: string; targetText?: string; replacementText?: string }[]>([]);
-  const [auditingErrors, setAuditingErrors] = useState(false);
-  const [successToast, setSuccessToast] = useState<string | null>(null);
-
-  const runAdministrativeAudit = async (textToAudit: string) => {
-    if (!textToAudit) return;
-    setAuditingErrors(true);
-    try {
-      const response = await fetch('/api/ai/detect-errors', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          draftText: textToAudit,
-          docType,
-          expediente: referenceOcrMetadata?.expediente || '',
-          referencia: referencia,
-          asunto: asunto,
-          destinatario: destinatario,
-          cargoDestinatario: cargoDestinatario,
-          usuario: currentUser.name
-        })
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setErrorReport(data.errors || []);
-      } else {
-        const errData = await response.json();
-        console.error('Audit Error:', errData.error);
-      }
-    } catch (e: any) {
-      console.error('Error contacting audit service:', e);
-    } finally {
-      setAuditingErrors(false);
-    }
-  };
-
   // Dynamic document tag preview builder
   const getFullDocCode = () => {
     const num = docNumber.trim() || '-----';
@@ -765,7 +728,6 @@ export default function UploadView({ currentUser, onDocumentAdded }: UploadViewP
       setEditedDraftValue(result.data.texto_redactado || '');
       
       if (result.data.texto_redactado) {
-        runAdministrativeAudit(result.data.texto_redactado);
       }
       
       setDraftLog({
@@ -1691,7 +1653,7 @@ export default function UploadView({ currentUser, onDocumentAdded }: UploadViewP
                     if (isEditingDraft) {
                       setGeneratedDraft(editedDraftValue);
                       setIsEditingDraft(false);
-                      runAdministrativeAudit(editedDraftValue);
+
                     } else {
                       setEditedDraftValue(generatedDraft);
                       setIsEditingDraft(true);
@@ -1819,160 +1781,6 @@ export default function UploadView({ currentUser, onDocumentAdded }: UploadViewP
                 <div className="h-16"></div>
               </div>
 
-            </div>
-
-            {/* Detector de Errores Administrativos */}
-            <div className="bg-white dark:bg-slate-950 border border-slate-200/60 dark:border-slate-800/80 rounded-2xl shadow-lg p-5 space-y-4" id="error_detector_panel">
-              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-xl bg-rose-500/10 text-rose-500 flex items-center justify-center">
-                    <AlertTriangle size={16} />
-                  </div>
-                  <div>
-                    <h3 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">
-                      Detector de Errores Administrativos
-                    </h3>
-                    <p className="text-[10px] text-slate-400 dark:text-slate-500">
-                      Auditoría legal y de consistencia formal de la UGEL
-                    </p>
-                  </div>
-                </div>
-                {errorReport.length > 0 && (
-                  <span className="px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-500 text-[10px] font-bold">
-                    {errorReport.length} {errorReport.length === 1 ? 'observación' : 'observaciones'}
-                  </span>
-                )}
-              </div>
-
-              {generatedDraft ? (
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
-                      El asistente escanea el borrador en busca de errores ortográficos, inconsistencias en cargos o expediente, y deficiencias en secciones obligatorias.
-                    </p>
-                    <button
-                      type="button"
-                      onClick={() => runAdministrativeAudit(generatedDraft)}
-                      disabled={auditingErrors}
-                      className="px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 disabled:bg-slate-200 dark:disabled:bg-slate-800 text-white text-[11px] font-bold shadow-sm transition-all shrink-0 flex items-center gap-1"
-                    >
-                      {auditingErrors ? (
-                        <RefreshCw size={11} className="animate-spin" />
-                      ) : (
-                        <Sparkles size={11} />
-                      )}
-                      <span>Auditar Borrador</span>
-                    </button>
-                  </div>
-
-                  {auditingErrors && (
-                    <div className="p-6 text-center space-y-2 border border-rose-500/10 bg-rose-500/5 rounded-2xl animate-pulse">
-                      <RefreshCw size={18} className="animate-spin text-rose-500 mx-auto" />
-                      <p className="text-[11px] text-rose-500 font-bold uppercase tracking-wider">
-                        Auditor de consistencia legal analizando el borrador...
-                      </p>
-                      <p className="text-[9px] text-slate-400">
-                        Verificando normativas de redacción pública del MINEDU y concordancia de datos de origen.
-                      </p>
-                    </div>
-                  )}
-
-                  {!auditingErrors && errorReport.length === 0 && (
-                    <div className="p-4 text-center border border-emerald-500/10 bg-emerald-500/5 rounded-xl text-emerald-600 dark:text-emerald-400 font-medium text-[11px] flex items-center justify-center gap-1.5">
-                      <CheckCircle size={14} />
-                      <span>¡Ningún error formal detectado! El borrador se ajusta a las directivas de la UGEL.</span>
-                    </div>
-                  )}
-
-                  {!auditingErrors && errorReport.length > 0 && (
-                    <div className="space-y-2.5 max-h-80 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800/60 pr-1">
-                      {errorReport.map((err) => (
-                        <div key={err.id} className="pt-2.5 first:pt-0 space-y-2">
-                          <div className="flex items-center justify-between gap-1.5">
-                            <div className="flex items-center gap-1.5">
-                              <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider ${
-                                err.gravedad === 'Crítico' 
-                                  ? 'bg-red-500/10 text-red-500 border border-red-500/10' 
-                                  : err.gravedad === 'Advertencia' 
-                                  ? 'bg-amber-500/10 text-amber-500 border border-amber-500/10' 
-                                  : 'bg-indigo-500/10 text-indigo-500 border border-indigo-500/10'
-                              }`}>
-                                {err.gravedad}
-                              </span>
-                              <span className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 text-[9px] font-semibold">
-                                {err.seccion}
-                              </span>
-                            </div>
-                          </div>
-
-                          <div className="text-[11px] space-y-1">
-                            <p className="font-semibold text-slate-900 dark:text-white">
-                              {err.descripcion}
-                            </p>
-                            <p className="text-slate-500 dark:text-slate-400 italic">
-                              <strong className="text-indigo-600 dark:text-indigo-400">Sugerencia: </strong>{err.sugerencia}
-                            </p>
-                          </div>
-
-                          {err.targetText && err.replacementText && (
-                            <div className="flex items-center justify-between gap-2 bg-slate-50 dark:bg-slate-900/60 p-2 rounded-xl border border-slate-100 dark:border-slate-800">
-                              <div className="min-w-0 flex-1 text-[10px] space-y-0.5">
-                                <div className="truncate text-slate-400 line-through">
-                                  {err.targetText}
-                                </div>
-                                <div className="truncate text-emerald-600 dark:text-emerald-400 font-bold">
-                                  {err.replacementText}
-                                </div>
-                              </div>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  // Perform replace in generatedDraft
-                                  const text = generatedDraft;
-                                  if (text.includes(err.targetText!)) {
-                                    const nextText = text.replace(err.targetText!, err.replacementText!);
-                                    setGeneratedDraft(nextText);
-                                    setEditedDraftValue(nextText);
-                                    setErrorReport(prev => prev.filter(x => x.id !== err.id));
-                                    setSuccessToast(`Se aplicó corrección para: "${err.seccion}"`);
-                                    setTimeout(() => setSuccessToast(null), 3000);
-                                  } else {
-                                    const regex = new RegExp(err.targetText!.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), 'i');
-                                    if (regex.test(text)) {
-                                      const nextText = text.replace(regex, err.replacementText!);
-                                      setGeneratedDraft(nextText);
-                                      setEditedDraftValue(nextText);
-                                      setErrorReport(prev => prev.filter(x => x.id !== err.id));
-                                      setSuccessToast(`Se aplicó corrección para: "${err.seccion}"`);
-                                      setTimeout(() => setSuccessToast(null), 3000);
-                                    } else {
-                                      triggerAlert('Texto no encontrado', 'No se encontró la frase exacta en el documento. Es posible que ya la hayas modificado.', 'warning');
-                                    }
-                                  }
-                                }}
-                                className="px-2.5 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-100 dark:border-emerald-900/60 text-emerald-600 dark:text-emerald-400 text-[10px] font-bold hover:bg-emerald-100 transition-all shrink-0 active:scale-95 flex items-center gap-0.5"
-                              >
-                                <Check size={10} />
-                                <span>Aplicar</span>
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {successToast && (
-                    <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-600 text-[10px] font-bold text-center border border-emerald-500/10 animate-fade-in">
-                      {successToast}
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div className="p-4 text-center border-2 border-dashed border-slate-100 dark:border-slate-800/80 rounded-xl bg-slate-50/50 dark:bg-slate-900/30 text-slate-400 text-[11px]">
-                  El detector de errores se activará tan pronto como la IA genere el borrador de su documento.
-                </div>
-              )}
             </div>
 
             {/* Provider diagnostics / Failover tracker logs for Draft */}
