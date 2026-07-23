@@ -298,12 +298,20 @@ export class NeonDatabase {
     } else {
       // Auto-heal and sync active default users (e.g. AGP, AGI, RRHH, ADM, DIR)
       for (const u of INITIAL_DB.users) {
-        const check = await this.q('SELECT data FROM users WHERE id = $1 OR LOWER(data->>\'username\') = $2', [u.id, u.username.toLowerCase()]);
-        if (check.length === 0) {
-          await this.upsert('users', u.id, u);
+        const byId = await this.q('SELECT data FROM users WHERE id = $1', [u.id]);
+        if (byId.length > 0) {
+          const merged = { ...byId[0].data, username: u.username, password: u.password, role: u.role, name: u.name, areaId: byId[0].data.areaId || u.areaId, cargo: byId[0].data.cargo || u.cargo };
+          await this.upsert('users', u.id, merged);
         } else {
-          const merged = { ...check[0].data, username: u.username, password: u.password, role: u.role, name: u.name, areaId: check[0].data.areaId || u.areaId, cargo: check[0].data.cargo || u.cargo };
-          await this.upsert('users', check[0].data.id || u.id, merged);
+          const byUsername = await this.q('SELECT data FROM users WHERE LOWER(data->>\'username\') = $1', [u.username.toLowerCase()]);
+          if (byUsername.length > 0) {
+            for (const dup of byUsername) {
+              await this.remove('users', dup.data.id);
+            }
+            await this.upsert('users', u.id, u);
+          } else {
+            await this.upsert('users', u.id, u);
+          }
         }
       }
 
