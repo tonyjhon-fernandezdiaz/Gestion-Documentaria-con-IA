@@ -29,6 +29,7 @@ import {
 import { DocumentType, User as UserType } from '../types';
 import { safeStorage } from '../utils/storage';
 import { saveDocument } from '../utils/fileSaver';
+import { generateDocxBlob } from '../utils/docxGenerator';
 import { DEFAULT_RECIPIENTS } from '../defaultRecipients';
 import { getDocumentHTML } from '../templates';
 
@@ -853,232 +854,24 @@ export default function UploadView({ currentUser, onDocumentAdded }: UploadViewP
   };
 
   // Export engines for active document draft preview
-  const exportToWord = () => {
-    const cleanText = cleanDocumentText(generatedDraft);
-    const latestHeaderImage = null; // Avoid large Base64 images in Word HTML to prevent MS Word crashes
-    // El DE del documento exportado se vincula al remitente (usuario logueado + su cargo)
+  const exportToWord = async () => {
     const latestUserName = remitenteNombre || safeStorage.getItem('saved_user_name') || currentUser.name;
     const latestUserRole = remitenteCargo || safeStorage.getItem('saved_user_role') || currentUser.cargo || currentUser.role;
 
-    const header = `
-      <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
-      <head>
-        <title>Documento Oficial</title>
-        <!--[if gte mso 9]>
-        <xml>
-          <w:WordDocument>
-            <w:View>Print</w:View>
-            <w:Zoom>100</w:Zoom>
-          </w:WordDocument>
-        </xml>
-        <![endif]-->
-        <style>
-          @page Section1 {
-            size: 8.5in 11.0in;
-            margin: 1.0in 1.0in 1.0in 1.0in;
-            mso-header-margin: 0.5in;
-            mso-footer-margin: 0.5in;
-            mso-header: h1;
-          }
-          div.Section1 {
-            page: Section1;
-          }
-          body {
-            font-family: Arial, Helvetica, sans-serif;
-            font-size: 11pt;
-            color: #000000;
-          }
-          p {
-            font-family: Arial, Helvetica, sans-serif;
-            font-size: 11pt;
-            line-height: 1.15;
-            margin-top: 0;
-            margin-bottom: 11pt;
-            text-align: justify;
-            color: #000000;
-          }
-          p.MsoHeader, div.MsoHeader {
-            margin: 0in;
-            margin-bottom: .0001pt;
-          }
-        </style>
-      </head>
-      <body>
-    `;
-    
-    let headerBlock = '';
-    if (latestHeaderImage) {
-      headerBlock = `
-        <table style="width: 100%; border-collapse: collapse; margin-bottom: 25px;">
-          <tr>
-            <td style="text-align: center; padding-bottom: 15px;">
-              <img src="${latestHeaderImage}" width="600" style="width: 600px; height: auto; display: block; margin: 0 auto;" />
-            </td>
-          </tr>
-        </table>
-      `;
-    } else {
-      headerBlock = `
-        <table style="width: 100%; border-collapse: collapse; padding-bottom: 12px; margin-bottom: 20px;">
-          <tr>
-            <td style="width: 30%; font-family: Arial, sans-serif; font-size: 11px; line-height: 1.2; vertical-align: middle;">
-              <strong style="color: #1d4ed8; font-style: italic; font-size: 14px;">San Martín</strong><br/>
-              <span style="font-weight: bold; text-transform: uppercase; font-size: 9px; color: #666;">Gobierno Regional</span>
-            </td>
-            <td style="width: 70%; bg-color: #8B3A3A; background-color: #8B3A3A; color: white; text-align: center; padding: 10px; font-family: Arial, sans-serif; font-weight: bold; vertical-align: middle;">
-              <div style="font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;">DIRECCIÓN REGIONAL DE EDUCACIÓN</div>
-              <div style="font-size: 9px; text-transform: uppercase; font-weight: normal; margin-top: 3px;">UGEL Bellavista – Dirección – Área de Gestión Institucional – Racionalización</div>
-              <div style="font-size: 7px; font-style: italic; font-weight: normal; margin-top: 4px; opacity: 0.9;">"AÑO DEL BICENTENARIO, DE LA CONSOLIDACIÓN DE NUESTRA INDEPENDENCIA, Y DE LA CONMEMORACIÓN DE LAS HEROICAS BATALLAS DE JUNÍN Y AYACUCHO"</div>
-            </td>
-          </tr>
-        </table>
-      `;
-    }
-
-    const formattedParagraphs = cleanText
-      ? cleanText
-          .split(/\n\s*\n/)
-          .map(para => {
-            const cleanPara = para.trim();
-            if (!cleanPara) return '';
-            return `<p style="margin-top: 0; margin-bottom: 11pt; line-height: 1.15; text-align: justify; font-family: Arial, sans-serif; font-size: 11pt; color: #000000;">${cleanPara.replace(/\n/g, '<br/>')}</p>`;
-          })
-          .filter(Boolean)
-          .join('')
-      : '<p style="margin-top: 0; margin-bottom: 11pt; line-height: 1.15; font-family: Arial, sans-serif; font-size: 11pt; color: #000000;">◇ la IA redactará el cuerpo aquí</p>';
-
-    const isCarta = activeDocTypeLabel.toLowerCase() === 'carta';
-
-    let body = '';
-
-    if (isCarta) {
-      // Precise Carta 2026 Layout matching the analyzed .docx structure:
-      // Date Right Aligned -> Code Left Aligned -> SEÑOR Block -> ASUNTO -> REF (if exists) -> Dotted line -> Justified body -> Centered Atentamente -> Left aligned pie
-      body = `
-        <div class="Section1" style="font-family: Arial, sans-serif;">
-          <!-- Native Word Header element -->
-          <div style="mso-element:header" id="h1">
-            <div class="MsoHeader">
-              ${headerBlock}
-            </div>
-          </div>
-
-          <div style="text-align: right; font-size: 11pt; margin-bottom: 20px; font-family: Arial, sans-serif;">
-            Bellavista, ${new Date().toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })}.
-          </div>
-
-          <div style="text-align: left; font-weight: bold; font-size: 11pt; margin-bottom: 15px; font-family: Arial, sans-serif;">
-            ${activeDocTypeLabel.toUpperCase()} N° ${docNumber}${docSuffix.trim()}
-          </div>
-
-          <div style="text-align: left; font-size: 11pt; margin-bottom: 15px; font-family: Arial, sans-serif; line-height: 1.3;">
-            <strong style="text-transform: uppercase;">${recipients[0]?.sexo === 'F' ? 'SEÑORA' : 'SEÑOR'}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; : &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ${recipients[0]?.nombre || '-----'}</strong>
-            ${recipients[0]?.cargo ? `<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="font-size: 10pt; text-transform: uppercase; font-weight: bold; color: #334155;">${recipients[0].cargo}</span>` : ''}
-            <br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong style="text-transform: uppercase;">BELLAVISTA.-</strong>
-          </div>
-
-          <div style="text-align: left; font-size: 11pt; margin-bottom: 10px; font-family: Arial, sans-serif; line-height: 1.3;">
-            <strong>ASUNTO &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; : &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="text-transform: uppercase;">${asunto || '-----'}</span></strong>
-          </div>
-
-          ${referencia ? `
-          <div style="text-align: left; font-size: 11pt; margin-bottom: 15px; font-family: Arial, sans-serif; line-height: 1.3;">
-            <strong>REF. &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; : &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="text-transform: uppercase;">${referencia}</span></strong>
-          </div>
-          ` : ''}
-
-          <div style="text-align: center; margin-bottom: 20px; font-family: Arial, sans-serif; letter-spacing: -1px; color: #777777;">
-            ------------------------------------------------------------------------------------------------------------------------
-          </div>
-
-          <div style="font-size: 11pt; text-align: justify; line-height: 1.15; font-family: Arial, sans-serif; color: #000000;">
-            ${formattedParagraphs}
-          </div>
-
-          <!-- Center-aligned "Atentamente" signature area -->
-          <br/><br/>
-          <table style="width: 100%; border-collapse: collapse; margin-top: 40px; font-family: Arial, sans-serif; font-size: 11pt; text-align: center;">
-            <tr>
-              <td style="text-align: center; width: 100%;">
-                <span style="font-weight: bold; display: block; margin-bottom: 85px;">Atentamente,</span>
-              </td>
-            </tr>
-          </table>
-        </div>
-      `;
-    } else {
-      body = `
-        <div class="Section1">
-          <!-- Native Word Header element -->
-          <div style="mso-element:header" id="h1">
-            <div class="MsoHeader">
-              ${headerBlock}
-            </div>
-          </div>
-
-          <h2 style="text-align: center; text-decoration: underline; margin-bottom: 25px; font-size: 13pt; font-family: Arial, sans-serif; font-weight: bold; text-transform: uppercase;">
-            ${activeDocTypeLabel.toUpperCase()} ${getFullDocCode()}
-          </h2>
-          <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 11pt; font-family: Arial, sans-serif; line-height: 1.15;">
-            <tr>
-              <td style="width: 140px; font-weight: bold; padding: 6px 0; vertical-align: top;">${getSalutation()}</td>
-              <td style="width: 15px; font-weight: bold; padding: 6px 0; vertical-align: top;">:</td>
-              <td style="padding: 6px 0; vertical-align: top;">
-                ${recipients.map((dest, idx) => `
-                  ${idx > 0 ? '<div style="margin-top: 10px;"></div>' : ''}
-                  <strong style="text-transform: uppercase; font-size: 11pt;">${dest.nombre || '-----'}</strong>
-                  ${dest.cargo ? `<br/><span style="font-size: 10pt; color: #334155; text-transform: uppercase; font-weight: bold;">${dest.cargo}</span>` : ''}
-                `).join('')}
-              </td>
-            </tr>
-            <tr>
-              <td style="font-weight: bold; padding: 6px 0; vertical-align: top;">DE</td>
-              <td style="font-weight: bold; padding: 6px 0; vertical-align: top;">:</td>
-              <td style="padding: 6px 0; vertical-align: top;">
-                <strong style="text-transform: uppercase; font-size: 11pt;">${latestUserName}</strong>
-                <br/><span style="font-size: 10pt; color: #334155; text-transform: uppercase; font-weight: bold;">${latestUserRole}</span>
-              </td>
-            </tr>
-            <tr>
-              <td style="font-weight: bold; padding: 6px 0; vertical-align: top;">ASUNTO</td>
-              <td style="font-weight: bold; padding: 6px 0; vertical-align: top;">:</td>
-              <td style="padding: 6px 0; vertical-align: top; font-weight: bold; text-transform: uppercase;">${asunto}</td>
-            </tr>
-            <tr>
-              <td style="font-weight: bold; padding: 6px 0; vertical-align: top;">REFERENCIA</td>
-              <td style="font-weight: bold; padding: 6px 0; vertical-align: top;">:</td>
-              <td style="padding: 6px 0; vertical-align: top; color: #1e293b;">${referencia || 'SIN REFERENCIA'}</td>
-            </tr>
-            <tr>
-              <td style="font-weight: bold; padding: 6px 0; vertical-align: top;">LUGAR Y FECHA</td>
-              <td style="font-weight: bold; padding: 6px 0; vertical-align: top;">:</td>
-              <td style="padding: 6px 0; vertical-align: top; color: #1e293b;">Bellavista, ${new Date().toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })}</td>
-            </tr>
-          </table>
-          <hr style="border: 0; border-top: 1px dashed #777777; margin-bottom: 25px;" />
-          <div style="font-size: 11pt; text-align: justify; line-height: 1.15; font-family: Arial, sans-serif; color: #000000; padding-top: 5px;">
-            ${formattedParagraphs}
-          </div>
-
-          <!-- Center-aligned "Atentamente" signature area -->
-          <br/><br/>
-          <table style="width: 100%; border-collapse: collapse; margin-top: 40px; font-family: Arial, sans-serif; font-size: 11pt; text-align: center;">
-            <tr>
-              <td style="text-align: center; width: 100%;">
-                <span style="font-weight: bold; display: block; margin-bottom: 60px;">Atentamente,</span>
-              </td>
-            </tr>
-          </table>
-        </div>
-      `;
-    }
-    
-    const bodyEnd = `</body></html>`;
-    const finalBody = body + bodyEnd;
-    
-    const filename = `${getFullDocCode().replace(/\s+/g, '_')}_Draft.doc`;
-    const blob = new Blob(['\uFEFF' + header + finalBody], { type: 'application/msword' });
-    saveDocument(filename, blob, 'application/msword');
+    const blob = await generateDocxBlob({
+      docType: activeDocTypeLabel,
+      docCode: getFullDocCode(),
+      salutation: getSalutation(),
+      recipients: recipients.map(r => ({ nombre: r.nombre || '-----', cargo: r.cargo, sexo: r.sexo })),
+      fromName: latestUserName,
+      fromRole: latestUserRole,
+      subject: asunto || '-----',
+      referencia: referencia || '',
+      date: `Bellavista, ${new Date().toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })}`,
+      body: generatedDraft,
+      filename: `${getFullDocCode().replace(/\s+/g, '_')}_Draft.docx`,
+    });
+    saveDocument(`${getFullDocCode().replace(/\s+/g, '_')}_Draft.docx`, blob, 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
   };
 
   const handlePrint = () => {

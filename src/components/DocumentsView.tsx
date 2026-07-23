@@ -20,6 +20,7 @@ import {
 import { Document, DocumentType, User as UserType } from '../types';
 import { safeStorage } from '../utils/storage';
 import { saveDocument } from '../utils/fileSaver';
+import { generateDocxBlob } from '../utils/docxGenerator';
 
 // Cache shared directory for sexo lookup (loaded from server)
 let _recipientsCache: any[] | null = null;
@@ -145,171 +146,27 @@ export default function DocumentsView({
   };
 
   // Export engines
-  const exportToWord = (doc: Document) => {
-    const cleanText = cleanDocumentText(doc.textoRedactado || '');
-    const savedHeaderImage = safeStorage.getItem('saved_area_header_image');
+  const exportToWord = async (doc: Document) => {
+    const dests = doc.datosExtraidos?.destinatarios && Array.isArray(doc.datosExtraidos.destinatarios) && doc.datosExtraidos.destinatarios.length > 0
+      ? doc.datosExtraidos.destinatarios.map((d: any) => ({ nombre: d.nombre || doc.solicitante, cargo: d.cargo }))
+      : [{ nombre: doc.solicitante, cargo: doc.datosExtraidos?.cargo_destinatario }];
     const savedUserName = safeStorage.getItem('saved_user_name') || 'Mesa de Partes / Área Técnica';
     const savedUserRole = safeStorage.getItem('saved_user_role') || 'Soporte del Sistema';
 
-    const header = `
-      <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
-      <head>
-        <title>Documento Oficial</title>
-        <!--[if gte mso 9]>
-        <xml>
-          <w:WordDocument>
-            <w:View>Print</w:View>
-            <w:Zoom>100</w:Zoom>
-          </w:WordDocument>
-        </xml>
-        <![endif]-->
-        <style>
-          @page Section1 {
-            size: 8.5in 11.0in;
-            margin: 1.0in 1.0in 1.0in 1.0in;
-            mso-header-margin: 0.5in;
-            mso-footer-margin: 0.5in;
-            mso-header: h1;
-          }
-          div.Section1 {
-            page: Section1;
-          }
-          body {
-            font-family: Arial, Helvetica, sans-serif;
-            font-size: 11pt;
-            color: #000000;
-          }
-          p {
-            font-family: Arial, Helvetica, sans-serif;
-            font-size: 11pt;
-            line-height: 1.15;
-            margin-top: 0;
-            margin-bottom: 11pt;
-            text-align: justify;
-            color: #000000;
-          }
-          p.MsoHeader, div.MsoHeader {
-            margin: 0in;
-            margin-bottom: .0001pt;
-          }
-        </style>
-      </head>
-      <body>
-    `;
-    
-    let headerBlock = '';
-    if (savedHeaderImage) {
-      headerBlock = `
-        <table style="width: 100%; border-collapse: collapse; margin-bottom: 25px;">
-          <tr>
-            <td style="text-align: center; padding-bottom: 15px;">
-              <img src="${savedHeaderImage}" width="600" style="width: 600px; height: auto; display: block; margin: 0 auto;" />
-            </td>
-          </tr>
-        </table>
-      `;
-    } else {
-      headerBlock = `
-        <table style="width: 100%; border-collapse: collapse; padding-bottom: 12px; margin-bottom: 25px;">
-          <tr>
-            <td style="width: 30%; font-family: Arial, sans-serif; font-size: 11px; line-height: 1.2; vertical-align: middle;">
-              <strong style="color: #1d4ed8; font-style: italic; font-size: 14px;">San Martín</strong><br/>
-              <span style="font-weight: bold; text-transform: uppercase; font-size: 9px; color: #666;">Gobierno Regional</span>
-            </td>
-            <td style="width: 70%; bg-color: #8B3A3A; background-color: #8B3A3A; color: white; text-align: center; padding: 12px; font-family: Arial, sans-serif; font-weight: bold; vertical-align: middle;">
-              <div style="font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;">DIRECCIÓN REGIONAL DE EDUCACIÓN</div>
-              <div style="font-size: 9px; text-transform: uppercase; font-weight: normal; margin-top: 3px;">UGEL Bellavista – Dirección – Área de Gestión Institucional – Racionalización</div>
-              <div style="font-size: 7px; font-style: italic; font-weight: normal; margin-top: 4px; opacity: 0.9;">"AÑO DEL BICENTENARIO, DE LA CONSOLIDACIÓN DE NUESTRA INDEPENDENCIA, Y DE LA CONMEMORACIÓN DE LAS HEROICAS BATALLAS DE JUNÍN Y AYACUCHO"</div>
-            </td>
-          </tr>
-        </table>
-      `;
-    }
-
-    const formattedParagraphs = cleanText
-      ? cleanText
-          .split(/\n\s*\n/)
-          .map(para => {
-            const cleanPara = para.trim();
-            if (!cleanPara) return '';
-            return `<p style="margin-top: 0; margin-bottom: 11pt; line-height: 1.15; text-align: justify; font-family: Arial, sans-serif; font-size: 11pt; color: #000000;">${cleanPara.replace(/\n/g, '<br/>')}</p>`;
-          })
-          .filter(Boolean)
-          .join('')
-      : '<p style="margin-top: 0; margin-bottom: 11pt; line-height: 1.15; font-family: Arial, sans-serif; font-size: 11pt; color: #000000;">◇ Sin redactar</p>';
-
-    const body = `
-      <div class="Section1">
-        <!-- Native Word Header element -->
-        <div style="mso-element:header" id="h1">
-          <div class="MsoHeader">
-            ${headerBlock}
-          </div>
-        </div>
-
-        <h2 style="text-align: center; text-decoration: underline; margin-bottom: 25px; font-size: 13pt; font-family: Arial, sans-serif; font-weight: bold; text-transform: uppercase;">
-          ${doc.tipo.toUpperCase()} ${doc.expediente}
-        </h2>
-        <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 11pt; font-family: Arial, sans-serif; line-height: 1.15;">
-          <tr>
-            <td style="width: 140px; font-weight: bold; padding: 6px 0; vertical-align: top;">${getDocSalutation(doc)}</td>
-            <td style="width: 15px; font-weight: bold; padding: 6px 0; vertical-align: top;">:</td>
-            <td style="padding: 6px 0; vertical-align: top;">
-              ${doc.datosExtraidos?.destinatarios && Array.isArray(doc.datosExtraidos.destinatarios) && doc.datosExtraidos.destinatarios.length > 0 ? (
-                doc.datosExtraidos.destinatarios.map((dest: any, idx: number) => `
-                  ${idx > 0 ? '<div style="margin-top: 10px;"></div>' : ''}
-                  <strong style="text-transform: uppercase; font-size: 11pt;">${dest.nombre || '-----'}</strong>
-                  ${dest.cargo ? `<br/><span style="font-size: 10pt; color: #334155; text-transform: uppercase; font-weight: bold;">${dest.cargo}</span>` : ''}
-                `).join('')
-              ) : `
-                <strong style="text-transform: uppercase; font-size: 11pt;">${doc.solicitante}</strong>
-                ${doc.datosExtraidos?.cargo_destinatario ? `<br/><span style="font-size: 10pt; color: #334155; text-transform: uppercase; font-weight: bold;">${doc.datosExtraidos.cargo_destinatario}</span>` : ''}
-              `}
-            </td>
-          </tr>
-          <tr>
-            <td style="font-weight: bold; padding: 6px 0; vertical-align: top;">DE</td>
-            <td style="font-weight: bold; padding: 6px 0; vertical-align: top;">:</td>
-            <td style="padding: 6px 0; vertical-align: top;">
-              <strong style="text-transform: uppercase; font-size: 11pt;">${savedUserName}</strong>
-              <br/><span style="font-size: 10pt; color: #334155; text-transform: uppercase; font-weight: bold;">${savedUserRole}</span>
-            </td>
-          </tr>
-          <tr>
-            <td style="font-weight: bold; padding: 6px 0; vertical-align: top;">ASUNTO</td>
-            <td style="font-weight: bold; padding: 6px 0; vertical-align: top;">:</td>
-            <td style="padding: 6px 0; vertical-align: top; font-weight: bold; text-transform: uppercase;">${doc.tema}</td>
-          </tr>
-          <tr>
-            <td style="font-weight: bold; padding: 6px 0; vertical-align: top;">REFERENCIA</td>
-            <td style="font-weight: bold; padding: 6px 0; vertical-align: top;">:</td>
-            <td style="padding: 6px 0; vertical-align: top; color: #1e293b;">${doc.referencia || 'SIN REFERENCIA'}</td>
-          </tr>
-          <tr>
-            <td style="font-weight: bold; padding: 6px 0; vertical-align: top;">LUGAR Y FECHA</td>
-            <td style="font-weight: bold; padding: 6px 0; vertical-align: top;">:</td>
-            <td style="padding: 6px 0; vertical-align: top; color: #1e293b;">Bellavista, ${new Date(doc.fechaProceso).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })}</td>
-          </tr>
-        </table>
-        <hr style="border: 0; border-top: 1px dashed #777777; margin-bottom: 25px;" />
-        <div style="font-size: 11pt; text-align: justify; line-height: 1.15; font-family: Arial, sans-serif; color: #000000; padding-top: 5px;">
-          ${formattedParagraphs}
-        </div>
-        
-        <!-- Center-aligned "Atentamente" signature area -->
-        <br/><br/>
-        <table style="width: 100%; border-collapse: collapse; margin-top: 40px; font-family: Arial, sans-serif; font-size: 11pt; text-align: center;">
-          <tr>
-            <td style="text-align: center; width: 100%;">
-              <span style="font-weight: bold; display: block; margin-bottom: 60px;">Atentamente,</span>
-            </td>
-          </tr>
-        </table>
-      </div>
-    </body></html>`;
-    const filename = `${doc.expediente}_${doc.tipo}.doc`;
-    const blob = new Blob(['﻿' + header + body], { type: 'application/msword' });
-    saveDocument(filename, blob, 'application/msword');
+    const blob = await generateDocxBlob({
+      docType: doc.tipo,
+      docCode: doc.expediente,
+      salutation: getDocSalutation(doc),
+      recipients: dests,
+      fromName: savedUserName,
+      fromRole: savedUserRole,
+      subject: doc.tema,
+      referencia: doc.referencia || '',
+      date: `Bellavista, ${new Date(doc.fechaProceso).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })}`,
+      body: doc.textoRedactado || '',
+      filename: `${doc.expediente}_${doc.tipo}.docx`,
+    });
+    saveDocument(`${doc.expediente}_${doc.tipo}.docx`, blob, 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
   };
 
   const exportToExcel = () => {
